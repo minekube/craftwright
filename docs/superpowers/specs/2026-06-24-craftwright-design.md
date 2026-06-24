@@ -23,6 +23,8 @@ capabilities through a short CLI and typed SDKs.
 
 The CLI is the canonical interface. SDKs and test adapters may wrap the same
 daemon/protocol, but all important operations must remain possible from `mcw`.
+The detailed CLI contract is tracked in
+`docs/superpowers/specs/2026-06-24-mcw-cli-design.md`.
 
 ## Non-Goals
 
