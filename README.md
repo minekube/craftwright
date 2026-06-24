@@ -8,3 +8,6 @@ Minecraft Java client. The initial design is tracked in
 
 The `mcw` CLI contract is tracked in
 `docs/superpowers/specs/2026-06-24-mcw-cli-design.md`.
+
+The first executable implementation plan is tracked in
+`docs/superpowers/plans/2026-06-24-milestone-1-foundation.md`.
