@@ -25,7 +25,7 @@ instead of a static list of hard-coded actions.
 Minecraft already provides the client runtime. Craftless adds a thin driver,
 runtime, and protocol layer around that real client.
 
-![Craftless stack layers](docs/assets/craftless-stack.svg)
+![Craftless architecture: generated APIs and control plane driving attached real Minecraft Java clients](docs/assets/craftless-architecture-generated.png)
 
 ## Example
 
