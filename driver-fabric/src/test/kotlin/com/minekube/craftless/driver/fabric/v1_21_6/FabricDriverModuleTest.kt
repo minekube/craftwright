@@ -4,6 +4,7 @@ import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.runtime.DriverBackendAction
+import java.nio.file.Files
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -206,9 +207,10 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric smoke controller invokes generated chat action after connecting`() {
+    fun `fabric smoke controller invokes generated chat through daemon api and writes artifacts`() {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)
+        val artifactsDir = Files.createTempDirectory("craftless-fabric-smoke-artifacts")
         val controller = FabricClientSmokeController.fromEnvironment(
             mapOf(
                 "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
@@ -217,6 +219,7 @@ class FabricDriverModuleTest {
                 "CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE" to "hello from fabric smoke",
                 "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
                 "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
+                "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
             )
         )
 
@@ -232,6 +235,11 @@ class FabricDriverModuleTest {
             ),
             gateway.actions,
         )
+        assertTrue(Files.readString(artifactsDir.resolve("client-openapi.json")).contains("/clients/fabric-smoke:run"))
+        assertTrue(Files.readString(artifactsDir.resolve("client-openapi.json")).contains("craftless-driver-fabric"))
+        assertTrue(Files.readString(artifactsDir.resolve("client-actions.json")).contains("player.chat"))
+        assertTrue(Files.readString(artifactsDir.resolve("runtime-metadata.json")).contains("craftless-driver-fabric"))
+        assertTrue(Files.readString(artifactsDir.resolve("client-events.jsonl")).contains("hello from fabric smoke"))
     }
 
     @Test

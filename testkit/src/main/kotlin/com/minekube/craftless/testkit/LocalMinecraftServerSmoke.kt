@@ -77,6 +77,7 @@ object LocalMinecraftServerSmoke {
 }
 
 private const val CRAFTLESS_SMOKE_SERVER_PORT_ENV = "CRAFTLESS_SMOKE_SERVER_PORT"
+private const val CRAFTLESS_SMOKE_ARTIFACTS_DIR_ENV = "CRAFTLESS_SMOKE_ARTIFACTS_DIR"
 private const val DEFAULT_MINECRAFT_SERVER_PORT = 25565
 
 data class LocalMinecraftServerSmokeResult(
@@ -224,6 +225,8 @@ private fun runConfiguredActionCommand(
         .directory(config.root.toFile())
         .also { builder ->
             builder.environment()[CRAFTLESS_SMOKE_SERVER_PORT_ENV] = config.port.toString()
+            builder.environment()[CRAFTLESS_SMOKE_ARTIFACTS_DIR_ENV] =
+                layout.artifactsDir.toAbsolutePath().normalize().toString()
         }
         .redirectErrorStream(true)
         .start()

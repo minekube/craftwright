@@ -36,9 +36,10 @@ Craftless currently has:
   `CRAFTLESS_FABRIC_CLIENT_SMOKE`; when enabled it runs the testkit server
   lifecycle and a bounded client command, defaulting to
   `mise exec -- gradle :driver-fabric:runClient`, whose in-client Fabric smoke
-  controller connects to the smoke server and invokes generated `player.chat`
-  through the Fabric driver backend, with expected chat and disconnect evidence
-  checked against server artifacts;
+  controller starts a local daemon API backed by the Fabric driver, fetches
+  per-client OpenAPI/action metadata, connects to the smoke server, invokes
+  generated `player.chat` through `POST /clients/{id}:run` after connection,
+  and writes client artifacts next to server artifacts;
 - repo-local Kotlin/JVM agent skills scoped to this codebase.
 
 ## Completion Definition
@@ -67,10 +68,13 @@ the durable Fabric direction.
 - Run the opt-in Fabric smoke command against a real client and commit the
   resulting confidence into tests/docs by preserving the generated server
   evidence artifacts from the provisioned Minecraft `1.21.6` server.
-- Wire the Fabric smoke task to collect daemon/client artifacts automatically
-  after the Fabric client joins the provisioned Minecraft `1.21.6` server.
-- Invoke generated `player.chat` through the daemon action API and assert that
-  the local server sees the chat event.
+- Debug the remaining real-client join failure: the 2026-06-25 smoke attempt
+  launched `:driver-fabric:runClient`, started the in-client daemon API, and
+  wrote `client-openapi.json`, `client-actions.json`, `client-events.jsonl`,
+  and `runtime-metadata.json`, but the Minecraft client did not join the local
+  server before timeout.
+- After join evidence exists, invoke generated `player.chat` through the daemon
+  action API and assert that the local server sees the chat event.
 - Invoke generated `player.move` and assert movement evidence from server-side
   position deltas or in-client driver telemetry.
 - Keep bridge evidence tests separate from Fabric smoke tests so the bridge

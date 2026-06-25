@@ -1,8 +1,31 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
+import com.minekube.craftless.daemon.ActionInvocationRequest
+import com.minekube.craftless.daemon.ConnectRequest
+import com.minekube.craftless.daemon.DriverSessionFactory
+import com.minekube.craftless.daemon.LocalSessionApiServer
 import com.minekube.craftless.driver.api.ConnectionTarget
-import com.minekube.craftless.driver.api.DriverActionInvocation
+import com.minekube.craftless.driver.runtime.BackendDriverSession
+import com.minekube.craftless.protocol.CreateClientRequest
+import com.minekube.craftless.protocol.Loader
+import com.minekube.craftless.protocol.Profile
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
 import kotlin.concurrent.thread
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -13,6 +36,7 @@ data class FabricClientSmokeController(
     val chatMessage: String = "hello from Craftless Fabric smoke",
     val connectTimeout: Duration = 30_000.milliseconds,
     val startupSettleDelay: Duration = 0.milliseconds,
+    val artifactsDir: Path? = null,
 ) {
     init {
         require(!startupSettleDelay.isNegative()) { "fabric smoke startup settle delay must not be negative" }
@@ -27,22 +51,78 @@ data class FabricClientSmokeController(
             return false
         }
         thread(name = "craftless-fabric-smoke", isDaemon = true) {
-            if (gateway.awaitReadyToConnect(connectTimeout, pollInterval)) {
-                Thread.sleep(startupSettleDelay.inWholeMilliseconds)
-                backend.connect(SMOKE_CLIENT_ID, target)
-            }
-            if (gateway.awaitConnected(connectTimeout, pollInterval)) {
-                backend.invoke(
-                    SMOKE_CLIENT_ID,
-                    DriverActionInvocation(
-                        action = "player.chat",
-                        arguments = mapOf("message" to JsonPrimitive(chatMessage)),
-                    ),
+            runBlocking {
+                runDaemonBackedSmoke(
+                    backend = backend,
+                    gateway = gateway,
+                    pollInterval = pollInterval,
                 )
             }
-            backend.stop(SMOKE_CLIENT_ID)
         }
         return true
+    }
+
+    private suspend fun runDaemonBackedSmoke(
+        backend: FabricDriverBackend,
+        gateway: FabricClientGateway,
+        pollInterval: Duration,
+    ) {
+        LocalSessionApiServer.inMemory(
+            driverFactory = DriverSessionFactory { request ->
+                BackendDriverSession(clientId = request.id, backend = backend)
+            },
+        ).use { api ->
+            api.start()
+            HttpClient(CIO).use { http ->
+                http.postJson(
+                    api.url("/clients"),
+                    CreateClientRequest(
+                        id = SMOKE_CLIENT_ID,
+                        version = MINECRAFT_VERSION,
+                        loader = Loader.FABRIC,
+                        profile = Profile.offline(SMOKE_PROFILE),
+                    ),
+                )
+                val openApi = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/openapi.json"))
+                val actions = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/actions"))
+                writeArtifact("client-openapi.json", openApi)
+                writeArtifact("client-actions.json", actions)
+                writeArtifact("runtime-metadata.json", smokeJson.encodeToString(backend.runtimeMetadata(SMOKE_CLIENT_ID)))
+
+                if (gateway.awaitReadyToConnect(connectTimeout, pollInterval)) {
+                    Thread.sleep(startupSettleDelay.inWholeMilliseconds)
+                    http.postJson(
+                        api.url("/clients/$SMOKE_CLIENT_ID:connect"),
+                        ConnectRequest(host = target.host, port = target.port),
+                    )
+                }
+                if (gateway.awaitConnected(connectTimeout, pollInterval)) {
+                    http.postJson(
+                        api.url("/clients/$SMOKE_CLIENT_ID:run"),
+                        ActionInvocationRequest(
+                            action = "player.chat",
+                            args = mapOf("message" to JsonPrimitive(chatMessage)),
+                        ),
+                    )
+                }
+                val events = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/events"))
+                writeJsonArrayLinesArtifact("client-events.jsonl", events)
+                http.post(api.url("/clients/$SMOKE_CLIENT_ID:stop")).expectSuccess()
+            }
+        }
+    }
+
+    private fun writeArtifact(name: String, content: String) {
+        val dir = artifactsDir ?: return
+        Files.createDirectories(dir)
+        Files.writeString(dir.resolve(name), content)
+    }
+
+    private fun writeJsonArrayLinesArtifact(name: String, content: String) {
+        val lines = smokeJson.parseToJsonElement(content)
+            .jsonArray
+            .joinToString(separator = "\n", postfix = "\n") { it.toString() }
+        writeArtifact(name, lines)
     }
 
     companion object {
@@ -52,7 +132,10 @@ data class FabricClientSmokeController(
         private const val CHAT_MESSAGE = "CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE"
         private const val CONNECT_TIMEOUT = "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS"
         private const val STARTUP_SETTLE = "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS"
+        private const val ARTIFACTS_DIR = "CRAFTLESS_SMOKE_ARTIFACTS_DIR"
         private const val SMOKE_CLIENT_ID = "fabric-smoke"
+        private const val SMOKE_PROFILE = "CraftlessSmoke"
+        private const val MINECRAFT_VERSION = "1.21.6"
 
         fun fromEnvironment(env: Map<String, String> = System.getenv()): FabricClientSmokeController =
             FabricClientSmokeController(
@@ -65,6 +148,7 @@ data class FabricClientSmokeController(
                     ?: "hello from Craftless Fabric smoke",
                 connectTimeout = (env[CONNECT_TIMEOUT]?.toLongStrict(CONNECT_TIMEOUT) ?: 30_000).milliseconds,
                 startupSettleDelay = (env[STARTUP_SETTLE]?.toLongStrict(STARTUP_SETTLE) ?: 0).milliseconds,
+                artifactsDir = env[ARTIFACTS_DIR]?.takeIf { it.isNotBlank() }?.let(Path::of),
             )
 
         private fun Map<String, String>.isEnabled(name: String): Boolean =
@@ -76,6 +160,35 @@ data class FabricClientSmokeController(
         private fun String.toLongStrict(name: String): Long =
             toLongOrNull() ?: error("$name must be a long integer")
     }
+}
+
+private suspend inline fun <reified T> HttpClient.postJson(
+    url: String,
+    value: T,
+): String {
+    val response = post(url) {
+        header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+        setBody(smokeJson.encodeToString(value))
+    }
+    response.expectSuccess()
+    return response.bodyAsText()
+}
+
+private suspend fun HttpClient.getText(url: String): String {
+    val response = get(url)
+    response.expectSuccess()
+    return response.bodyAsText()
+}
+
+private suspend fun HttpResponse.expectSuccess() {
+    check(status.value in 200..299) {
+        "fabric smoke API request failed with ${status.value}: ${bodyAsText()}"
+    }
+}
+
+private val smokeJson = Json {
+    encodeDefaults = true
+    ignoreUnknownKeys = true
 }
 
 private fun FabricClientGateway.awaitConnected(

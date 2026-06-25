@@ -9,6 +9,9 @@ dependencies {
 
     implementation(project(":driver-api"))
     implementation(project(":driver-runtime"))
+    implementation(project(":daemon"))
+    implementation("io.ktor:ktor-client-core-jvm:3.5.0")
+    implementation("io.ktor:ktor-client-cio-jvm:3.5.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 }
 

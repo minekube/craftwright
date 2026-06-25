@@ -3,3 +3,4 @@
 build/
 */build/
 driver-fabric/run/
+driver-fabric/logs/

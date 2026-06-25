@@ -159,6 +159,7 @@ class LocalMinecraftServerSmokeTest {
             printf '%s\n' "${'$'}PWD" > action-working-directory.txt
             printf '%s\n' "$@" > action-arguments.txt
             printf '%s\n' "${'$'}CRAFTLESS_SMOKE_SERVER_PORT" > action-server-port.txt
+            printf '%s\n' "${'$'}CRAFTLESS_SMOKE_ARTIFACTS_DIR" > action-artifacts-dir.txt
             echo 'configured smoke action ran'
             """.trimIndent() + "\n"
         )
@@ -191,6 +192,10 @@ class LocalMinecraftServerSmokeTest {
         )
         assertEquals(listOf("--client", "fabric"), Files.readAllLines(root.resolve("action-arguments.txt")))
         assertEquals("25567\n", Files.readString(root.resolve("action-server-port.txt")))
+        assertEquals(
+            root.resolve("artifacts").toRealPath(),
+            Path.of(Files.readString(root.resolve("action-artifacts-dir.txt")).trim()).toRealPath(),
+        )
         assertEquals("stop\n", Files.readString(root.resolve("minecraft-server-stdin.txt")))
         assertTrue(Files.readString(requireNotNull(result.actionLog)).contains("configured smoke action ran"))
         assertEquals(

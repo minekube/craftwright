@@ -234,12 +234,12 @@ Evidence:
 - [x] `FabricDriverBackend` discovers descriptors from those bindings and
   invokes them generically by action ID.
 - [x] `FabricClientGateway` does not grow one method per generated action.
-- [~] Smoke harness can start a local Minecraft server and run a bounded client
+- [x] Smoke harness can start a local Minecraft server and run a bounded client
   command while the server is alive.
-- [ ] Opt-in Fabric smoke launches or attaches to a real Minecraft Java client
+- [x] Opt-in Fabric smoke launches or attaches to a real Minecraft Java client
   successfully.
 - [ ] Smoke client joins the local Minecraft server.
-- [ ] Smoke flow fetches per-client OpenAPI.
+- [x] Smoke flow fetches per-client OpenAPI.
 - [ ] Smoke flow invokes at least one generated action through the daemon API.
 - [ ] Server-side or driver-side evidence proves the action effect.
 - [ ] Evidence artifacts are collected and documented.
@@ -251,10 +251,31 @@ Evidence:
 - Last known pushed work:
   - Working-tree note: Fabric chat/move moved into internal action bindings;
     gateway narrowed to generic client execution; focused Fabric tests passed.
+- Current daemon-backed smoke evidence:
+  - `FabricClientSmokeController` starts `LocalSessionApiServer` with a
+    Fabric-backed `BackendDriverSession`, then uses Ktor Client against
+    `/clients`, `/clients/{id}/openapi.json`, `/clients/{id}/actions`,
+    `/clients/{id}:connect`, and `/clients/{id}:run`.
+  - The testkit server smoke passes `CRAFTLESS_SMOKE_ARTIFACTS_DIR` to the
+    configured client command so the Fabric client process can write
+    `client-openapi.json`, `client-actions.json`, `client-events.jsonl`, and
+    `runtime-metadata.json` next to server evidence.
+  - Real smoke attempt on 2026-06-25:
+    `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
+    launched Minecraft `1.21.6` through `:driver-fabric:runClient`, started
+    the in-client daemon API, fetched per-client OpenAPI/actions, and wrote
+    client artifacts under
+    `driver-fabric/build/craftless-local-server-smoke/artifacts/`.
+  - That real smoke attempt still failed the completion gate because the
+    Minecraft client did not join the local server before timeout; no
+    `server-evidence.jsonl` was produced and no server-side chat evidence was
+    observed.
 - Tests to rerun before final completion:
+  - `mise exec -- gradle :driver-fabric:test :testkit:test`
   - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
-- Next action: refactor Fabric chat/move into internal action bindings, then
-  complete and record a successful real-client Fabric smoke run.
+- Next action: debug the real Fabric client connection until the local server
+  records join evidence, then invoke generated `player.chat` through
+  `/clients/{id}:run` and preserve server-side action evidence.
 
 ## 8. Testkit And Local Server Evidence
 
