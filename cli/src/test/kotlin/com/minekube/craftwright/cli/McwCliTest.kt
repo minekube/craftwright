@@ -143,6 +143,69 @@ class McwCliTest {
     }
 
     @Test
+    fun `clients list uses craftless api environment variable`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf("clients", "list"),
+                stdout = { output.appendLine(it) },
+                env = mapOf("CRAFTLESS" to server.url),
+            )
+
+            assertEquals(0, exit)
+        }
+
+        val clients = Json.parseToJsonElement(output.toString().trim()).jsonArray
+        assertTrue(clients.any { it.jsonObject["id"]?.jsonPrimitive?.content == "alice" })
+    }
+
+    @Test
+    fun `clients list keeps craftwright api environment as fallback`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf("clients", "list"),
+                stdout = { output.appendLine(it) },
+                env = mapOf("CRAFTWRIGHT" to server.url),
+            )
+
+            assertEquals(0, exit)
+        }
+
+        val clients = Json.parseToJsonElement(output.toString().trim()).jsonArray
+        assertTrue(clients.any { it.jsonObject["id"]?.jsonPrimitive?.content == "alice" })
+    }
+
+    @Test
+    fun `explicit api option wins over environment api variables`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf("clients", "list", "--api", server.url),
+                stdout = { output.appendLine(it) },
+                env = mapOf(
+                    "CRAFTLESS" to "http://127.0.0.1:1",
+                    "CRAFTWRIGHT" to "http://127.0.0.1:2",
+                ),
+            )
+
+            assertEquals(0, exit)
+        }
+
+        val clients = Json.parseToJsonElement(output.toString().trim()).jsonArray
+        assertTrue(clients.any { it.jsonObject["id"]?.jsonPrimitive?.content == "alice" })
+    }
+
+    @Test
     fun `clients connect posts connection target to daemon`() {
         val output = StringBuilder()
 

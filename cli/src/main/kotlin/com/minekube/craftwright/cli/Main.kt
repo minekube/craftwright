@@ -70,27 +70,28 @@ object McwCli {
         stdout: (String) -> Unit,
         stderr: (String) -> Unit = {},
         afterStart: (ApiServerMetadata) -> Unit = {},
+        env: Map<String, String> = System.getenv(),
     ): Int {
         if (args.take(2) == listOf("clients", "api")) {
             return runClientsApi(args.drop(2), stdout, stderr, afterStart)
         }
         if (args.take(2) == listOf("clients", "create")) {
-            return createClient(args.drop(2), stdout, stderr)
+            return createClient(args.drop(2), stdout, stderr, env)
         }
         if (args.take(2) == listOf("clients", "list")) {
-            return listClients(args.drop(2), stdout, stderr)
+            return listClients(args.drop(2), stdout, stderr, env)
         }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "connect") {
-            return connectClient(args.drop(1), stdout, stderr)
+            return connectClient(args.drop(1), stdout, stderr, env)
         }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "openapi") {
-            return getClientOpenApi(args.drop(1), stdout, stderr)
+            return getClientOpenApi(args.drop(1), stdout, stderr, env)
         }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "actions") {
-            return getClientActions(args.drop(1), stdout, stderr)
+            return getClientActions(args.drop(1), stdout, stderr, env)
         }
         if (args.size >= 4 && args[0] == "clients" && args[2] == "run") {
-            return runClientAction(args.drop(1), stdout, stderr)
+            return runClientAction(args.drop(1), stdout, stderr, env)
         }
         root().main(args)
         return 0
@@ -100,6 +101,7 @@ object McwCli {
         args: List<String>,
         stdout: (String) -> Unit,
         stderr: (String) -> Unit,
+        env: Map<String, String>,
     ): Int {
         val clientId = args.firstOrNull { !it.startsWith("--") }.orEmpty()
         val version = args.optionValue("--version")
@@ -111,7 +113,7 @@ object McwCli {
             stderr("error: usage is clients create <id> --version <version> --loader <loader> --offline-name <name> [--api <url>]")
             return 2
         }
-        val api = args.apiBaseUrl()
+        val api = args.apiBaseUrl(env)
         val request = CreateClientRequest(
             id = clientId,
             version = version,
@@ -139,8 +141,9 @@ object McwCli {
         args: List<String>,
         stdout: (String) -> Unit,
         stderr: (String) -> Unit,
+        env: Map<String, String>,
     ): Int {
-        val api = args.apiBaseUrl()
+        val api = args.apiBaseUrl(env)
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
@@ -162,6 +165,7 @@ object McwCli {
         args: List<String>,
         stdout: (String) -> Unit,
         stderr: (String) -> Unit,
+        env: Map<String, String>,
     ): Int {
         val clientId = args.getOrNull(0).orEmpty()
         val host = args.optionValue("--host")
@@ -170,7 +174,7 @@ object McwCli {
             stderr("error: usage is clients <id> connect --host <host> --port <port> [--api <url>]")
             return 2
         }
-        val api = args.apiBaseUrl()
+        val api = args.apiBaseUrl(env)
         val request = ConnectClientRequest(host = host, port = port)
 
         return runCatching {
@@ -193,6 +197,7 @@ object McwCli {
         args: List<String>,
         stdout: (String) -> Unit,
         stderr: (String) -> Unit,
+        env: Map<String, String>,
     ): Int {
         val clientId = args.getOrNull(0).orEmpty()
         val action = args.getOrNull(2).orEmpty()
@@ -200,7 +205,7 @@ object McwCli {
             stderr("error: usage is clients <id> run <action> [--api <url>] [--arg key=value]")
             return 2
         }
-        val api = args.apiBaseUrl()
+        val api = args.apiBaseUrl(env)
         val payload = ActionRunRequest(
             action = action,
             args = args.optionValues("--arg").associate { argument ->
@@ -230,13 +235,14 @@ object McwCli {
         args: List<String>,
         stdout: (String) -> Unit,
         stderr: (String) -> Unit,
+        env: Map<String, String>,
     ): Int {
         val clientId = args.getOrNull(0).orEmpty()
         if (clientId.isBlank()) {
             stderr("error: usage is clients <id> actions [--api <url>]")
             return 2
         }
-        val api = args.apiBaseUrl()
+        val api = args.apiBaseUrl(env)
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
@@ -253,13 +259,14 @@ object McwCli {
         args: List<String>,
         stdout: (String) -> Unit,
         stderr: (String) -> Unit,
+        env: Map<String, String>,
     ): Int {
         val clientId = args.getOrNull(0).orEmpty()
         if (clientId.isBlank()) {
             stderr("error: usage is clients <id> openapi [--api <url>]")
             return 2
         }
-        val api = args.apiBaseUrl()
+        val api = args.apiBaseUrl(env)
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
@@ -307,8 +314,11 @@ object McwCli {
         return if (index >= 0 && index + 1 < size) this[index + 1] else null
     }
 
-    private fun List<String>.apiBaseUrl(): String =
-        optionValue("--api") ?: System.getenv("CRAFTWRIGHT") ?: "http://127.0.0.1:8080"
+    private fun List<String>.apiBaseUrl(env: Map<String, String>): String =
+        optionValue("--api")
+            ?: env["CRAFTLESS"]
+            ?: env["CRAFTWRIGHT"]
+            ?: "http://127.0.0.1:8080"
 
     private fun List<String>.optionValues(name: String): List<String> =
         mapIndexedNotNull { index, value ->
