@@ -95,6 +95,7 @@ Legend: 🟢 yes, 🟡 partial or limited, 🔵 planned, 🔴 no.
 | Works headless and visible | 🟢 | 🔴 | 🟡 visible only | 🟢 |
 | Sees client UI, screens, mods, registries, and mappings | 🟢 | 🟡 protocol-visible | 🟢 | 🟡 |
 | Keeps one API shape while Minecraft, Fabric, Velocity, and mods change | 🔵 design goal | 🟡 protocol updates | 🟡 versioned builds | 🟡 versioned mods |
+| Minecraft version support model | 🔵 consolidated driver bindings | 🟡 protocol version matrix | 🟡 versioned builds | 🟡 versioned mods |
 
 ### Automation Depth
 
