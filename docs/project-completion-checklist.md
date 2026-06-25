@@ -265,17 +265,23 @@ Evidence:
 - [x] Testkit collects server logs.
 - [x] Testkit extracts join evidence.
 - [x] Testkit extracts chat evidence.
-- [ ] Testkit extracts movement or position evidence.
+- [x] Testkit extracts movement or position evidence.
 - [x] Testkit extracts disconnect evidence.
 - [x] Smoke tasks are opt-in and do not run in normal unit tests.
 
 Evidence:
 
-- Tests to rerun before final completion:
+- Current movement/position evidence:
+  - `LocalServerEvidence.movement(...)` records `from` and `to`
+    `LocalServerPosition` coordinates.
+  - `LocalServerFixture.recordEvidenceFromLogLine(...)` imports
+    `[Craftless] <player> moved from <x> <y> <z> to <x> <y> <z>` server log
+    lines as `LocalServerEvidenceType.MOVEMENT`.
+  - `LocalServerFixtureTest` covers both direct JSONL movement evidence and
+    parsed server-log movement evidence.
+- Verification:
   - `mise exec -- gradle :testkit:test`
   - `CRAFTLESS_LOCAL_SERVER_SMOKE=1 mise exec -- gradle :testkit:localMinecraftServerSmoke`
-- Next action: add or verify movement/position evidence before marking this
-  section complete.
 
 ## 9. Client File Management
 
