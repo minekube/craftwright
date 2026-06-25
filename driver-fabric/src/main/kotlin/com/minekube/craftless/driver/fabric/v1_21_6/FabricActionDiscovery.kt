@@ -63,6 +63,10 @@ private fun FabricActionDiscoveryContext.probeUnavailableActions(): List<FabricD
     return if (gateway.isConnected()) {
         listOf(
             FabricDiscoveredAction(
+                descriptor = FabricPlayerQueryActionBinding.descriptor,
+                binding = FabricPlayerQueryActionBinding,
+            ),
+            FabricDiscoveredAction(
                 descriptor = FabricPlayerRaycastActionBinding.descriptor,
                 binding = FabricPlayerRaycastActionBinding,
             ),
@@ -82,6 +86,9 @@ private fun FabricActionDiscoveryContext.probeUnavailableActions(): List<FabricD
     } else {
         listOf(
             FabricDiscoveredAction(
+                descriptor = unavailablePlayerQueryDescriptor(),
+            ),
+            FabricDiscoveredAction(
                 descriptor = unavailableRaycastDescriptor(),
             ),
             FabricDiscoveredAction(
@@ -96,6 +103,13 @@ private fun FabricActionDiscoveryContext.probeUnavailableActions(): List<FabricD
         )
     }
 }
+
+private fun unavailablePlayerQueryDescriptor(): DriverActionDescriptor =
+    fabricPlayerQueryDescriptor().copy(
+        source = DriverActionSource.RUNTIME_PROBE,
+        availability = DriverActionAvailability.UNAVAILABLE,
+        availabilityReason = "client-not-connected",
+    )
 
 private fun unavailableRaycastDescriptor(): DriverActionDescriptor =
     fabricRaycastDescriptor().copy(

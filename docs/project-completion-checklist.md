@@ -29,12 +29,13 @@ Legend:
 - [x] Fabric smoke has proven real client launch, server join, generated chat,
   generated movement invocation, disconnect, and artifact capture.
 - [~] Current Fabric driver has real chat, movement, connected-client
-  `player.raycast`, connected-client `inventory.query`, and connected-client
-  `inventory.equip`, and connected-client `world.block.break` bindings. When
-  the client is disconnected, raycast, inventory query, inventory equip, and
-  block break are exposed only through gateway-backed unavailable probe
-  metadata. Broader gameplay discovery is not implemented yet and must not be
-  represented as a static placeholder catalog.
+  `player.query`, connected-client `player.raycast`, connected-client
+  `inventory.query`, connected-client `inventory.equip`, and connected-client
+  `world.block.break` bindings. When the client is disconnected, player query,
+  raycast, inventory query, inventory equip, and block break are exposed only
+  through gateway-backed unavailable probe metadata. Broader gameplay discovery
+  is not implemented yet and must not be represented as a static placeholder
+  catalog.
 - [ ] Craftless is complete.
 
 Baseline evidence:
@@ -105,8 +106,9 @@ Verification:
   availability, and machine-readable availability reasons.
 - [~] Design the Fabric runtime discovery/projection layer. A minimal internal
   discovery abstraction exists for binding-backed actions, connected-client
-  `player.raycast`, connected-client `inventory.query`, connected-client
-  `inventory.equip`, connected-client `world.block.break`, and
+  `player.query`, connected-client `player.raycast`, connected-client
+  `inventory.query`, connected-client `inventory.equip`,
+  connected-client `world.block.break`, and
   disconnected-client unavailable probe metadata; broader
   client/world/inventory/screen probes are still roadmap.
 - [ ] Define how internal Fabric/Minecraft/mod/registry/server data becomes
@@ -137,11 +139,11 @@ Verification:
 - [x] Fabric action listing goes through an internal discovery snapshot instead
   of directly returning the binding map.
 - [~] Real look/perception/block/inventory/screen capabilities are discovered
-  from the running client before they are advertised. `player.raycast`,
-  `inventory.query`, `inventory.equip`, and `world.block.break` now change
-  from unavailable probe metadata to available bindings based on
-  connected-client state; broader block/inventory/screen discovery is still
-  missing.
+  from the running client before they are advertised. `player.query`,
+  `player.raycast`, `inventory.query`, `inventory.equip`, and
+  `world.block.break` now change from unavailable probe metadata to available
+  bindings based on connected-client state; broader block/inventory/screen
+  discovery is still missing.
 - [x] Each advertised gameplay action has either a real Fabric execution
   binding or probe-backed unavailable metadata.
 - [x] No future gameplay action is added as a hand-written placeholder
@@ -165,13 +167,14 @@ Verification:
   is still missing.
 - [~] The slice uses generated OpenAPI/action metadata as the client contract.
   The smoke controller now re-fetches connected client metadata and gates
-  `inventory.query`, `inventory.equip`, and `world.block.break` invocations on
-  available action descriptors before calling generic `POST /clients/{id}:run`.
+  `player.query`, `inventory.query`, `inventory.equip`, and
+  `world.block.break` invocations on available action descriptors before
+  calling generic `POST /clients/{id}:run`.
 - [~] The slice discovers the needed actions/resources from the running client;
   it does not call hard-coded Kotlin methods or static CLI commands for current
   smoke gameplay actions. The smoke chooses the equip slot from live
-  `inventory.query` data. The final iron-sword workflow still needs real
-  acquisition evidence.
+  `inventory.query` data and records `player.query` telemetry. The final
+  iron-sword workflow still needs real acquisition evidence.
 - [ ] The slice runs against a real Fabric client and local server fixture.
 - [~] Evidence proves observable game effects through server logs, client
   telemetry, or both. Current smoke artifacts include connected OpenAPI/actions

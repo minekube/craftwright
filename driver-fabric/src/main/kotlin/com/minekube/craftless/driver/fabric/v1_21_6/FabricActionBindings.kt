@@ -61,6 +61,48 @@ internal fun defaultFabricActionBindings(): List<FabricActionBinding> =
         FabricPlayerChatActionBinding,
     )
 
+internal object FabricPlayerQueryActionBinding : FabricActionBinding {
+    override val descriptor: DriverActionDescriptor = fabricPlayerQueryDescriptor()
+
+    override fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+        context: FabricActionContext,
+    ): DriverActionResult {
+        val data =
+            context.queryOnClient {
+                val player = requireNotNull(player) { "client is not connected to a server" }
+                buildJsonObject {
+                    put("position", player.pos.toCraftlessJson())
+                    put(
+                        "rotation",
+                        buildJsonObject {
+                            put("yaw", player.yaw)
+                            put("pitch", player.pitch)
+                        },
+                    )
+                    put("selected-slot", player.inventory.selectedSlot)
+                    put("on-ground", player.isOnGround)
+                    put("sneaking", player.isSneaking)
+                    put("sprinting", player.isSprinting)
+                }
+            }
+        return DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.ACCEPTED,
+            message = "fabric ${context.modeId} action ${invocation.action} queried",
+            data = data,
+        )
+    }
+}
+
+internal fun fabricPlayerQueryDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "player.query",
+        schemaVersion = "1",
+        result = fabricObjectDataResultDescriptor(),
+    )
+
 internal object FabricInventoryQueryActionBinding : FabricActionBinding {
     override val descriptor: DriverActionDescriptor = fabricInventoryQueryDescriptor()
 

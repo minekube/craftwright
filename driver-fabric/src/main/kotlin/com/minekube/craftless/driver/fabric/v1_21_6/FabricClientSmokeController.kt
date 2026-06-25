@@ -128,6 +128,13 @@ data class FabricClientSmokeController(
                                         "ticks" to JsonPrimitive(20),
                                     ),
                             )
+                        val playerResult =
+                            http.runAvailableAction(
+                                api = api,
+                                clientId = SMOKE_CLIENT_ID,
+                                actions = connectedActions,
+                                action = "player.query",
+                            )
                         val inventoryResult =
                             http.runAvailableAction(
                                 api = api,
@@ -159,6 +166,7 @@ data class FabricClientSmokeController(
                             listOf(
                                 chatResult,
                                 moveResult,
+                                playerResult,
                                 inventoryResult,
                                 """{"event":"craftless-smoke-inventory-select","message":"selected slot $equipSlot for $equipItemName"}""",
                                 equipResult,

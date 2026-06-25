@@ -99,7 +99,7 @@ Legend: 🟢 yes, 🟡 partial or limited, 🔵 planned, 🔴 no.
 | Runtime discovery from version, mods, server features, and permissions | 🟢 | 🟡 protocol data | 🟡 in-client state |
 | Stable automation surface for agents and generated clients | 🟢 | 🟡 library API | 🟡 Java API |
 | Movement/pathfinding depth | 🟡 generated movement action; pathfinding roadmap | 🟢 | 🟢 |
-| Inventory, screen, perception, and world queries | 🟡 descriptors started; execution bindings roadmap | 🟢 | 🟡 pathing-focused |
+| Inventory, screen, perception, and world queries | 🟡 player query, raycast, inventory, and block bindings started | 🟢 | 🟡 pathing-focused |
 | Multi-client local supervisor | 🟡 in-memory API now | 🔴 | 🔴 |
 | Minecraft version support model | 🔵 stable API; Fabric driver/mappings paced | 🟡 protocol matrix | 🟡 versioned builds |
 | Best fit | Real-client automation infrastructure | Fast bot scripts | In-game pathfinding |
@@ -129,10 +129,11 @@ Implemented now:
   packs.
 - Fabric/Loom driver module with internal version-aware bindings and
   gateway-backed runtime hooks for current action evidence.
-- Fabric-generated action descriptors for current chat/move bindings, routed
-  through an internal discovery projection. Broader gameplay actions are not
-  advertised until they come from real bindings or runtime discovery probes
-  with machine-readable availability reasons.
+- Fabric-generated action descriptors for current chat, movement, player query,
+  raycast, inventory query/equip, and block-break bindings, routed through an
+  internal discovery projection. Broader gameplay actions are not advertised
+  until they come from real bindings or runtime discovery probes with
+  machine-readable availability reasons.
 - Testkit helpers and an opt-in `:testkit:localMinecraftServerSmoke` task for
   provisioning a Minecraft server jar, accepting the EULA, starting the server,
   keeping it running around a caller-supplied smoke action, and collecting
@@ -140,17 +141,17 @@ Implemented now:
 - An opt-in `:driver-fabric:fabricClientSmoke` entrypoint that launches a real
   Minecraft `1.21.6` Fabric client, keeps a local testkit Minecraft server
   alive, starts the in-client daemon API, fetches per-client OpenAPI/action
-  metadata, invokes generated `player.chat` and `player.move` through
+  metadata, invokes generated `player.chat`, `player.move`, `player.query`,
+  `inventory.query`, `inventory.equip`, and `world.block.break` through
   `POST /clients/{id}:run`, and verifies server-side join, chat, and
-  disconnect evidence plus driver-side movement event artifacts.
+  disconnect evidence plus driver-side movement and gameplay result artifacts.
 
 Still roadmap:
 
 - stronger real-client movement proof using server-side position deltas or
-  measured in-client position telemetry;
+  richer measured in-client position telemetry;
 - runtime discovery/projection for broader gameplay resources and actions such
-  as look, raycast, inventory, world/entity queries, screen interaction,
-  crafting, and events;
+  as look, world/entity queries, screen interaction, crafting, and events;
 - consolidated Fabric driver support across more Minecraft versions;
 - fuller client file management informed by Prism Launcher source, with any
   Prism import/adapter remaining optional rather than a core dependency.

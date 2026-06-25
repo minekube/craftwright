@@ -93,11 +93,12 @@ the durable Fabric direction.
 - Keep the opt-in Fabric smoke green: the 2026-06-25 run launched
   `:driver-fabric:runClient`, joined the provisioned Minecraft `1.21.6`
   server, fetched generated OpenAPI/actions through the in-client daemon API,
-  invoked generated `player.chat` and `player.move` through
+  invoked generated `player.chat`, `player.move`, `player.query`,
+  `inventory.query`, `inventory.equip`, and `world.block.break` through
   `POST /clients/{id}:run`, captured server-side join/chat/disconnect evidence,
-  and recorded driver-side movement event telemetry.
+  and recorded driver-side movement plus gameplay result telemetry.
 - Strengthen generated `player.move` proof from accepted driver telemetry to
-  measured server-side position deltas or in-client position telemetry.
+  measured server-side position deltas or richer in-client position telemetry.
 - Keep bridge evidence tests separate from Fabric smoke tests so the bridge
   cannot accidentally become the product path.
 
@@ -116,6 +117,9 @@ or static placeholder descriptors.
 - Add Fabric runtime discovery providers that inspect the running client,
   player, world, interaction manager, inventory, screen, registries, mods,
   permissions, and server features.
+- Current discovery has connected-client bindings with disconnected-client
+  unavailable probe metadata for `player.query`, `player.raycast`,
+  `inventory.query`, `inventory.equip`, and `world.block.break`.
 - Project discovered runtime affordances into Craftless-owned actions,
   resources, handles, schemas, availability metadata, and events.
 - Add real execution bindings before treating an action as supported.
@@ -205,8 +209,7 @@ mise run ci
 ## Non-Goals For Now
 
 - Do not reintroduce the removed TypeScript SDK as an active product surface.
-- Do not add OkHttp, Java `HttpClient`, `com.sun.net.httpserver`, or custom HTTP
-  method enums.
+- Do not add non-Ktor HTTP clients or servers, or custom HTTP method enums.
 - Do not expose HeadlessMC, HMC-Specifics, Fabric/Yarn/intermediary, raw
   Minecraft implementation, or launcher internals as public contracts.
 - Do not create a separate public Gradle module per Minecraft version without
