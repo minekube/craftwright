@@ -20,6 +20,14 @@ internal data class FabricDiscoveredAction(
     val binding: FabricActionBinding? = null,
 ) {
     init {
+        if (binding == null) {
+            require(
+                descriptor.source == DriverActionSource.RUNTIME_PROBE &&
+                    descriptor.availability == DriverActionAvailability.UNAVAILABLE,
+            ) {
+                "discovered action ${descriptor.id} must have a binding or unavailable runtime-probe metadata"
+            }
+        }
         if (binding != null) {
             require(descriptor.availability == DriverActionAvailability.AVAILABLE) {
                 "binding-backed action ${descriptor.id} must be available"

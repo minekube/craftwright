@@ -30,6 +30,9 @@ Craftless currently has:
 - protocol policy tests reject public action descriptors and route metadata
   that leak Fabric, Yarn, intermediary, raw Minecraft, bridge, or launcher
   namespace tokens;
+- Fabric discovery rejects advertised available actions unless they have an
+  execution binding, and allows unbound actions only as unavailable runtime
+  probes with machine-readable reasons;
 - Fabric/Loom driver scaffolding with current action evidence;
 - Fabric-generated action descriptors for current chat/move bindings. Broader
   gameplay actions must come from real bindings or runtime discovery probes,

@@ -123,7 +123,7 @@ Verification:
   from the running client before they are advertised.
 - [~] Each advertised gameplay action has either a real Fabric execution
   binding or probe-backed unavailable metadata.
-- [ ] No future gameplay action is added as a hand-written placeholder
+- [x] No future gameplay action is added as a hand-written placeholder
   descriptor.
 - [ ] `FabricClientGateway` stays generic and does not grow one method per
   gameplay action.

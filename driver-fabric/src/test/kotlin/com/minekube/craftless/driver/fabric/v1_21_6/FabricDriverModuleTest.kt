@@ -240,6 +240,23 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric discovery rejects available actions without execution binding`() {
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                FabricDiscoveredAction(
+                    descriptor =
+                        DriverActionDescriptor(
+                            id = "player.look",
+                            schemaVersion = "1",
+                        ),
+                    binding = null,
+                )
+            }
+
+        assertEquals("discovered action player.look must have a binding or unavailable runtime-probe metadata", error.message)
+    }
+
+    @Test
     fun `fabric backend rejects raw minecraft command strings as chat action input`() {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)
