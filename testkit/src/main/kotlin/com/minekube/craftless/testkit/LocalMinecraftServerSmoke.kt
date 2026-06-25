@@ -2,6 +2,7 @@ package com.minekube.craftless.testkit
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import java.net.ServerSocket
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption.CREATE
@@ -75,6 +76,9 @@ object LocalMinecraftServerSmoke {
     }
 }
 
+private const val CRAFTLESS_SMOKE_SERVER_PORT_ENV = "CRAFTLESS_SMOKE_SERVER_PORT"
+private const val DEFAULT_MINECRAFT_SERVER_PORT = 25565
+
 data class LocalMinecraftServerSmokeResult(
     val status: LocalMinecraftServerSmokeStatus,
     val message: String,
@@ -111,7 +115,7 @@ data class LocalMinecraftServerSmokeConfig(
     val enabled: Boolean,
     val root: Path,
     val minecraftVersion: String = "1.21.6",
-    val port: Int = 25565,
+    val port: Int = DEFAULT_MINECRAFT_SERVER_PORT,
     val javaExecutable: Path = Path.of(System.getProperty("java.home")).resolve("bin").resolve("java"),
     val actionCommand: List<String> = emptyList(),
     val actionTimeoutMillis: Long = 300_000,
@@ -141,7 +145,6 @@ data class LocalMinecraftServerSmokeConfig(
         private const val FABRIC_ENABLED = "CRAFTLESS_FABRIC_CLIENT_SMOKE"
         private const val ROOT = "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT"
         private const val VERSION = "CRAFTLESS_SMOKE_MINECRAFT_VERSION"
-        private const val PORT = "CRAFTLESS_SMOKE_SERVER_PORT"
         private const val JAVA_EXECUTABLE = "CRAFTLESS_SMOKE_JAVA_EXECUTABLE"
         private const val ACTION_COMMAND_JSON = "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON"
         private const val ACTION_TIMEOUT = "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS"
@@ -153,14 +156,16 @@ data class LocalMinecraftServerSmokeConfig(
         private const val MIN_HEAP = "CRAFTLESS_SMOKE_MIN_HEAP"
         private const val MAX_HEAP = "CRAFTLESS_SMOKE_MAX_HEAP"
 
-        fun fromEnvironment(env: Map<String, String> = System.getenv()): LocalMinecraftServerSmokeConfig =
-            LocalMinecraftServerSmokeConfig(
-                enabled = env.isEnabled(ENABLED) || env.isEnabled(FABRIC_ENABLED),
+        fun fromEnvironment(env: Map<String, String> = System.getenv()): LocalMinecraftServerSmokeConfig {
+            val enabled = env.isEnabled(ENABLED) || env.isEnabled(FABRIC_ENABLED)
+            return LocalMinecraftServerSmokeConfig(
+                enabled = enabled,
                 root = env[ROOT]?.takeIf { it.isNotBlank() }
                     ?.let(Path::of)
                     ?: Path.of("build", "craftless-local-server-smoke"),
                 minecraftVersion = env[VERSION]?.takeIf { it.isNotBlank() } ?: "1.21.6",
-                port = env[PORT]?.toIntStrict(PORT) ?: 25565,
+                port = env[CRAFTLESS_SMOKE_SERVER_PORT_ENV]?.toIntStrict(CRAFTLESS_SMOKE_SERVER_PORT_ENV)
+                    ?: if (enabled) findAvailableSmokePort() else DEFAULT_MINECRAFT_SERVER_PORT,
                 javaExecutable = env[JAVA_EXECUTABLE]?.takeIf { it.isNotBlank() }
                     ?.let(Path::of)
                     ?: Path.of(System.getProperty("java.home")).resolve("bin").resolve("java"),
@@ -176,6 +181,7 @@ data class LocalMinecraftServerSmokeConfig(
                 minHeap = env[MIN_HEAP]?.takeIf { it.isNotBlank() } ?: "512M",
                 maxHeap = env[MAX_HEAP]?.takeIf { it.isNotBlank() } ?: "1G",
             )
+        }
 
         private fun String.toIntStrict(name: String): Int =
             toIntOrNull() ?: error("$name must be an integer")
@@ -185,6 +191,18 @@ data class LocalMinecraftServerSmokeConfig(
 
         private fun Map<String, String>.isEnabled(name: String): Boolean =
             this[name] == "1" || this[name].equals("true", ignoreCase = true)
+
+        private fun findAvailableSmokePort(): Int {
+            repeat(16) {
+                ServerSocket(0).use { socket ->
+                    val port = socket.localPort
+                    if (port != DEFAULT_MINECRAFT_SERVER_PORT) {
+                        return port
+                    }
+                }
+            }
+            error("could not allocate a non-default Minecraft smoke server port")
+        }
     }
 }
 
@@ -204,6 +222,9 @@ private fun runConfiguredActionCommand(
     val output = Collections.synchronizedList(mutableListOf<String>())
     val process = ProcessBuilder(config.actionCommand)
         .directory(config.root.toFile())
+        .also { builder ->
+            builder.environment()[CRAFTLESS_SMOKE_SERVER_PORT_ENV] = config.port.toString()
+        }
         .redirectErrorStream(true)
         .start()
     val outputReader = thread(name = "craftless-smoke-action-output") {

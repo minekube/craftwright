@@ -36,9 +36,12 @@ tasks.register<JavaExec>("fabricClientSmoke") {
     environment("CRAFTLESS_FABRIC_CLIENT_SMOKE", System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE").orEmpty())
 
     if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_ACTION_COMMAND_JSON").isNullOrBlank()) {
+        val rootProjectPath = rootProject.projectDir.absolutePath
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
         environment(
             "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON",
-            """["mise","exec","--","gradle",":driver-fabric:runClient"]""",
+            """["mise","exec","--","gradle","-p","$rootProjectPath",":driver-fabric:runClient"]""",
         )
     }
     if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE").isNullOrBlank()) {
@@ -50,6 +53,9 @@ tasks.register<JavaExec>("fabricClientSmoke") {
     }
     if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_EXPECT_DISCONNECT").isNullOrBlank()) {
         environment("CRAFTLESS_SMOKE_EXPECT_DISCONNECT", "1")
+    }
+    if (fabricSmokeEnabled && System.getenv("CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS").isNullOrBlank()) {
+        environment("CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS", "3000")
     }
 
     doFirst {

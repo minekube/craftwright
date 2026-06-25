@@ -66,6 +66,16 @@ class LocalMinecraftServerSmokeTest {
     }
 
     @Test
+    fun `fabric client smoke chooses non-default port when none is configured`() {
+        val config = LocalMinecraftServerSmokeConfig.fromEnvironment(
+            mapOf("CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1")
+        )
+
+        assertTrue(config.port in 1..65535)
+        assertFalse(config.port == 25565)
+    }
+
+    @Test
     fun `local server smoke skips without opt in`() {
         val result = LocalMinecraftServerSmoke.run(
             config = LocalMinecraftServerSmokeConfig.fromEnvironment(emptyMap()),
@@ -148,6 +158,7 @@ class LocalMinecraftServerSmokeTest {
             test ! -f minecraft-server-stdin.txt
             printf '%s\n' "${'$'}PWD" > action-working-directory.txt
             printf '%s\n' "$@" > action-arguments.txt
+            printf '%s\n' "${'$'}CRAFTLESS_SMOKE_SERVER_PORT" > action-server-port.txt
             echo 'configured smoke action ran'
             """.trimIndent() + "\n"
         )
@@ -156,6 +167,7 @@ class LocalMinecraftServerSmokeTest {
         val config = LocalMinecraftServerSmokeConfig(
             enabled = true,
             root = root,
+            port = 25567,
             javaExecutable = fakeJava,
             actionCommand = listOf(actionCommand.toString(), "--client", "fabric"),
             actionTimeoutMillis = 5_000,
@@ -178,6 +190,7 @@ class LocalMinecraftServerSmokeTest {
             Path.of(Files.readString(root.resolve("action-working-directory.txt")).trim()).toRealPath(),
         )
         assertEquals(listOf("--client", "fabric"), Files.readAllLines(root.resolve("action-arguments.txt")))
+        assertEquals("25567\n", Files.readString(root.resolve("action-server-port.txt")))
         assertEquals("stop\n", Files.readString(root.resolve("minecraft-server-stdin.txt")))
         assertTrue(Files.readString(requireNotNull(result.actionLog)).contains("configured smoke action ran"))
         assertEquals(

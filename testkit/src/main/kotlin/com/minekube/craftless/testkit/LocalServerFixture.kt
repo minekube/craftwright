@@ -116,14 +116,16 @@ data class LocalServerLayout(
         require(Files.exists(javaExecutable)) { "java executable does not exist: $javaExecutable" }
         require(minHeap.isNotBlank()) { "minecraft server minimum heap is required" }
         require(maxHeap.isNotBlank()) { "minecraft server maximum heap is required" }
+        val javaPath = javaExecutable.toAbsolutePath().normalize()
+        val serverJarPath = serverJar.toAbsolutePath().normalize()
         Files.writeString(eulaFile, "eula=true\n", CREATE)
         return collectEvidenceFromProcess(
             command = listOf(
-                javaExecutable.toString(),
+                javaPath.toString(),
                 "-Xms$minHeap",
                 "-Xmx$maxHeap",
                 "-jar",
-                serverJar.toString(),
+                serverJarPath.toString(),
                 "nogui",
             ),
             timeoutMillis = timeoutMillis,
@@ -144,15 +146,17 @@ data class LocalServerLayout(
         require(maxHeap.isNotBlank()) { "minecraft server maximum heap is required" }
         require(readinessTimeoutMillis > 0) { "minecraft server readiness timeout must be positive" }
         require(shutdownTimeoutMillis > 0) { "minecraft server shutdown timeout must be positive" }
+        val javaPath = javaExecutable.toAbsolutePath().normalize()
+        val serverJarPath = serverJar.toAbsolutePath().normalize()
         Files.writeString(eulaFile, "eula=true\n", CREATE)
         Files.createDirectories(serverLog.parent)
 
         val process = ProcessBuilder(
-            javaExecutable.toString(),
+            javaPath.toString(),
             "-Xms$minHeap",
             "-Xmx$maxHeap",
             "-jar",
-            serverJar.toString(),
+            serverJarPath.toString(),
             "nogui",
         )
             .directory(root.toFile())

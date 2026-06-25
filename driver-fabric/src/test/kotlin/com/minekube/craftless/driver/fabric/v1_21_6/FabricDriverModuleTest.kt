@@ -207,9 +207,11 @@ class FabricDriverModuleTest {
                 "CRAFTLESS_SMOKE_SERVER_PORT" to "25567",
                 "CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE" to "hello from fabric smoke",
                 "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
+                "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
             )
         )
 
+        assertEquals(0.milliseconds, controller.startupSettleDelay)
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
         gateway.awaitActions(3)
@@ -217,6 +219,37 @@ class FabricDriverModuleTest {
             listOf(
                 "connect localhost:25567",
                 "chat hello from fabric smoke",
+                "stop",
+            ),
+            gateway.actions,
+        )
+    }
+
+    @Test
+    fun `fabric smoke controller waits for client readiness before connecting`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.ready = false
+        val backend = FabricDriverBackend.real(gateway)
+        val controller = FabricClientSmokeController.fromEnvironment(
+            mapOf(
+                "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                "CRAFTLESS_SMOKE_SERVER_PORT" to "25567",
+                "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
+                "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
+            )
+        )
+
+        assertTrue(controller.start(backend, gateway, pollInterval = 10.milliseconds))
+
+        Thread.sleep(100)
+        assertEquals(emptyList(), gateway.actions)
+
+        gateway.ready = true
+        gateway.awaitActions(3)
+        assertEquals(
+            listOf(
+                "connect 127.0.0.1:25567",
+                "chat hello from Craftless Fabric smoke",
                 "stop",
             ),
             gateway.actions,
@@ -234,6 +267,8 @@ private class RecordingFabricClientGateway : FabricClientGateway {
     val actions = mutableListOf<String>()
     @Volatile
     var connected = false
+    @Volatile
+    var ready = true
 
     override fun execute(action: () -> Unit) {
         scheduled += 1
@@ -269,6 +304,8 @@ private class RecordingFabricClientGateway : FabricClientGateway {
     }
 
     override fun isConnected(): Boolean = connected
+
+    override fun isReadyToConnect(): Boolean = ready
 
     fun awaitActions(count: Int) {
         val deadline = System.nanoTime() + 1_000_000_000

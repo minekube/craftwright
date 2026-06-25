@@ -21,6 +21,8 @@ interface FabricClientGateway {
     fun stop()
 
     fun isConnected(): Boolean
+
+    fun isReadyToConnect(): Boolean
 }
 
 data class FabricMovementIntent(
@@ -85,4 +87,7 @@ class MinecraftFabricClientGateway(
 
     override fun isConnected(): Boolean =
         client.networkHandler != null && client.player != null
+
+    override fun isReadyToConnect(): Boolean =
+        client.networkHandler == null && client.player == null && client.overlay == null
 }

@@ -225,6 +225,40 @@ class LocalServerFixtureTest {
     }
 
     @Test
+    fun `fixture launches minecraft server with absolute jar path when root is relative`() {
+        val root = Path.of("build", "tmp", "craftless-relative-server-${System.nanoTime()}")
+        val layout = LocalServerFixture(root = root, port = 25567).prepare()
+        val fakeJava = root.resolve("fake-java").toAbsolutePath().normalize()
+        val fakeServerJar = root.resolve("server.jar")
+        Files.writeString(fakeServerJar, "fake")
+        Files.writeString(
+            fakeJava,
+            """
+            #!/bin/sh
+            printf '%s\n' "$@" > minecraft-server-args.txt
+            echo '[12:00:00] [Server thread/INFO]: Done (1.000s)! For help, type "help"'
+            read command
+            printf '%s\n' "${'$'}command" > minecraft-server-stdin.txt
+            """.trimIndent() + "\n"
+        )
+        assertTrue(fakeJava.toFile().setExecutable(true))
+
+        val result = layout.collectMinecraftServerStartupEvidence(
+            serverJar = fakeServerJar,
+            javaExecutable = fakeJava,
+            readinessTimeoutMillis = 5_000,
+            shutdownTimeoutMillis = 5_000,
+        )
+
+        val args = Files.readAllLines(root.resolve("minecraft-server-args.txt"))
+        assertEquals(0, result.exitCode)
+        assertEquals(
+            fakeServerJar.toAbsolutePath().normalize().toString(),
+            args[args.indexOf("-jar") + 1],
+        )
+    }
+
+    @Test
     fun `fixture keeps minecraft server running until caller stops it`() {
         val root = Files.createTempDirectory("craftless-minecraft-server-handle")
         val layout = LocalServerFixture(root = root, port = 25567).prepare()
