@@ -107,7 +107,7 @@
     <text class="layer-note" x="24" y="52">per-client OpenAPI, generated actions, events, schemas, fingerprints</text>
     <rect class="cell" x="536" y="14" width="194" height="42" rx="10"/>
     <text class="cell-title" x="560" y="33">source of truth</text>
-    <text class="cell-note" x="560" y="49">live client capability surface</text>
+    <text class="cell-note" x="560" y="49">live client action surface</text>
   </g>
 
   <g transform="translate(196 474)">

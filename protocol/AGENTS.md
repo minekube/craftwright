@@ -7,7 +7,7 @@ protocol DTOs.
 
 - Route catalog entries for the stable daemon/kernel API.
 - OpenAPI document models and emitters.
-- Action/capability descriptors, argument schemas, and vendor extensions.
+- Action descriptors, argument schemas, and vendor extensions.
 - Public resource/action naming conventions.
 
 ## Rules

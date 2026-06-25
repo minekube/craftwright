@@ -27,7 +27,7 @@ running Minecraft client driver.
 - Deep or unknown objects use object handles under `/o/{handle}`.
 - Class metadata uses `/c/{className}`.
 - The API is generated from live JVM classes, methods, fields, getter chains,
-  root objects, mappings, and driver-discovered capabilities.
+  root objects, mappings, and driver-discovered actions/resources.
 - The first implementation may be unsafe by design, because it runs locally in
   an isolated CI/session context.
 - A curated stable API can be layered on later, but the generated API is the
