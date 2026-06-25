@@ -284,6 +284,8 @@ class LocalSessionApiServerTest {
                 assertTrue(body.contains("chat"))
                 assertTrue(body.contains("movement"))
                 assertTrue(body.contains("accepted player.move for alice"))
+                assertTrue(body.contains("error"))
+                assertTrue(body.contains("unsupported fake action player.fly"))
                 assertTrue(body.contains("client.stopped"))
             }
         }

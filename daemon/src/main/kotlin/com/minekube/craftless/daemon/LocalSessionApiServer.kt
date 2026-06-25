@@ -254,8 +254,15 @@ private fun String.toActionId(): String {
 }
 
 private fun DriverActionResult.toSessionEvent(clientId: String): SessionEvent? {
-    if (status != DriverActionStatus.ACCEPTED || message == null) {
+    if (message == null) {
         return null
+    }
+    if (status != DriverActionStatus.ACCEPTED) {
+        return SessionEvent(
+            type = "error",
+            client = clientId,
+            message = message,
+        )
     }
 
     val eventType = when (action) {
