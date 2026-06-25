@@ -128,6 +128,8 @@ class BackendDriverSessionTest {
                 ),
             ).status,
         )
+        assertEquals("craftwright-driver-bridge", backend.runtimeMetadata("alice").driver)
+        assertEquals("bridge-evidence", backend.runtimeMetadata("alice").permissionsFingerprint)
         assertEquals(DriverBackendAction.STOP, backend.stop("alice").action)
     }
 }

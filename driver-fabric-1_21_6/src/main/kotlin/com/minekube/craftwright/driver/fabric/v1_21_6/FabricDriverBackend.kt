@@ -6,6 +6,7 @@ import com.minekube.craftwright.driver.api.DriverCapabilityDescriptor
 import com.minekube.craftwright.driver.api.DriverCapabilityInvocation
 import com.minekube.craftwright.driver.api.DriverCapabilityResult
 import com.minekube.craftwright.driver.api.DriverCapabilityStatus
+import com.minekube.craftwright.driver.api.DriverRuntimeMetadata
 import com.minekube.craftwright.driver.api.booleanArgument
 import com.minekube.craftwright.driver.api.intArgument
 import com.minekube.craftwright.driver.api.stringArgument
@@ -57,6 +58,18 @@ class FabricDriverBackend private constructor(
         listOf(
             DriverCapabilityDescriptor.playerMove(),
             DriverCapabilityDescriptor.playerChat(),
+        )
+
+    override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
+        DriverRuntimeMetadata(
+            loaderVersion = "unknown",
+            driver = "craftwright-driver-fabric",
+            driverVersion = "0.1.0-SNAPSHOT",
+            mappings = "craftwright-fabric-bindings",
+            installedModsFingerprint = "fabric-driver",
+            registryFingerprint = "unknown",
+            serverFeatureFingerprint = "unknown",
+            permissionsFingerprint = "local-client",
         )
 
     override fun invoke(clientId: String, invocation: DriverCapabilityInvocation): DriverCapabilityResult {
