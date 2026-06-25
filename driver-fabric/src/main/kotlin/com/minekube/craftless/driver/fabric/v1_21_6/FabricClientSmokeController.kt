@@ -22,8 +22,11 @@ import io.ktor.http.HttpHeaders
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.concurrent.thread
@@ -99,24 +102,53 @@ data class FabricClientSmokeController(
                         )
                     }
                     if (gateway.awaitConnected(connectTimeout, pollInterval)) {
-                        http.postJson(
-                            api.url("/clients/$SMOKE_CLIENT_ID:run"),
-                            ActionInvocationRequest(
-                                action = "player.chat",
-                                args = mapOf("message" to JsonPrimitive(chatMessage)),
-                            ),
-                        )
-                        http.postJson(
-                            api.url("/clients/$SMOKE_CLIENT_ID:run"),
-                            ActionInvocationRequest(
-                                action = "player.move",
-                                args =
-                                    mapOf(
-                                        "forward" to JsonPrimitive(true),
-                                        "ticks" to JsonPrimitive(20),
-                                    ),
-                            ),
-                        )
+                        val connectedOpenApi = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/openapi.json"))
+                        val connectedActions = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/actions"))
+                        writeArtifact("client-openapi-connected.json", connectedOpenApi)
+                        writeArtifact("client-actions-connected.json", connectedActions)
+
+                        val smokeResults =
+                            listOf(
+                                http.runAvailableAction(
+                                    api = api,
+                                    clientId = SMOKE_CLIENT_ID,
+                                    actions = connectedActions,
+                                    action = "player.chat",
+                                    args = mapOf("message" to JsonPrimitive(chatMessage)),
+                                ),
+                                http.runAvailableAction(
+                                    api = api,
+                                    clientId = SMOKE_CLIENT_ID,
+                                    actions = connectedActions,
+                                    action = "player.move",
+                                    args =
+                                        mapOf(
+                                            "forward" to JsonPrimitive(true),
+                                            "ticks" to JsonPrimitive(20),
+                                        ),
+                                ),
+                                http.runAvailableAction(
+                                    api = api,
+                                    clientId = SMOKE_CLIENT_ID,
+                                    actions = connectedActions,
+                                    action = "inventory.query",
+                                ),
+                                http.runAvailableAction(
+                                    api = api,
+                                    clientId = SMOKE_CLIENT_ID,
+                                    actions = connectedActions,
+                                    action = "inventory.equip",
+                                    args = mapOf("slot" to JsonPrimitive(0)),
+                                ),
+                                http.runAvailableAction(
+                                    api = api,
+                                    clientId = SMOKE_CLIENT_ID,
+                                    actions = connectedActions,
+                                    action = "world.block.break",
+                                    args = mapOf("max-distance" to JsonPrimitive(4.0)),
+                                ),
+                            )
+                        writeLinesArtifact("gameplay-results.jsonl", smokeResults)
                     }
                     val events = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/events"))
                     writeJsonArrayLinesArtifact("client-events.jsonl", events)
@@ -144,6 +176,13 @@ data class FabricClientSmokeController(
                 .jsonArray
                 .joinToString(separator = "\n", postfix = "\n") { it.toString() }
         writeArtifact(name, lines)
+    }
+
+    private fun writeLinesArtifact(
+        name: String,
+        lines: List<String>,
+    ) {
+        writeArtifact(name, lines.joinToString(separator = "\n", postfix = "\n"))
     }
 
     companion object {
@@ -199,6 +238,36 @@ private suspend fun HttpClient.getText(url: String): String {
     val response = get(url)
     response.expectSuccess()
     return response.bodyAsText()
+}
+
+private suspend fun HttpClient.runAvailableAction(
+    api: LocalSessionApiServer,
+    clientId: String,
+    actions: String,
+    action: String,
+    args: Map<String, JsonElement> = emptyMap(),
+): String {
+    actions.requireAvailableAction(action)
+    return postJson(
+        api.url("/clients/$clientId:run"),
+        ActionInvocationRequest(
+            action = action,
+            args = args,
+        ),
+    )
+}
+
+private fun String.requireAvailableAction(action: String) {
+    val available =
+        smokeJson
+            .parseToJsonElement(this)
+            .jsonArray
+            .any { element ->
+                val descriptor = element.jsonObject
+                descriptor["id"]?.jsonPrimitive?.content == action &&
+                    descriptor["availability"]?.jsonPrimitive?.content == "available"
+            }
+    check(available) { "fabric smoke action $action is not available in connected client metadata" }
 }
 
 private suspend fun HttpResponse.expectSuccess() {

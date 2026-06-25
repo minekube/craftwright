@@ -103,9 +103,13 @@ class FabricDriverModuleTest {
         assertTrue(plan.steps.any { it.description.contains("kept running", ignoreCase = true) })
         assertTrue(plan.steps.any { it.kind == FabricSmokeStepKind.LAUNCH_FABRIC_CLIENT })
         assertTrue(plan.steps.any { it.kind == FabricSmokeStepKind.INVOKE_GENERATED_CHAT_ACTION })
+        assertTrue(plan.steps.any { it.kind == FabricSmokeStepKind.INVOKE_GENERATED_GAMEPLAY_ACTIONS })
         assertTrue(plan.steps.any { it.kind == FabricSmokeStepKind.ASSERT_SERVER_EVIDENCE })
         assertTrue(plan.artifacts.contains("server-evidence.jsonl"))
         assertTrue(plan.artifacts.contains("client-openapi.json"))
+        assertTrue(plan.artifacts.contains("client-openapi-connected.json"))
+        assertTrue(plan.artifacts.contains("client-actions-connected.json"))
+        assertTrue(plan.artifacts.contains("gameplay-results.jsonl"))
         assertTrue(plan.steps.none { it.description.contains("hmc", ignoreCase = true) })
         assertTrue(plan.steps.none { it.description.contains("headlessmc", ignoreCase = true) })
     }
@@ -497,12 +501,15 @@ class FabricDriverModuleTest {
         assertEquals(0.milliseconds, controller.startupSettleDelay)
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
-        gateway.awaitActions(4)
+        gateway.awaitActions(7)
         assertEquals(
             listOf(
                 "connect localhost:25567",
                 "client-action",
                 "client-action",
+                "client-query",
+                "client-action",
+                "client-query",
                 "stop",
             ),
             gateway.actions,
@@ -511,6 +518,15 @@ class FabricDriverModuleTest {
         assertTrue(Files.readString(artifactsDir.resolve("client-openapi.json")).contains("craftless-driver-fabric"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions.json")).contains("player.chat"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions.json")).contains("player.move"))
+        val connectedOpenApi = Files.readString(artifactsDir.resolve("client-openapi-connected.json"))
+        assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/world/block:break"))
+        assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("inventory.query"))
+        assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("inventory.equip"))
+        assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("world.block.break"))
+        assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("\"availability\":\"available\""))
+        assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("inventory.query"))
+        assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("inventory.equip"))
+        assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("world.block.break"))
         assertTrue(Files.readString(artifactsDir.resolve("runtime-metadata.json")).contains("craftless-driver-fabric"))
         assertTrue(Files.readString(artifactsDir.resolve("client-events.jsonl")).contains("hello from fabric smoke"))
         assertTrue(Files.readString(artifactsDir.resolve("client-events.jsonl")).contains("player.move"))
@@ -537,12 +553,15 @@ class FabricDriverModuleTest {
         assertEquals(emptyList(), gateway.actions)
 
         gateway.ready = true
-        gateway.awaitActions(4)
+        gateway.awaitActions(7)
         assertEquals(
             listOf(
                 "connect 127.0.0.1:25567",
                 "client-action",
                 "client-action",
+                "client-query",
+                "client-action",
+                "client-query",
                 "stop",
             ),
             gateway.actions,

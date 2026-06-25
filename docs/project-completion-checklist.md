@@ -42,6 +42,9 @@ Baseline evidence:
 - Latest static-placeholder cleanup smoke: `client-actions.json` contained
   only `player.chat` and `player.move`; `server-evidence.jsonl` contained
   join, chat, and disconnect for the same real client.
+- Current smoke controller re-fetches connected client OpenAPI/actions before
+  invoking gameplay actions and writes `client-openapi-connected.json`,
+  `client-actions-connected.json`, and `gameplay-results.jsonl`.
 - Key commands:
   - `mise run lint`
   - `mise run ci`
@@ -153,12 +156,19 @@ Verification:
 - [ ] Define the first useful end-to-end gameplay slice.
 - [ ] Recommended target: obtain/equip an iron sword using real client actions,
   without Minecraft console commands as the public API.
-- [ ] The slice uses generated OpenAPI/action metadata as the client contract.
-- [ ] The slice discovers the needed actions/resources from the running client;
-  it does not call hard-coded Kotlin methods or static CLI commands.
+- [~] The slice uses generated OpenAPI/action metadata as the client contract.
+  The smoke controller now re-fetches connected client metadata and gates
+  `inventory.query`, `inventory.equip`, and `world.block.break` invocations on
+  available action descriptors before calling generic `POST /clients/{id}:run`.
+- [~] The slice discovers the needed actions/resources from the running client;
+  it does not call hard-coded Kotlin methods or static CLI commands for current
+  smoke gameplay actions. The final iron-sword workflow still needs stronger
+  world/resource discovery and real evidence.
 - [ ] The slice runs against a real Fabric client and local server fixture.
-- [ ] Evidence proves observable game effects through server logs, client
-  telemetry, or both.
+- [~] Evidence proves observable game effects through server logs, client
+  telemetry, or both. Current smoke artifacts include connected OpenAPI/actions
+  and gameplay action result telemetry; observable iron-sword acquisition is
+  still missing.
 
 Verification:
 

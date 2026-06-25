@@ -303,12 +303,13 @@ private fun route(
 
 private fun DriverActionDescriptor.toActionAliasRoute(clientId: String): ApiRoute? {
     val parts = id.split(".")
-    if (parts.size != 2 || parts.any { it.isBlank() }) return null
-    val (resource, action) = parts
+    if (parts.size < 2 || parts.any { it.isBlank() }) return null
+    val resource = parts.dropLast(1).joinToString("/")
+    val action = parts.last()
     return route(
         method = "POST",
         path = "/clients/$clientId/$resource:$action",
-        operationId = "run${resource.toPascalIdentifier()}${action.toPascalIdentifier()}",
+        operationId = "run${parts.joinToString("") { it.toPascalIdentifier() }}",
         tag = "clients",
         member = "run",
         source = "action",

@@ -526,6 +526,47 @@ class ClientSessionServiceTest {
     }
 
     @Test
+    fun `client specific openapi derives nested resource action aliases`() {
+        val service =
+            ClientSessionService.inMemory { request ->
+                BackendDriverSession(
+                    clientId = request.id,
+                    backend =
+                        RecordingDriverBackend(
+                            actions =
+                                listOf(
+                                    DriverActionDescriptor(
+                                        id = "world.block.break",
+                                        schemaVersion = "1",
+                                    ),
+                                ),
+                        ),
+                )
+            }
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            ),
+        )
+
+        val document = service.openApiFor("alice")
+
+        assertEquals(listOf("world.block.break"), document.actions.map { it.id })
+        assertTrue(document.paths.containsKey("/clients/alice/world/block:break"))
+        assertEquals(
+            "world.block.break",
+            document.paths["/clients/alice/world/block:break"]
+                ?.post
+                ?.extensions
+                ?.get("x-craftless-action"),
+        )
+        assertEquals("runWorldBlockBreak", document.paths["/clients/alice/world/block:break"]?.post?.operationId)
+    }
+
+    @Test
     fun `client specific openapi rejects duplicate action ids`() {
         val service =
             ClientSessionService.inMemory { request ->

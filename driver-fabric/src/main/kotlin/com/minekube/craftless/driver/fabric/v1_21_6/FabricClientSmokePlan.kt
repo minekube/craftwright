@@ -43,6 +43,10 @@ data class FabricClientSmokePlan(
                             "Invoke generated player.move through the per-client action API",
                         ),
                         FabricSmokeStep(
+                            FabricSmokeStepKind.INVOKE_GENERATED_GAMEPLAY_ACTIONS,
+                            "Re-fetch connected client metadata and invoke generated inventory and block actions through the per-client action API",
+                        ),
+                        FabricSmokeStep(
                             FabricSmokeStepKind.ASSERT_SERVER_EVIDENCE,
                             "Assert server-side join, chat, movement, and disconnect evidence",
                         ),
@@ -57,7 +61,10 @@ data class FabricClientSmokePlan(
                         "server-evidence.jsonl",
                         "client-openapi.json",
                         "client-actions.json",
+                        "client-openapi-connected.json",
+                        "client-actions-connected.json",
                         "client-events.jsonl",
+                        "gameplay-results.jsonl",
                         "runtime-metadata.json",
                     ),
             )
@@ -76,6 +83,7 @@ enum class FabricSmokeStepKind {
     CONNECT_CLIENT,
     INVOKE_GENERATED_CHAT_ACTION,
     INVOKE_GENERATED_MOVE_ACTION,
+    INVOKE_GENERATED_GAMEPLAY_ACTIONS,
     ASSERT_SERVER_EVIDENCE,
     COLLECT_ARTIFACTS,
 }
