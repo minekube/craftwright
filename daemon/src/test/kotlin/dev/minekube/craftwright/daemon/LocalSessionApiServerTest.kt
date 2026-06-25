@@ -92,9 +92,72 @@ class LocalSessionApiServerTest {
         }
     }
 
+    @Test
+    fun `server handles sdk session routes for fake client actions`() = withHttpClient { http ->
+        LocalSessionApiServer.inMemory().use { server ->
+            server.start()
+            createAlice(http, server)
+
+            http.post(server.url("/clients/alice/connection/connect")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"host":"localhost","port":25565}""")
+            }.let { response ->
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertTrue(response.bodyAsText().contains("\"state\":\"CONNECTED\""))
+            }
+
+            http.post(server.url("/clients/alice/player/sendChat")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"message":"hello from sdk"}""")
+            }.let { response ->
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertTrue(response.bodyAsText().contains("\"message\":\"hello from sdk\""))
+            }
+
+            http.get(server.url("/clients/alice/player")).let { response ->
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertTrue(response.bodyAsText().contains("\"name\":\"Alice\""))
+            }
+
+            http.post(server.url("/clients/alice/stop")) {
+                contentType(ContentType.Application.Json)
+                setBody("{}")
+            }.let { response ->
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertTrue(response.bodyAsText().contains("\"state\":\"STOPPED\""))
+            }
+
+            http.get(server.url("/clients/alice/events")).let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertTrue(body.contains("client.connected"))
+                assertTrue(body.contains("chat"))
+                assertTrue(body.contains("client.stopped"))
+            }
+        }
+    }
+
     private fun withHttpClient(block: suspend (HttpClient) -> Unit) {
         kotlinx.coroutines.runBlocking {
             HttpClient(CIO).use { client -> block(client) }
+        }
+    }
+
+    private suspend fun createAlice(http: HttpClient, server: LocalSessionApiServer) {
+        http.post(server.url("/clients")) {
+            contentType(ContentType.Application.Json)
+            setBody(
+                """
+                {
+                  "id": "alice",
+                  "version": "1.21.4",
+                  "loader": "FABRIC",
+                  "profile": { "kind": "OFFLINE", "name": "Alice" }
+                }
+                """.trimIndent()
+            )
+        }.let { created ->
+            assertEquals(HttpStatusCode.Created, created.status)
         }
     }
 }

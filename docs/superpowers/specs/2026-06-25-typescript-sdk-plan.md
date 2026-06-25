@@ -49,6 +49,18 @@ creation contract. Player methods map to session-scoped routes under
 `/clients/{id}/...`, which is the route shape the daemon and generated client
 API should converge on as the real driver lands.
 
+The daemon fake-session API currently implements the SDK smoke routes:
+
+- `POST /clients/{id}/connection/connect`
+- `POST /clients/{id}/player/sendChat`
+- `GET /clients/{id}/player`
+- `POST /clients/{id}/stop`
+- `GET /clients/{id}/events`
+
+These routes update in-memory client state and session events. They are not a
+real Minecraft driver yet, but they let the CLI, SDK, fixtures, and OpenAPI
+metadata converge on one contract before the Fabric driver replaces fake state.
+
 ## Playwright Direction
 
 The Playwright package currently exports low-dependency helpers:
@@ -66,8 +78,7 @@ SDK contract.
 
 ## Next Steps
 
-- Wire SDK smoke tests to a live `mcw clients api --once` server when the route
-  set includes player action endpoints.
+- Wire SDK smoke tests to a live `mcw clients api --once` server.
 - Generate typed SDK methods from `/openapi.json` instead of hand-writing route
   strings.
 - Add Playwright Test peer integration once package publishing shape and CI

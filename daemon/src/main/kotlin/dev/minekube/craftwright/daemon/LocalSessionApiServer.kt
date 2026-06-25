@@ -82,6 +82,68 @@ class LocalSessionApiServer private constructor(
                     call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
                 }
             }
+            post("/clients/{id}/connection/connect") {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                runCatching {
+                    val request = json.decodeFromString<ConnectRequest>(call.receiveText())
+                    val client = service.connectClient(clientId)
+                    events += SessionEvent(
+                        type = "client.connected",
+                        client = client.id,
+                        message = "connected ${client.id} to ${request.host}:${request.port}",
+                    )
+                    call.respondJson(HttpStatusCode.OK, client)
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                }
+            }
+            post("/clients/{id}/player/sendChat") {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                runCatching {
+                    service.routesFor(clientId)
+                    val request = json.decodeFromString<SendChatRequest>(call.receiveText())
+                    require(request.message.isNotBlank()) { "chat message is required" }
+                    val event = SessionEvent(
+                        type = "chat",
+                        client = clientId,
+                        message = request.message,
+                    )
+                    events += event
+                    call.respondJson(HttpStatusCode.OK, event)
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                }
+            }
+            get("/clients/{id}/player") {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                runCatching {
+                    val client = service.client(clientId)
+                    call.respondJson(
+                        HttpStatusCode.OK,
+                        PlayerSnapshot(
+                            id = client.id,
+                            name = client.profile.name,
+                            state = client.state.name,
+                        )
+                    )
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
+                }
+            }
+            post("/clients/{id}/stop") {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                runCatching {
+                    val client = service.stopClient(clientId)
+                    events += SessionEvent(
+                        type = "client.stopped",
+                        client = client.id,
+                        message = "stopped client ${client.id}",
+                    )
+                    call.respondJson(HttpStatusCode.OK, client)
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
+                }
+            }
         }
     }
 
@@ -146,4 +208,22 @@ data class SessionEvent(
 data class ErrorResponse(
     val code: String,
     val message: String,
+)
+
+@Serializable
+data class ConnectRequest(
+    val host: String,
+    val port: Int,
+)
+
+@Serializable
+data class SendChatRequest(
+    val message: String,
+)
+
+@Serializable
+data class PlayerSnapshot(
+    val id: String,
+    val name: String,
+    val state: String,
 )

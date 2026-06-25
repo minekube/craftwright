@@ -125,7 +125,7 @@ The wrapper exposed Craftwright-shaped routes such as:
 - `POST /launch`;
 - `POST /connect`;
 - `GET /events`;
-- `POST /clients/default/actions/chat`;
+- `POST /clients/default/player/sendChat`;
 - `POST /clients/default/actions/jump`;
 - `POST /clients/default/actions/move`;
 - `POST /clients/default/perception/render-text`;

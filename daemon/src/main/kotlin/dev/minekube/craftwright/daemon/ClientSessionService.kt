@@ -31,12 +31,21 @@ class ClientSessionService private constructor() {
         return client
     }
 
+    fun client(clientId: String): Client =
+        clients[clientId] ?: error("client $clientId not found")
+
+    fun connectClient(clientId: String): Client =
+        updateState(clientId, ClientState.CONNECTED)
+
+    fun stopClient(clientId: String): Client =
+        updateState(clientId, ClientState.STOPPED)
+
     fun routesFor(clientId: String): List<ApiRoute> {
         require(clients.containsKey(clientId)) { "client $clientId not found" }
         return listOf(
-            route("POST", "/clients/$clientId/connect", "clientsConnect", "clients", "connection", "method"),
+            route("POST", "/clients/$clientId/connection/connect", "clientsConnect", "clients", "connection", "method"),
             route("POST", "/clients/$clientId/stop", "clientsStop", "clients", "stop", "method"),
-            route("POST", "/clients/$clientId/actions/chat", "clientsActionsChat", "clients", "chat", "method"),
+            route("POST", "/clients/$clientId/player/sendChat", "clientsPlayerSendChat", "clients", "sendChat", "method"),
             route("POST", "/clients/$clientId/actions/move", "clientsActionsMove", "clients", "move", "method"),
             route("POST", "/clients/$clientId/actions/jump", "clientsActionsJump", "clients", "jump", "method"),
             route("POST", "/clients/$clientId/actions/look", "clientsActionsLook", "clients", "look", "method"),
@@ -51,6 +60,12 @@ class ClientSessionService private constructor() {
 
     companion object {
         fun inMemory(): ClientSessionService = ClientSessionService()
+    }
+
+    private fun updateState(clientId: String, state: ClientState): Client {
+        val updated = client(clientId).copy(state = state)
+        clients[clientId] = updated
+        return updated
     }
 }
 

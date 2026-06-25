@@ -25,7 +25,8 @@ class ClientSessionServiceTest {
         assertEquals(ClientState.RUNNING, client.state)
         assertEquals("Alice", client.profile.name)
         assertEquals("/clients/alice/events", service.routesFor("alice").first { it.path.endsWith("/events") }.path)
-        assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/actions/chat" })
+        assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/player/sendChat" })
+        assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/connection/connect" })
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/player/position" })
     }
 

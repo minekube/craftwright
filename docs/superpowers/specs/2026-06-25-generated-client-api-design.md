@@ -438,6 +438,20 @@ For huge generated APIs, clients should filter the OpenAPI document locally.
 Agents and SDK generators can use tags, operation IDs, and extensions to find
 the relevant operations.
 
+The daemon-level client management routes must also appear in the route catalog
+while the fake local API exists:
+
+- `POST /clients`
+- `POST /clients/{id}/connection/connect`
+- `POST /clients/{id}/player/sendChat`
+- `GET /clients/{id}/player`
+- `POST /clients/{id}/stop`
+- `GET /clients/{id}/events`
+
+These are session-management routes, not HMC-Specifics command strings. The
+Fabric driver should implement the same public contract when fake state is
+replaced by real client control.
+
 ## Version Endpoint
 
 `GET /version` must describe the exact runtime:

@@ -54,6 +54,10 @@ class ApiRouteCatalogTest {
         assertEquals("GET", catalog.route("/player").method)
         assertEquals("GET", catalog.route("/player/name").method)
         assertEquals("POST", catalog.route("/player/sendChat").method)
+        assertEquals("POST", catalog.route("/clients/{id}/connection/connect").method)
+        assertEquals("POST", catalog.route("/clients/{id}/player/sendChat").method)
+        assertEquals("GET", catalog.route("/clients/{id}/player").method)
+        assertEquals("POST", catalog.route("/clients/{id}/stop").method)
         assertTrue(catalog.routes.any { it.path == "/o/{handle}" })
         assertTrue(catalog.routes.any { it.path == "/c/{className}" })
     }
