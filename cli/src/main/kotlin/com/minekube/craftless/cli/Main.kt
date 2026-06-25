@@ -283,11 +283,11 @@ object CraftlessCli {
                         stderr(actionsBody)
                         return@runBlocking 1
                     }
-                    val descriptor =
+                    val actionProjection =
                         json
                             .decodeFromString<List<OpenApiAction>>(actionsBody)
                             .firstOrNull { it.id == action }
-                    if (descriptor == null) {
+                    if (actionProjection == null) {
                         stderr("error: action $action is not available for client $clientId")
                         return@runBlocking 1
                     }
@@ -299,14 +299,15 @@ object CraftlessCli {
                     }
                     val openApi = json.decodeFromString<OpenApiDocument>(openApiBody)
                     val runPath = "/clients/$clientId:run"
-                    if (openApi.paths[runPath]?.post == null || openApi.actions.none { it.id == action }) {
+                    val openApiAction = openApi.actions.firstOrNull { it.id == action }
+                    if (openApi.paths[runPath]?.post == null || openApiAction == null) {
                         stderr("error: action $action is not described by live OpenAPI for client $clientId")
                         return@runBlocking 1
                     }
                     val payload =
                         ActionRunRequest(
                             action = action,
-                            args = args.genericActionArguments(action, descriptor),
+                            args = args.genericActionArguments(action, openApiAction),
                         )
                     val response =
                         http.post("${api.trimEnd('/')}/clients/$clientId:run") {
@@ -347,11 +348,11 @@ object CraftlessCli {
                         stderr(actionsBody)
                         return@runBlocking 1
                     }
-                    val action =
+                    val actionProjection =
                         json
                             .decodeFromString<List<OpenApiAction>>(actionsBody)
                             .firstOrNull { it.id == actionId }
-                    if (action == null) {
+                    if (actionProjection == null) {
                         stderr("error: action $actionId is not available for client $clientId")
                         return@runBlocking 1
                     }
@@ -364,21 +365,22 @@ object CraftlessCli {
                     val aliasPath = "/clients/$clientId/$namespace:$actionName"
                     val openApi = json.decodeFromString<OpenApiDocument>(openApiBody)
                     val aliasOperation = openApi.paths[aliasPath]?.post
+                    val openApiAction = openApi.actions.firstOrNull { it.id == actionId }
                     if (
                         aliasOperation?.extensions?.get("x-craftless-action") != actionId ||
-                        openApi.actions.none { it.id == actionId }
+                        openApiAction == null
                     ) {
                         stderr("error: action $actionId is not described by live OpenAPI for client $clientId")
                         return@runBlocking 1
                     }
                     if (args.contains("--help")) {
-                        stdout(action.generatedAliasHelp(clientId, namespace, actionName, "POST $aliasPath"))
+                        stdout(openApiAction.generatedAliasHelp(clientId, namespace, actionName, "POST $aliasPath"))
                         return@runBlocking 0
                     }
                     val response =
                         http.post("${api.trimEnd('/')}/clients/$clientId/$namespace:$actionName") {
                             contentType(ContentType.Application.Json)
-                            setBody(json.encodeToString(args.actionAliasArguments(action)))
+                            setBody(json.encodeToString(args.actionAliasArguments(openApiAction)))
                         }
                     response.forwardActionResultBody(stdout, stderr)
                 }

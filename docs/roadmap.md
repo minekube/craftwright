@@ -27,6 +27,9 @@ Craftless currently has:
 - generated action aliases are emitted from the same live action snapshot as
   the per-client OpenAPI action metadata, and OpenAPI generation rejects alias
   routes without matching action descriptors;
+- adaptive CLI generic and generated-alias action dispatch validates
+  availability through `/clients/{id}/actions` but takes argument schemas and
+  generated help from the live `/clients/{id}/openapi.json` action descriptor;
 - protocol policy tests reject public action descriptors and route metadata
   that leak Fabric, Yarn, intermediary, raw Minecraft, bridge, or launcher
   namespace tokens;
@@ -139,8 +142,8 @@ Goal: make `craftless` and future generated clients consume live specs instead
 of mirroring the API by hand.
 
 - Cache per-client OpenAPI only by runtime/action fingerprint.
-- Render dynamic CLI help from `/clients/{id}/openapi.json` and
-  `/clients/{id}/actions`.
+- Render dynamic CLI help from `/clients/{id}/openapi.json`, using
+  `/clients/{id}/actions` only as a descriptor projection/availability view.
 - Keep static CLI commands limited to daemon lifecycle, client lifecycle,
   discovery, generic action invocation, auth/config, and output modes.
 - Add an OpenAPI compatibility fixture that proves generated aliases, generic
