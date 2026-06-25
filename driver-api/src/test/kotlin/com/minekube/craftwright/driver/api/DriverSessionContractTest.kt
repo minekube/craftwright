@@ -19,9 +19,8 @@ class DriverSessionContractTest {
         val connected = session.connect(ConnectionTarget(host = "localhost", port = 25565))
         assertEquals(ClientState.CONNECTED, connected.state)
 
-        val chat = session.sendChat(ChatCommand("hello from driver"))
-        assertEquals(DriverEventType.CHAT, chat.type)
-        assertEquals("hello from driver", chat.message)
+        assertTrue(DriverSession::class.java.methods.none { it.name == "sendChat" })
+        assertTrue(DriverSession::class.java.methods.none { it.name == "capabilities" })
 
         val player = session.player()
         assertEquals("alice", player.id)
@@ -29,9 +28,9 @@ class DriverSessionContractTest {
         assertEquals(ClientState.CONNECTED, player.state)
         assertEquals(PlayerPosition(0.0, 0.0, 0.0), player.position)
 
-        val capabilities = session.capabilities()
-        assertEquals("1", capabilities.single { it.id == "player.move" }.schemaVersion)
-        assertEquals("1", capabilities.single { it.id == "player.chat" }.schemaVersion)
+        val actions = session.actions()
+        assertEquals("1", actions.single { it.id == "player.move" }.schemaVersion)
+        assertEquals("1", actions.single { it.id == "player.chat" }.schemaVersion)
 
         val runtime = session.runtimeMetadata()
         assertEquals("none", runtime.loaderVersion)
@@ -44,32 +43,32 @@ class DriverSessionContractTest {
         assertEquals("local-fake", runtime.permissionsFingerprint)
 
         val chatAction = session.invoke(
-            DriverCapabilityInvocation(
-                capability = "player.chat",
+            DriverActionInvocation(
+                action = "player.chat",
                 arguments = mapOf("message" to JsonPrimitive("hello through action")),
             )
         )
-        assertEquals("player.chat", chatAction.capability)
-        assertEquals(DriverCapabilityStatus.ACCEPTED, chatAction.status)
+        assertEquals("player.chat", chatAction.action)
+        assertEquals(DriverActionStatus.ACCEPTED, chatAction.status)
         assertEquals("hello through action", chatAction.message)
 
-        val capability = session.invoke(
-            DriverCapabilityInvocation(
-                capability = "player.move",
+        val action = session.invoke(
+            DriverActionInvocation(
+                action = "player.move",
                 arguments = mapOf("forward" to JsonPrimitive(true), "ticks" to JsonPrimitive(20)),
             )
         )
-        assertEquals("player.move", capability.capability)
-        assertEquals(DriverCapabilityStatus.ACCEPTED, capability.status)
+        assertEquals("player.move", action.action)
+        assertEquals(DriverActionStatus.ACCEPTED, action.status)
 
         val unknown = session.invoke(
-            DriverCapabilityInvocation(
-                capability = "player.fly",
+            DriverActionInvocation(
+                action = "player.fly",
                 arguments = emptyMap(),
             )
         )
-        assertEquals("player.fly", unknown.capability)
-        assertEquals(DriverCapabilityStatus.UNSUPPORTED, unknown.status)
+        assertEquals("player.fly", unknown.action)
+        assertEquals(DriverActionStatus.UNSUPPORTED, unknown.status)
 
         val stopped = session.stop()
         assertEquals(ClientState.STOPPED, stopped.state)

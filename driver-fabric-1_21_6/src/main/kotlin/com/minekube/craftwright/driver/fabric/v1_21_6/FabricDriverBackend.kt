@@ -1,11 +1,10 @@
 package com.minekube.craftwright.driver.fabric.v1_21_6
 
-import com.minekube.craftwright.driver.api.ChatCommand
 import com.minekube.craftwright.driver.api.ConnectionTarget
-import com.minekube.craftwright.driver.api.DriverCapabilityDescriptor
-import com.minekube.craftwright.driver.api.DriverCapabilityInvocation
-import com.minekube.craftwright.driver.api.DriverCapabilityResult
-import com.minekube.craftwright.driver.api.DriverCapabilityStatus
+import com.minekube.craftwright.driver.api.DriverActionDescriptor
+import com.minekube.craftwright.driver.api.DriverActionInvocation
+import com.minekube.craftwright.driver.api.DriverActionResult
+import com.minekube.craftwright.driver.api.DriverActionStatus
 import com.minekube.craftwright.driver.api.DriverRuntimeMetadata
 import com.minekube.craftwright.driver.api.booleanArgument
 import com.minekube.craftwright.driver.api.intArgument
@@ -31,18 +30,17 @@ class FabricDriverBackend private constructor(
         return DriverBackendResult(DriverBackendAction.CONNECT, "fabric ${mode.id} connect requested")
     }
 
-    override fun sendChat(clientId: String, command: ChatCommand): DriverBackendResult {
-        require(command.message.isNotBlank()) { "chat message is required" }
-        record("chat $clientId ${command.message}")
+    private fun sendChatAction(clientId: String, message: String): String {
+        require(message.isNotBlank()) { "chat message is required" }
+        record("chat $clientId $message")
         gateway?.execute {
-            val message = command.message
             if (message.startsWith("/")) {
                 gateway.sendCommand(message.removePrefix("/"))
             } else {
                 gateway.sendChat(message)
             }
         }
-        return DriverBackendResult(DriverBackendAction.CHAT, command.message)
+        return message
     }
 
     override fun player(clientId: String): DriverBackendPlayer? =
@@ -54,10 +52,10 @@ class FabricDriverBackend private constructor(
             )
         }
 
-    override fun capabilities(clientId: String): List<DriverCapabilityDescriptor> =
+    override fun actions(clientId: String): List<DriverActionDescriptor> =
         listOf(
-            DriverCapabilityDescriptor.playerMove(),
-            DriverCapabilityDescriptor.playerChat(),
+            DriverActionDescriptor.playerMove(),
+            DriverActionDescriptor.playerChat(),
         )
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
@@ -72,22 +70,21 @@ class FabricDriverBackend private constructor(
             permissionsFingerprint = "local-client",
         )
 
-    override fun invoke(clientId: String, invocation: DriverCapabilityInvocation): DriverCapabilityResult {
-        require(invocation.capability.isNotBlank()) { "capability is required" }
-        if (invocation.capability == "player.chat") {
+    override fun invoke(clientId: String, invocation: DriverActionInvocation): DriverActionResult {
+        require(invocation.action.isNotBlank()) { "action is required" }
+        if (invocation.action == "player.chat") {
             val message = requireNotNull(invocation.arguments.stringArgument("message")) { "message is required" }
-            val result = sendChat(clientId, ChatCommand(message))
-            return DriverCapabilityResult(
-                capability = invocation.capability,
-                status = DriverCapabilityStatus.ACCEPTED,
-                message = result.message,
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.ACCEPTED,
+                message = sendChatAction(clientId, message),
             )
         }
-        if (invocation.capability != "player.move") {
-            return DriverCapabilityResult(
-                capability = invocation.capability,
-                status = DriverCapabilityStatus.UNSUPPORTED,
-                message = "unsupported Fabric capability ${invocation.capability}",
+        if (invocation.action != "player.move") {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.UNSUPPORTED,
+                message = "unsupported Fabric action ${invocation.action}",
             )
         }
         val intent = FabricMovementIntent(
@@ -103,10 +100,10 @@ class FabricDriverBackend private constructor(
         gateway?.execute {
             gateway.move(intent)
         }
-        return DriverCapabilityResult(
-            capability = invocation.capability,
-            status = DriverCapabilityStatus.ACCEPTED,
-            message = "fabric ${mode.id} capability ${invocation.capability} accepted",
+        return DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.ACCEPTED,
+            message = "fabric ${mode.id} action ${invocation.action} accepted",
         )
     }
 

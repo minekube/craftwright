@@ -399,7 +399,7 @@ Fill out the Fabric driver beyond the current Loom scaffold by extending the
 client-thread gateway with Java Mixins, a small Kotlin/Java driver API, and
 internal version-aware bindings.
 
-Minimum actions/capabilities:
+Minimum discovered actions and driver lifecycle support:
 
 - driver starts and connects to supervisor;
 - emits `client.ready`;
@@ -430,7 +430,7 @@ where possible. Each version requires:
 
 - runtime fingerprint and binding support checks;
 - real smoke test;
-- documented supported actions/capabilities through that client's OpenAPI;
+- documented supported actions through that client's OpenAPI;
 - update path for mappings and modloader versions.
 
 Only split into a dedicated Gradle module or source set if Minecraft, Fabric

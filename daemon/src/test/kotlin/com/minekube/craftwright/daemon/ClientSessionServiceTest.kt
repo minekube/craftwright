@@ -1,8 +1,10 @@
 package com.minekube.craftwright.daemon
 
-import com.minekube.craftwright.driver.api.ChatCommand
 import com.minekube.craftwright.driver.api.ConnectionTarget
-import com.minekube.craftwright.driver.api.DriverCapabilityDescriptor
+import com.minekube.craftwright.driver.api.DriverActionDescriptor
+import com.minekube.craftwright.driver.api.DriverActionInvocation
+import com.minekube.craftwright.driver.api.DriverActionResult
+import com.minekube.craftwright.driver.api.DriverActionStatus
 import com.minekube.craftwright.driver.api.DriverRuntimeMetadata
 import com.minekube.craftwright.driver.api.DriverEventType
 import com.minekube.craftwright.driver.runtime.BackendDriverSession
@@ -14,6 +16,8 @@ import com.minekube.craftwright.protocol.CreateClientRequest
 import com.minekube.craftwright.protocol.Loader
 import com.minekube.craftwright.protocol.OpenApiDocument
 import com.minekube.craftwright.protocol.Profile
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -100,8 +104,8 @@ class ClientSessionServiceTest {
         val actionOperation = document.paths["/clients/alice:run"]?.post
         assertNotNull(actionOperation)
         assertEquals("action", actionOperation.extensions["x-craftwright-source"])
-        assertEquals("1", document.capabilities.single { it.id == "player.move" }.schemaVersion)
-        assertEquals("1", document.capabilities.single { it.id == "player.chat" }.schemaVersion)
+        assertEquals("1", document.actions.single { it.id == "player.move" }.schemaVersion)
+        assertEquals("1", document.actions.single { it.id == "player.chat" }.schemaVersion)
     }
 
     @Test
@@ -138,8 +142,15 @@ class ClientSessionServiceTest {
         val driver = service.driverFor("alice")
         assertEquals(ClientState.RUNNING, driver.snapshot().state)
         assertEquals(ClientState.CONNECTED, driver.connect(ConnectionTarget("localhost", 25565)).state)
-        assertEquals(DriverEventType.CHAT, driver.sendChat(ChatCommand("from driver")).type)
+        val chat = driver.invoke(
+            DriverActionInvocation(
+                action = "player.chat",
+                arguments = mapOf("message" to JsonPrimitive("from driver")),
+            )
+        )
+        assertEquals(DriverActionStatus.ACCEPTED, chat.status)
         assertEquals("Alice", driver.player().name)
+        assertTrue(driver.events().any { it.type == DriverEventType.CHAT })
     }
 
     @Test
@@ -163,7 +174,12 @@ class ClientSessionServiceTest {
         )
 
         service.connectClient("alice", ConnectionTarget("localhost", 25565))
-        service.driverFor("alice").sendChat(ChatCommand("runtime route"))
+        service.driverFor("alice").invoke(
+            DriverActionInvocation(
+                action = "player.chat",
+                arguments = mapOf("message" to JsonPrimitive("runtime route")),
+            )
+        )
 
         assertEquals(
             listOf("connect alice localhost:25565", "chat alice runtime route"),
@@ -228,22 +244,23 @@ private class RecordingDriverBackend(
         return DriverBackendResult(DriverBackendAction.CONNECT)
     }
 
-    override fun sendChat(clientId: String, command: ChatCommand): DriverBackendResult {
-        calls += "chat $clientId ${command.message}"
-        return DriverBackendResult(DriverBackendAction.CHAT, command.message)
-    }
-
     override fun stop(clientId: String): DriverBackendResult {
         calls += "stop $clientId"
         return DriverBackendResult(DriverBackendAction.STOP)
     }
 
-    override fun capabilities(clientId: String): List<DriverCapabilityDescriptor> =
+    override fun actions(clientId: String): List<DriverActionDescriptor> =
         listOf(
-            DriverCapabilityDescriptor.playerMove(),
-            DriverCapabilityDescriptor.playerChat(),
+            DriverActionDescriptor.playerMove(),
+            DriverActionDescriptor.playerChat(),
         )
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
         metadata
+
+    override fun invoke(clientId: String, invocation: DriverActionInvocation): DriverActionResult {
+        val message = invocation.arguments["message"]?.jsonPrimitive?.content
+        calls += "chat $clientId $message"
+        return DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED, message)
+    }
 }

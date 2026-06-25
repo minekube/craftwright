@@ -1,7 +1,7 @@
 package com.minekube.craftwright.daemon
 
 import com.minekube.craftwright.driver.api.ConnectionTarget
-import com.minekube.craftwright.driver.api.DriverCapabilityDescriptor
+import com.minekube.craftwright.driver.api.DriverActionDescriptor
 import com.minekube.craftwright.driver.api.DriverRuntimeMetadata
 import com.minekube.craftwright.driver.api.DriverSession
 import com.minekube.craftwright.driver.api.FakeDriverSession
@@ -12,8 +12,8 @@ import com.minekube.craftwright.protocol.ClientState
 import com.minekube.craftwright.protocol.CreateClientRequest
 import com.minekube.craftwright.protocol.Instance
 import com.minekube.craftwright.protocol.MinecraftVersion
-import com.minekube.craftwright.protocol.OpenApiCapability
-import com.minekube.craftwright.protocol.OpenApiCapabilityArgument
+import com.minekube.craftwright.protocol.OpenApiAction
+import com.minekube.craftwright.protocol.OpenApiActionArgument
 import com.minekube.craftwright.protocol.OpenApiDocument
 
 class ClientSessionService private constructor(
@@ -62,7 +62,7 @@ class ClientSessionService private constructor(
 
     fun routesFor(clientId: String): List<ApiRoute> {
         require(clients.containsKey(clientId)) { "client $clientId not found" }
-        val actionAliases = driverFor(clientId).capabilities().mapNotNull { it.toActionAliasRoute(clientId) }
+        val actionAliases = driverFor(clientId).actions().mapNotNull { it.toActionAliasRoute(clientId) }
         return listOf(
             route("GET", "/clients/$clientId/openapi.json", "clientsOpenApi", "clients", "openapi", "route"),
             route("POST", "/clients/$clientId/connection/connect", "clientsConnect", "clients", "connection", "method"),
@@ -78,21 +78,21 @@ class ClientSessionService private constructor(
     fun openApiFor(clientId: String): OpenApiDocument {
         val client = client(clientId)
         val driver = driverFor(clientId)
-        val capabilities = driver.capabilities()
+        val actions = driver.actions()
         val runtimeMetadata = RuntimeOpenApiMetadata.forClient(
             client = client,
-            capabilities = capabilities,
+            actions = actions,
             metadata = driver.runtimeMetadata(),
         )
         return OpenApiDocument.from(
             catalog = ApiRouteCatalog(routesFor(clientId)),
             extensions = runtimeMetadata.extensions,
-            capabilities = capabilities.map { capability ->
-                OpenApiCapability(
-                    id = capability.id,
-                    schemaVersion = capability.schemaVersion,
-                    arguments = capability.arguments.mapValues { (_, argument) ->
-                        OpenApiCapabilityArgument(
+            actions = actions.map { action ->
+                OpenApiAction(
+                    id = action.id,
+                    schemaVersion = action.schemaVersion,
+                    arguments = action.arguments.mapValues { (_, argument) ->
+                        OpenApiActionArgument(
                             type = argument.type,
                             required = argument.required,
                         )
@@ -130,10 +130,10 @@ private data class RuntimeOpenApiMetadata(
     companion object {
         fun forClient(
             client: Client,
-            capabilities: List<DriverCapabilityDescriptor>,
+            actions: List<DriverActionDescriptor>,
             metadata: DriverRuntimeMetadata,
         ): RuntimeOpenApiMetadata {
-            val capabilityFingerprint = capabilities.joinToString(",") { "${it.id}:${it.schemaVersion}" }
+            val actionFingerprint = actions.joinToString(",") { "${it.id}:${it.schemaVersion}" }
             val extensions = linkedMapOf(
                 "x-craftwright-client-id" to client.id,
                 "x-craftwright-minecraft-version" to client.instance.version.id,
@@ -146,17 +146,17 @@ private data class RuntimeOpenApiMetadata(
                 "x-craftwright-registry-fingerprint" to metadata.registryFingerprint,
                 "x-craftwright-server-feature-fingerprint" to metadata.serverFeatureFingerprint,
                 "x-craftwright-permissions-fingerprint" to metadata.permissionsFingerprint,
-                "x-craftwright-capability-schema-version" to (capabilities.firstOrNull()?.schemaVersion ?: "none"),
-                "x-craftwright-capability-fingerprint" to capabilityFingerprint,
+                "x-craftwright-action-schema-version" to (actions.firstOrNull()?.schemaVersion ?: "none"),
+                "x-craftwright-action-fingerprint" to actionFingerprint,
             )
-            extensions["x-craftwright-runtime-fingerprint"] = runtimeFingerprint(client, metadata, capabilityFingerprint)
+            extensions["x-craftwright-runtime-fingerprint"] = runtimeFingerprint(client, metadata, actionFingerprint)
             return RuntimeOpenApiMetadata(extensions)
         }
 
         private fun runtimeFingerprint(
             client: Client,
             metadata: DriverRuntimeMetadata,
-            capabilityFingerprint: String,
+            actionFingerprint: String,
         ): String = listOf(
             "minecraft=${client.instance.version.id}",
             "loader=${client.instance.loader.name}",
@@ -168,7 +168,7 @@ private data class RuntimeOpenApiMetadata(
             "registries=${metadata.registryFingerprint}",
             "serverFeatures=${metadata.serverFeatureFingerprint}",
             "permissions=${metadata.permissionsFingerprint}",
-            "actions=$capabilityFingerprint",
+            "actions=$actionFingerprint",
         ).joinToString(";")
     }
 }
@@ -194,7 +194,7 @@ private fun route(
     actionId = actionId,
 )
 
-private fun DriverCapabilityDescriptor.toActionAliasRoute(clientId: String): ApiRoute? {
+private fun DriverActionDescriptor.toActionAliasRoute(clientId: String): ApiRoute? {
     val parts = id.split(".")
     if (parts.size != 2 || parts.any { it.isBlank() }) return null
     val (resource, action) = parts

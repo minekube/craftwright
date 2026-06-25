@@ -16,8 +16,11 @@ The module currently exposes:
 - `DriverSession`
 - `DriverClientSnapshot`
 - `ConnectionTarget`
-- `ChatCommand`
 - `PlayerSnapshot`
+- `DriverActionDescriptor`
+- `DriverActionInvocation`
+- `DriverActionResult`
+- `DriverActionStatus`
 - `DriverEvent`
 - `DriverEventType`
 - `FakeDriverSession`
@@ -48,7 +51,7 @@ Minimum supported actions:
 
 - snapshot current client state;
 - connect to a host/port;
-- send chat;
+- invoke discovered actions such as `player.chat` and `player.move`;
 - return player identity/state;
 - stop the session;
 - return structured driver events.
@@ -60,10 +63,10 @@ the same public contract before the Fabric module lands.
 `BackendDriverSession` is the first runtime adapter. It keeps `DriverSession`
 state and events in Craftwright-owned types while delegating automation actions
 to a `DriverBackend`. The current HMC bridge adapter is temporary. The Fabric
-module now routes connect, chat, command, stop, and player name/connection-state
-observation plus player position through a client-thread gateway. It also
-accepts generic action invocation for `player.move`. It must still add
-real-client movement smoke proof, perception, and structured event observation.
+module now routes connect, stop, player name/connection-state observation,
+player position, and generic action invocation such as `player.chat` and
+`player.move` through a client-thread gateway. It must still add real-client
+movement smoke proof, perception, and structured event observation.
 
 ## Fabric Handoff
 
@@ -73,12 +76,11 @@ internal binding support checks and by publishing only working actions in the
 per-client OpenAPI document:
 
 - map `connect(ConnectionTarget)` to in-client server connection behavior;
-- map `sendChat(ChatCommand)` to real client chat and slash-command send
-  behavior;
 - keep Minecraft calls scheduled on the client thread;
 - make `player()` return real player state and position from the Fabric gateway;
-- route generated/discovered actions such as `player.move` through generic
-  action invocation instead of adding one method per player action;
+- route generated/discovered actions such as `player.chat` and `player.move`
+  through generic action invocation instead of adding one method per player
+  action;
 - preserve action invocation arguments as JSON values so schemas can use
   booleans, numbers, strings, arrays, and objects without string-only coercion;
 - emit `DriverEvent` values for ready, connect, chat, movement, stop, and

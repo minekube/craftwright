@@ -1,7 +1,7 @@
 package com.minekube.craftwright.daemon
 
 import com.minekube.craftwright.driver.api.ConnectionTarget
-import com.minekube.craftwright.driver.api.DriverCapabilityInvocation
+import com.minekube.craftwright.driver.api.DriverActionInvocation
 import com.minekube.craftwright.driver.api.PlayerPosition
 import com.minekube.craftwright.protocol.ApiRouteCatalog
 import com.minekube.craftwright.protocol.Client
@@ -144,7 +144,7 @@ class LocalSessionApiServer private constructor(
             get("/clients/{id}/actions") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
-                    call.respondJson(HttpStatusCode.OK, service.openApiFor(clientId).capabilities)
+                    call.respondJson(HttpStatusCode.OK, service.openApiFor(clientId).actions)
                 }.getOrElse { error ->
                     call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
                 }
@@ -154,8 +154,8 @@ class LocalSessionApiServer private constructor(
                 runCatching {
                     val request = json.decodeFromString<ActionInvocationRequest>(call.receiveText())
                     val result = service.driverFor(clientId).invoke(
-                        DriverCapabilityInvocation(
-                            capability = request.action,
+                        DriverActionInvocation(
+                            action = request.action,
                             arguments = request.args,
                         )
                     )
@@ -169,7 +169,7 @@ class LocalSessionApiServer private constructor(
                     call.respondJson(
                         HttpStatusCode.OK,
                         ActionInvocationResponse(
-                            action = result.capability,
+                            action = result.action,
                             status = result.status.name,
                             message = result.message,
                         )
@@ -198,8 +198,8 @@ class LocalSessionApiServer private constructor(
                 runCatching {
                     val actionId = actionAlias.toActionId()
                     val result = service.driverFor(clientId).invoke(
-                        DriverCapabilityInvocation(
-                            capability = actionId,
+                        DriverActionInvocation(
+                            action = actionId,
                             arguments = call.receiveActionArguments(),
                         )
                     )
@@ -213,7 +213,7 @@ class LocalSessionApiServer private constructor(
                     call.respondJson(
                         HttpStatusCode.OK,
                         ActionInvocationResponse(
-                            action = result.capability,
+                            action = result.action,
                             status = result.status.name,
                             message = result.message,
                         )

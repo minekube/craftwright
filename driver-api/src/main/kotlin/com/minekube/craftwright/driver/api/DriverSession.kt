@@ -15,15 +15,13 @@ interface DriverSession {
 
     fun connect(target: ConnectionTarget): DriverClientSnapshot
 
-    fun sendChat(command: ChatCommand): DriverEvent
-
     fun player(): PlayerSnapshot
 
-    fun capabilities(): List<DriverCapabilityDescriptor>
+    fun actions(): List<DriverActionDescriptor>
 
     fun runtimeMetadata(): DriverRuntimeMetadata
 
-    fun invoke(invocation: DriverCapabilityInvocation): DriverCapabilityResult
+    fun invoke(invocation: DriverActionInvocation): DriverActionResult
 
     fun stop(): DriverClientSnapshot
 
@@ -43,44 +41,39 @@ data class ConnectionTarget(
 )
 
 @Serializable
-data class ChatCommand(
-    val message: String,
-)
-
-@Serializable
-data class DriverCapabilityDescriptor(
+data class DriverActionDescriptor(
     val id: String,
     val schemaVersion: String,
-    val arguments: Map<String, DriverCapabilityArgument> = emptyMap(),
+    val arguments: Map<String, DriverActionArgument> = emptyMap(),
 ) {
     init {
-        require(id.isNotBlank()) { "capability id is required" }
-        require(schemaVersion.isNotBlank()) { "capability schema version is required" }
+        require(id.isNotBlank()) { "action id is required" }
+        require(schemaVersion.isNotBlank()) { "action schema version is required" }
     }
 
     companion object {
-        fun playerMove(): DriverCapabilityDescriptor =
-            DriverCapabilityDescriptor(
+        fun playerMove(): DriverActionDescriptor =
+            DriverActionDescriptor(
                 id = "player.move",
                 schemaVersion = "1",
                 arguments = mapOf(
-                    "forward" to DriverCapabilityArgument("boolean"),
-                    "backward" to DriverCapabilityArgument("boolean"),
-                    "left" to DriverCapabilityArgument("boolean"),
-                    "right" to DriverCapabilityArgument("boolean"),
-                    "jump" to DriverCapabilityArgument("boolean"),
-                    "sneak" to DriverCapabilityArgument("boolean"),
-                    "sprint" to DriverCapabilityArgument("boolean"),
-                    "ticks" to DriverCapabilityArgument("integer"),
+                    "forward" to DriverActionArgument("boolean"),
+                    "backward" to DriverActionArgument("boolean"),
+                    "left" to DriverActionArgument("boolean"),
+                    "right" to DriverActionArgument("boolean"),
+                    "jump" to DriverActionArgument("boolean"),
+                    "sneak" to DriverActionArgument("boolean"),
+                    "sprint" to DriverActionArgument("boolean"),
+                    "ticks" to DriverActionArgument("integer"),
                 ),
             )
 
-        fun playerChat(): DriverCapabilityDescriptor =
-            DriverCapabilityDescriptor(
+        fun playerChat(): DriverActionDescriptor =
+            DriverActionDescriptor(
                 id = "player.chat",
                 schemaVersion = "1",
                 arguments = mapOf(
-                    "message" to DriverCapabilityArgument("string", required = true),
+                    "message" to DriverActionArgument("string", required = true),
                 ),
             )
     }
@@ -118,14 +111,14 @@ data class DriverRuntimeMetadata(
 }
 
 @Serializable
-data class DriverCapabilityArgument(
+data class DriverActionArgument(
     val type: String,
     val required: Boolean = false,
 )
 
 @Serializable
-data class DriverCapabilityInvocation(
-    val capability: String,
+data class DriverActionInvocation(
+    val action: String,
     val arguments: Map<String, JsonElement> = emptyMap(),
 )
 
@@ -143,14 +136,14 @@ fun Map<String, JsonElement>.stringArgument(name: String): String? =
     this[name]?.jsonPrimitive?.content
 
 @Serializable
-data class DriverCapabilityResult(
-    val capability: String,
-    val status: DriverCapabilityStatus,
+data class DriverActionResult(
+    val action: String,
+    val status: DriverActionStatus,
     val message: String? = null,
 )
 
 @Serializable
-enum class DriverCapabilityStatus {
+enum class DriverActionStatus {
     ACCEPTED,
     UNSUPPORTED,
     FAILED,
@@ -215,12 +208,12 @@ class FakeDriverSession(
         return snapshot()
     }
 
-    override fun sendChat(command: ChatCommand): DriverEvent {
-        require(command.message.isNotBlank()) { "chat message is required" }
+    private fun recordChat(message: String): DriverEvent {
+        require(message.isNotBlank()) { "chat message is required" }
         val event = DriverEvent(
             type = DriverEventType.CHAT,
             client = clientId,
-            message = command.message,
+            message = message,
         )
         events += event
         return event
@@ -234,38 +227,38 @@ class FakeDriverSession(
             position = PlayerPosition(0.0, 0.0, 0.0),
         )
 
-    override fun capabilities(): List<DriverCapabilityDescriptor> =
+    override fun actions(): List<DriverActionDescriptor> =
         listOf(
-            DriverCapabilityDescriptor.playerMove(),
-            DriverCapabilityDescriptor.playerChat(),
+            DriverActionDescriptor.playerMove(),
+            DriverActionDescriptor.playerChat(),
         )
 
     override fun runtimeMetadata(): DriverRuntimeMetadata =
         DriverRuntimeMetadata.fake()
 
-    override fun invoke(invocation: DriverCapabilityInvocation): DriverCapabilityResult {
-        require(invocation.capability.isNotBlank()) { "capability is required" }
-        return when (invocation.capability) {
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult {
+        require(invocation.action.isNotBlank()) { "action is required" }
+        return when (invocation.action) {
             "player.chat" -> {
                 val message = requireNotNull(invocation.arguments.stringArgument("message")) { "message is required" }
-                val event = sendChat(ChatCommand(message))
-                DriverCapabilityResult(
-                    capability = invocation.capability,
-                    status = DriverCapabilityStatus.ACCEPTED,
+                val event = recordChat(message)
+                DriverActionResult(
+                    action = invocation.action,
+                    status = DriverActionStatus.ACCEPTED,
                     message = event.message,
                 )
             }
 
-            "player.move" -> DriverCapabilityResult(
-                capability = invocation.capability,
-                status = DriverCapabilityStatus.ACCEPTED,
-                message = "accepted ${invocation.capability} for $clientId",
+            "player.move" -> DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.ACCEPTED,
+                message = "accepted ${invocation.action} for $clientId",
             )
 
-            else -> DriverCapabilityResult(
-                capability = invocation.capability,
-                status = DriverCapabilityStatus.UNSUPPORTED,
-                message = "unsupported fake capability ${invocation.capability}",
+            else -> DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.UNSUPPORTED,
+                message = "unsupported fake action ${invocation.action}",
             )
         }
     }

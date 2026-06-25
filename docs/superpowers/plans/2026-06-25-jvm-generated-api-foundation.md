@@ -266,7 +266,7 @@ Expected: PASS without `CRAFTWRIGHT_REAL_CLIENT_SMOKE`.
 
 - [ ] **Step 1: Write failing API shape test**
 
-Test that the driver API exposes ready, connect, disconnect, send chat, player position, move, jump, look, raycast, nearby blocks, nearby entities, screen, click, events, and stop as discovered actions/capabilities rather than static public action routes.
+Test that the driver API exposes ready, connect, disconnect, chat, player position, move, jump, look, raycast, nearby blocks, nearby entities, screen, click, events, and stop as discovered actions rather than static public action routes.
 
 - [ ] **Step 2: Run test to verify it fails**
 

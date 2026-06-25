@@ -11,24 +11,24 @@ data class OpenApiDocument(
     @SerialName("x-craftwright")
     val extensions: Map<String, String> = emptyMap(),
     @SerialName("x-craftwright-actions")
-    val capabilities: List<OpenApiCapability> = emptyList(),
+    val actions: List<OpenApiAction> = emptyList(),
 ) {
     companion object {
         fun from(
             catalog: ApiRouteCatalog,
             extensions: Map<String, String> = emptyMap(),
-            capabilities: List<OpenApiCapability> = emptyList(),
+            actions: List<OpenApiAction> = emptyList(),
         ): OpenApiDocument {
-            val capabilitiesById = capabilities.associateBy { it.id }
+            val actionsById = actions.associateBy { it.id }
             return OpenApiDocument(
                 paths = catalog.routes.groupBy { it.path }.mapValues { (_, routes) ->
                     OpenApiPath(
-                        get = routes.firstOrNull { it.method == "GET" }?.toOperation(capabilitiesById),
-                        post = routes.firstOrNull { it.method == "POST" }?.toOperation(capabilitiesById),
+                        get = routes.firstOrNull { it.method == "GET" }?.toOperation(actionsById),
+                        post = routes.firstOrNull { it.method == "POST" }?.toOperation(actionsById),
                     )
                 },
                 extensions = extensions,
-                capabilities = capabilities,
+                actions = actions,
             )
         }
     }
@@ -81,25 +81,25 @@ data class OpenApiSchema(
 )
 
 @Serializable
-data class OpenApiCapability(
+data class OpenApiAction(
     val id: String,
     val schemaVersion: String,
     @SerialName("args")
-    val arguments: Map<String, OpenApiCapabilityArgument> = emptyMap(),
+    val arguments: Map<String, OpenApiActionArgument> = emptyMap(),
 )
 
 @Serializable
-data class OpenApiCapabilityArgument(
+data class OpenApiActionArgument(
     val type: String,
     val required: Boolean = false,
 )
 
-private fun ApiRoute.toOperation(capabilitiesById: Map<String, OpenApiCapability>): OpenApiOperation {
+private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenApiOperation {
     val route = this
     return OpenApiOperation(
         operationId = operationId,
         tags = listOf(tag),
-        requestBody = route.requestBody(capabilitiesById),
+        requestBody = route.requestBody(actionsById),
         extensions = buildMap {
             put("x-craftwright-java-class", route.javaClass)
             javaMember?.let { put("x-craftwright-java-method", it) }
@@ -111,15 +111,15 @@ private fun ApiRoute.toOperation(capabilitiesById: Map<String, OpenApiCapability
     )
 }
 
-private fun ApiRoute.requestBody(capabilitiesById: Map<String, OpenApiCapability>): OpenApiRequestBody? =
+private fun ApiRoute.requestBody(actionsById: Map<String, OpenApiAction>): OpenApiRequestBody? =
     when {
         method != "POST" -> null
-        actionId != null -> capabilitiesById[actionId]?.arguments?.toRequestBody()
+        actionId != null -> actionsById[actionId]?.arguments?.toRequestBody()
         path.endsWith(":run") -> genericActionRequestBody()
         else -> null
     }
 
-private fun Map<String, OpenApiCapabilityArgument>.toRequestBody(): OpenApiRequestBody =
+private fun Map<String, OpenApiActionArgument>.toRequestBody(): OpenApiRequestBody =
     OpenApiRequestBody(
         content = mapOf(
             "application/json" to OpenApiMediaType(

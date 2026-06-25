@@ -1,14 +1,50 @@
 # Craftwright
 
-Real Minecraft Java client automation for tests, agents, and CI.
+Craftwright is a DevTools-style automation framework for real Minecraft Java
+clients, headless or visible.
 
-Craftwright is an early-stage project for launching and controlling real
-Minecraft Java clients through a local API and short CLI. The goal is to make
-Minecraft integration tests and AI/player agents run against real servers such
-as Minekube Gate, Connect, Paper, Velocity, and vanilla-compatible servers.
+It launches or attaches to real clients and exposes generated local APIs for
+agents, tools, tests, and CI. Think Chrome DevTools Protocol for Minecraft:
+external programs get a machine-readable way to inspect and control a running
+client while Craftwright hides loader, version, mapping, mod, and driver
+internals behind stable Craftwright-owned contracts.
 
-Craftwright is not Mineflayer and is not a protocol-only bot. The project goal
-is automation of the real Minecraft client process.
+Craftwright is not Mineflayer and is not a protocol-only bot. It automates the
+real Minecraft client runtime players use, so the same framework can drive
+unattended headless clients in CI or visible clients that humans can watch
+during debugging and demos.
+
+## Example
+
+Each client exposes its own live OpenAPI document because available actions can
+depend on the running Minecraft version, loader, mods, registries, server
+features, permissions, and driver runtime.
+
+```sh
+CRAFTWRIGHT=http://127.0.0.1:8080
+
+# Create a real client session through the local supervisor API.
+curl -sS "$CRAFTWRIGHT/clients" \
+  -H 'content-type: application/json' \
+  -d '{
+    "id": "alice",
+    "version": "1.21.4",
+    "loader": "FABRIC",
+    "profile": { "kind": "OFFLINE", "name": "Alice" }
+  }'
+
+# Discover the generated API for that exact client.
+curl -sS "$CRAFTWRIGHT/clients/alice/openapi.json"
+
+# Run actions through the generic action endpoint.
+curl -sS "$CRAFTWRIGHT/clients/alice:run" \
+  -H 'content-type: application/json' \
+  -d '{"action":"player.chat","args":{"message":"hello from Craftwright"}}'
+
+curl -sS "$CRAFTWRIGHT/clients/alice:run" \
+  -H 'content-type: application/json' \
+  -d '{"action":"player.move","args":{"forward":true,"ticks":20}}'
+```
 
 ## Status
 

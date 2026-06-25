@@ -1,11 +1,10 @@
 package com.minekube.craftwright.driver.runtime
 
-import com.minekube.craftwright.driver.api.ChatCommand
 import com.minekube.craftwright.driver.api.ConnectionTarget
-import com.minekube.craftwright.driver.api.DriverCapabilityDescriptor
-import com.minekube.craftwright.driver.api.DriverCapabilityInvocation
-import com.minekube.craftwright.driver.api.DriverCapabilityResult
-import com.minekube.craftwright.driver.api.DriverCapabilityStatus
+import com.minekube.craftwright.driver.api.DriverActionDescriptor
+import com.minekube.craftwright.driver.api.DriverActionInvocation
+import com.minekube.craftwright.driver.api.DriverActionResult
+import com.minekube.craftwright.driver.api.DriverActionStatus
 import com.minekube.craftwright.driver.api.DriverClientSnapshot
 import com.minekube.craftwright.driver.api.DriverEvent
 import com.minekube.craftwright.driver.api.DriverEventType
@@ -46,19 +45,6 @@ class BackendDriverSession(
         return snapshot()
     }
 
-    override fun sendChat(command: ChatCommand): DriverEvent {
-        require(command.message.isNotBlank()) { "chat message is required" }
-        val result = backend.sendChat(clientId, command)
-        require(result.action == DriverBackendAction.CHAT) { "backend returned ${result.action} for chat" }
-        val event = DriverEvent(
-            type = DriverEventType.CHAT,
-            client = clientId,
-            message = result.message ?: command.message,
-        )
-        events += event
-        return event
-    }
-
     override fun player(): PlayerSnapshot =
         backend.player(clientId)?.let { observed ->
             PlayerSnapshot(
@@ -74,15 +60,23 @@ class BackendDriverSession(
             position = PlayerPosition(0.0, 0.0, 0.0),
         )
 
-    override fun capabilities(): List<DriverCapabilityDescriptor> =
-        backend.capabilities(clientId)
+    override fun actions(): List<DriverActionDescriptor> =
+        backend.actions(clientId)
 
     override fun runtimeMetadata(): DriverRuntimeMetadata =
         backend.runtimeMetadata(clientId)
 
-    override fun invoke(invocation: DriverCapabilityInvocation): DriverCapabilityResult {
-        require(invocation.capability.isNotBlank()) { "capability is required" }
-        return backend.invoke(clientId, invocation)
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult {
+        require(invocation.action.isNotBlank()) { "action is required" }
+        val result = backend.invoke(clientId, invocation)
+        if (result.action == "player.chat" && result.status == DriverActionStatus.ACCEPTED && result.message != null) {
+            events += DriverEvent(
+                type = DriverEventType.CHAT,
+                client = clientId,
+                message = result.message,
+            )
+        }
+        return result
     }
 
     override fun stop(): DriverClientSnapshot {
@@ -104,20 +98,18 @@ class BackendDriverSession(
 interface DriverBackend {
     fun connect(clientId: String, target: ConnectionTarget): DriverBackendResult
 
-    fun sendChat(clientId: String, command: ChatCommand): DriverBackendResult
-
     fun player(clientId: String): DriverBackendPlayer? = null
 
-    fun capabilities(clientId: String): List<DriverCapabilityDescriptor> = emptyList()
+    fun actions(clientId: String): List<DriverActionDescriptor> = emptyList()
 
     fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
         DriverRuntimeMetadata.runtimeAdapter()
 
-    fun invoke(clientId: String, invocation: DriverCapabilityInvocation): DriverCapabilityResult =
-        DriverCapabilityResult(
-            capability = invocation.capability,
-            status = DriverCapabilityStatus.UNSUPPORTED,
-            message = "unsupported capability ${invocation.capability}",
+    fun invoke(clientId: String, invocation: DriverActionInvocation): DriverActionResult =
+        DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.UNSUPPORTED,
+            message = "unsupported action ${invocation.action}",
         )
 
     fun stop(clientId: String): DriverBackendResult
@@ -136,6 +128,5 @@ data class DriverBackendResult(
 
 enum class DriverBackendAction {
     CONNECT,
-    CHAT,
     STOP,
 }

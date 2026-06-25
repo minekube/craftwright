@@ -133,7 +133,7 @@ mcw clients alice player move --help
 
 The generic `run` command is the stable fallback. Pretty aliases and their
 `--help` output should be derived from `/clients/{id}/openapi.json` and
-`/clients/{id}/actions`, with cached metadata keyed by the client's capability
+`/clients/{id}/actions`, with cached metadata keyed by the client's action
 fingerprint and a refresh path for changed clients.
 
 ### Testing
@@ -310,7 +310,7 @@ and expose them through the generated per-client OpenAPI surface:
 - stable roots such as `/player`, `/world`, `/screen`, and `/events`;
 - discovered action routes and schemas for movement, jump, look, raycast,
   inventory, world/entity queries, and screen interaction;
-- Craftwright-owned metadata for action/capability versioning, runtime fingerprints,
+- Craftwright-owned metadata for action schema versioning, runtime fingerprints,
   mappings, registries, mods, permissions, and server feature inputs.
 
 The bridge PoC found that simulated keys are fragile because first-run screens,

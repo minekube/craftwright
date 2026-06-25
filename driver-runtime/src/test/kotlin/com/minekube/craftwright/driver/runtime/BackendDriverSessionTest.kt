@@ -1,11 +1,10 @@
 package com.minekube.craftwright.driver.runtime
 
-import com.minekube.craftwright.driver.api.ChatCommand
 import com.minekube.craftwright.driver.api.ConnectionTarget
-import com.minekube.craftwright.driver.api.DriverCapabilityDescriptor
-import com.minekube.craftwright.driver.api.DriverCapabilityInvocation
-import com.minekube.craftwright.driver.api.DriverCapabilityResult
-import com.minekube.craftwright.driver.api.DriverCapabilityStatus
+import com.minekube.craftwright.driver.api.DriverActionDescriptor
+import com.minekube.craftwright.driver.api.DriverActionInvocation
+import com.minekube.craftwright.driver.api.DriverActionResult
+import com.minekube.craftwright.driver.api.DriverActionStatus
 import com.minekube.craftwright.driver.api.DriverEventType
 import com.minekube.craftwright.driver.api.DriverRuntimeMetadata
 import com.minekube.craftwright.driver.api.PlayerPosition
@@ -33,15 +32,10 @@ class BackendDriverSessionTest {
         assertEquals(ClientState.CONNECTED, connected.state)
         assertEquals("connect alice 127.0.0.1:25565", backend.calls.single())
 
-        val chat = session.sendChat(ChatCommand("hello runtime"))
-        assertEquals(DriverEventType.CHAT, chat.type)
-        assertEquals("hello runtime", chat.message)
-        assertEquals("chat alice hello runtime", backend.calls.last())
-
         assertEquals("Alice", session.player().name)
         assertEquals(ClientState.CONNECTED, session.player().state)
-        assertTrue(session.capabilities().any { it.id == "player.move" })
-        assertTrue(session.capabilities().any { it.id == "player.chat" })
+        assertTrue(session.actions().any { it.id == "player.move" })
+        assertTrue(session.actions().any { it.id == "player.chat" })
         assertEquals("recording-backend", session.runtimeMetadata().driver)
         assertEquals("test-mappings", session.runtimeMetadata().mappings)
 
@@ -75,7 +69,7 @@ class BackendDriverSessionTest {
     }
 
     @Test
-    fun `runtime driver session invokes generic backend capabilities`() {
+    fun `runtime driver session invokes generic backend actions`() {
         val backend = RecordingDriverBackend()
         val session = BackendDriverSession(
             clientId = "alice",
@@ -84,26 +78,26 @@ class BackendDriverSessionTest {
         )
 
         val result = session.invoke(
-            DriverCapabilityInvocation(
-                capability = "player.move",
+            DriverActionInvocation(
+                action = "player.move",
                 arguments = mapOf("forward" to JsonPrimitive(true), "ticks" to JsonPrimitive(20)),
             )
         )
 
-        assertEquals("player.move", result.capability)
-        assertEquals(DriverCapabilityStatus.ACCEPTED, result.status)
-        assertEquals("capability alice player.move forward=true ticks=20", backend.calls.single())
+        assertEquals("player.move", result.action)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertEquals("action alice player.move forward=true ticks=20", backend.calls.single())
 
         val chat = session.invoke(
-            DriverCapabilityInvocation(
-                capability = "player.chat",
+            DriverActionInvocation(
+                action = "player.chat",
                 arguments = mapOf("message" to JsonPrimitive("chat through action")),
             )
         )
 
-        assertEquals("player.chat", chat.capability)
-        assertEquals(DriverCapabilityStatus.ACCEPTED, chat.status)
-        assertEquals("capability alice player.chat message=chat through action", backend.calls.last())
+        assertEquals("player.chat", chat.action)
+        assertEquals(DriverActionStatus.ACCEPTED, chat.status)
+        assertEquals("action alice player.chat message=chat through action", backend.calls.last())
     }
 
     @Test
@@ -115,15 +109,11 @@ class BackendDriverSessionTest {
             backend.connect("alice", ConnectionTarget(host = "127.0.0.1", port = 25565)).action,
         )
         assertEquals(
-            DriverBackendAction.CHAT,
-            backend.sendChat("alice", ChatCommand("hello bridge")).action,
-        )
-        assertEquals(
-            DriverCapabilityStatus.ACCEPTED,
+            DriverActionStatus.ACCEPTED,
             backend.invoke(
                 "alice",
-                DriverCapabilityInvocation(
-                    capability = "player.chat",
+                DriverActionInvocation(
+                    action = "player.chat",
                     arguments = mapOf("message" to JsonPrimitive("hello as action")),
                 ),
             ).status,
@@ -144,11 +134,6 @@ private class RecordingDriverBackend(
         return DriverBackendResult(DriverBackendAction.CONNECT, "connected")
     }
 
-    override fun sendChat(clientId: String, command: ChatCommand): DriverBackendResult {
-        calls += "chat $clientId ${command.message}"
-        return DriverBackendResult(DriverBackendAction.CHAT, command.message)
-    }
-
     override fun stop(clientId: String): DriverBackendResult {
         calls += "stop $clientId"
         return DriverBackendResult(DriverBackendAction.STOP, "stopped")
@@ -159,10 +144,10 @@ private class RecordingDriverBackend(
         return observedPlayer
     }
 
-    override fun capabilities(clientId: String): List<DriverCapabilityDescriptor> =
+    override fun actions(clientId: String): List<DriverActionDescriptor> =
         listOf(
-            DriverCapabilityDescriptor.playerMove(),
-            DriverCapabilityDescriptor.playerChat(),
+            DriverActionDescriptor.playerMove(),
+            DriverActionDescriptor.playerChat(),
         )
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
@@ -177,8 +162,8 @@ private class RecordingDriverBackend(
             permissionsFingerprint = "permissions-test",
         )
 
-    override fun invoke(clientId: String, invocation: DriverCapabilityInvocation): DriverCapabilityResult {
-        calls += "capability $clientId ${invocation.capability} ${invocation.arguments.entries.joinToString(" ") { "${it.key}=${it.value.jsonPrimitive.content}" }}"
-        return DriverCapabilityResult(invocation.capability, DriverCapabilityStatus.ACCEPTED)
+    override fun invoke(clientId: String, invocation: DriverActionInvocation): DriverActionResult {
+        calls += "action $clientId ${invocation.action} ${invocation.arguments.entries.joinToString(" ") { "${it.key}=${it.value.jsonPrimitive.content}" }}"
+        return DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED)
     }
 }

@@ -1,9 +1,8 @@
 package com.minekube.craftwright.driver.fabric.v1_21_6
 
-import com.minekube.craftwright.driver.api.ChatCommand
 import com.minekube.craftwright.driver.api.ConnectionTarget
-import com.minekube.craftwright.driver.api.DriverCapabilityInvocation
-import com.minekube.craftwright.driver.api.DriverCapabilityStatus
+import com.minekube.craftwright.driver.api.DriverActionInvocation
+import com.minekube.craftwright.driver.api.DriverActionStatus
 import com.minekube.craftwright.driver.api.PlayerPosition
 import com.minekube.craftwright.driver.runtime.DriverBackendAction
 import com.minekube.craftwright.protocol.ClientState
@@ -50,10 +49,6 @@ class FabricDriverModuleTest {
             DriverBackendAction.CONNECT,
             backend.connect("alice", ConnectionTarget("127.0.0.1", 25565)).action,
         )
-        assertEquals(
-            DriverBackendAction.CHAT,
-            backend.sendChat("alice", ChatCommand("hello fabric")).action,
-        )
         assertEquals(DriverBackendAction.STOP, backend.stop("alice").action)
         assertTrue(backend.events().any { it.contains("connect alice 127.0.0.1:25565") })
     }
@@ -64,8 +59,14 @@ class FabricDriverModuleTest {
         val backend = FabricDriverBackend.real(gateway)
 
         backend.connect("alice", ConnectionTarget("127.0.0.1", 25565))
-        backend.sendChat("alice", ChatCommand("hello client"))
-        backend.sendChat("alice", ChatCommand("/server lobby"))
+        backend.invoke(
+            "alice",
+            DriverActionInvocation("player.chat", mapOf("message" to JsonPrimitive("hello client"))),
+        )
+        backend.invoke(
+            "alice",
+            DriverActionInvocation("player.chat", mapOf("message" to JsonPrimitive("/server lobby"))),
+        )
         backend.stop("alice")
 
         assertEquals(4, gateway.scheduled)
@@ -100,14 +101,14 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric backend maps player move capability to movement intent`() {
+    fun `fabric backend maps player move action to movement intent`() {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)
 
         val result = backend.invoke(
             "alice",
-            DriverCapabilityInvocation(
-                capability = "player.move",
+            DriverActionInvocation(
+                action = "player.move",
                 arguments = mapOf(
                     "forward" to JsonPrimitive(true),
                     "jump" to JsonPrimitive(true),
@@ -116,8 +117,8 @@ class FabricDriverModuleTest {
             )
         )
 
-        assertEquals("player.move", result.capability)
-        assertEquals(DriverCapabilityStatus.ACCEPTED, result.status)
+        assertEquals("player.move", result.action)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
         assertEquals(listOf("move forward jump ticks=20"), gateway.actions)
         assertEquals(1, gateway.scheduled)
     }
@@ -129,14 +130,14 @@ class FabricDriverModuleTest {
 
         val result = backend.invoke(
             "alice",
-            DriverCapabilityInvocation(
-                capability = "player.chat",
+            DriverActionInvocation(
+                action = "player.chat",
                 arguments = mapOf("message" to JsonPrimitive("hello action")),
             )
         )
 
-        assertEquals("player.chat", result.capability)
-        assertEquals(DriverCapabilityStatus.ACCEPTED, result.status)
+        assertEquals("player.chat", result.action)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
         assertEquals(listOf("chat hello action"), gateway.actions)
         assertEquals(1, gateway.scheduled)
     }
