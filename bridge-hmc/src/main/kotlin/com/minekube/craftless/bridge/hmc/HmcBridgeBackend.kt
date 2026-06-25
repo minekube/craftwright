@@ -6,8 +6,11 @@ class HmcBridgeBackend private constructor(
     fun connect(clientId: String, server: String): BridgeActionResult =
         run(ClientAction.CONNECT, clientId, "connect to $server", BridgeCommand("connect $server"))
 
-    fun chat(clientId: String, message: String): BridgeActionResult =
-        run(ClientAction.CHAT, clientId, "invoke player.chat action", BridgeCommand("chat $message"))
+    fun chat(clientId: String, message: String): BridgeActionResult {
+        require(message.isNotBlank()) { "chat message is required" }
+        require(!message.startsWith("/")) { "minecraft command strings are not valid chat action input" }
+        return run(ClientAction.CHAT, clientId, "invoke player.chat action", BridgeCommand("chat $message"))
+    }
 
     fun move(clientId: String, intent: MoveIntent, ticks: Int): BridgeActionResult =
         run(ClientAction.MOVE, clientId, "move ${intent.name.lowercase()} for $ticks ticks", BridgeCommand("key ${intent.bridgeKey} $ticks"))

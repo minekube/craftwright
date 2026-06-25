@@ -11,6 +11,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class FabricDriverModuleTest {
@@ -63,18 +64,13 @@ class FabricDriverModuleTest {
             "alice",
             DriverActionInvocation("player.chat", mapOf("message" to JsonPrimitive("hello client"))),
         )
-        backend.invoke(
-            "alice",
-            DriverActionInvocation("player.chat", mapOf("message" to JsonPrimitive("/server lobby"))),
-        )
         backend.stop("alice")
 
-        assertEquals(4, gateway.scheduled)
+        assertEquals(3, gateway.scheduled)
         assertEquals(
             listOf(
                 "connect 127.0.0.1:25565",
                 "chat hello client",
-                "command server lobby",
                 "stop",
             ),
             gateway.actions,
@@ -121,6 +117,25 @@ class FabricDriverModuleTest {
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
         assertEquals(listOf("chat hello action"), gateway.actions)
         assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
+    fun `fabric backend rejects raw minecraft command strings as chat action input`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = FabricDriverBackend.real(gateway)
+
+        assertFailsWith<IllegalArgumentException> {
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "player.chat",
+                    arguments = mapOf("message" to JsonPrimitive("/server lobby")),
+                )
+            )
+        }
+
+        assertEquals(emptyList(), gateway.actions)
+        assertEquals(0, gateway.scheduled)
     }
 
     private fun resourceJson(path: String) =

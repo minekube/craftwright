@@ -2,6 +2,7 @@ package com.minekube.craftless.bridge.hmc
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -17,6 +18,15 @@ class HmcBridgeBackendTest {
         assertFalse(result.publicDescription.contains("send chat", ignoreCase = true))
         assertTrue(result.publicDescription.contains("player.chat"))
         assertTrue(result.internalCommand.redacted().contains("<internal bridge command>"))
+    }
+
+    @Test
+    fun `bridge chat action rejects raw minecraft command strings`() {
+        val backend = HmcBridgeBackend.dryRun()
+
+        assertFailsWith<IllegalArgumentException> {
+            backend.chat("alice", "/server lobby")
+        }
     }
 
     @Test

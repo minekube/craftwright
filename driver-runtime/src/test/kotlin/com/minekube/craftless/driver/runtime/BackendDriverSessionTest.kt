@@ -14,6 +14,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class BackendDriverSessionTest {
@@ -122,6 +123,15 @@ class BackendDriverSessionTest {
         )
         assertEquals("craftless-driver-bridge", backend.runtimeMetadata("alice").driver)
         assertEquals("bridge-evidence", backend.runtimeMetadata("alice").permissionsFingerprint)
+        assertFailsWith<IllegalArgumentException> {
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "player.chat",
+                    arguments = mapOf("message" to JsonPrimitive("/server lobby")),
+                ),
+            )
+        }
         assertEquals(DriverBackendAction.STOP, backend.stop("alice").action)
     }
 }

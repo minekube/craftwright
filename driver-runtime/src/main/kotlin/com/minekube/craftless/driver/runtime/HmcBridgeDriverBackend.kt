@@ -12,6 +12,7 @@ import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.booleanArgument
 import com.minekube.craftless.driver.api.intArgument
+import com.minekube.craftless.driver.api.requireChatMessage
 import com.minekube.craftless.driver.api.stringArgument
 
 class HmcBridgeDriverBackend(
@@ -43,7 +44,9 @@ class HmcBridgeDriverBackend(
 
     override fun invoke(clientId: String, invocation: DriverActionInvocation): DriverActionResult {
         if (invocation.action == "player.chat") {
-            val message = requireNotNull(invocation.arguments.stringArgument("message")) { "message is required" }
+            val message = requireChatMessage(
+                requireNotNull(invocation.arguments.stringArgument("message")) { "message is required" },
+            )
             val result = bridge.chat(clientId, message)
             require(result.action == ClientAction.CHAT) { "bridge returned ${result.action} for chat" }
             return DriverActionResult(

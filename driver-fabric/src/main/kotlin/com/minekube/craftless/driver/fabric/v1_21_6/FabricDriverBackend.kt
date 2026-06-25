@@ -9,6 +9,7 @@ import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.booleanArgument
 import com.minekube.craftless.driver.api.intArgument
+import com.minekube.craftless.driver.api.requireChatMessage
 import com.minekube.craftless.driver.api.stringArgument
 import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
@@ -31,14 +32,10 @@ class FabricDriverBackend private constructor(
     }
 
     private fun invokePlayerChatAction(clientId: String, message: String): String {
-        require(message.isNotBlank()) { "chat message is required" }
+        requireChatMessage(message)
         record("chat $clientId $message")
         gateway?.execute {
-            if (message.startsWith("/")) {
-                gateway.dispatchCommand(message.removePrefix("/"))
-            } else {
-                gateway.dispatchChatMessage(message)
-            }
+            gateway.dispatchChatMessage(message)
         }
         return message
     }

@@ -4,6 +4,7 @@ import com.minekube.craftless.protocol.ClientState
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class DriverSessionContractTest {
@@ -48,6 +49,14 @@ class DriverSessionContractTest {
         assertEquals("player.chat", chatAction.action)
         assertEquals(DriverActionStatus.ACCEPTED, chatAction.status)
         assertEquals("hello through action", chatAction.message)
+        assertFailsWith<IllegalArgumentException> {
+            session.invoke(
+                DriverActionInvocation(
+                    action = "player.chat",
+                    arguments = mapOf("message" to JsonPrimitive("/server lobby")),
+                )
+            )
+        }
 
         val action = session.invoke(
             DriverActionInvocation(
