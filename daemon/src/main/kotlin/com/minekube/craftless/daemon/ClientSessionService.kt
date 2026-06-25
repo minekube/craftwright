@@ -140,7 +140,7 @@ private data class RuntimeOpenApiMetadata(
             actions: List<DriverActionDescriptor>,
             metadata: DriverRuntimeMetadata,
         ): RuntimeOpenApiMetadata {
-            val actionFingerprint = actions.joinToString(",") { "${it.id}:${it.schemaVersion}" }
+            val actionFingerprint = actions.joinToString(",") { it.fingerprintPart() }
             val extensions = linkedMapOf(
                 "x-craftless-client-id" to client.id,
                 "x-craftless-minecraft-version" to client.instance.version.id,
@@ -178,6 +178,16 @@ private data class RuntimeOpenApiMetadata(
             "actions=$actionFingerprint",
         ).joinToString(";")
     }
+}
+
+private fun DriverActionDescriptor.fingerprintPart(): String {
+    val argumentFingerprint = arguments.entries
+        .sortedBy { it.key }
+        .joinToString(",") { (name, argument) ->
+            val required = if (argument.required) "!" else ""
+            "$name:${argument.type}$required"
+        }
+    return "$id:$schemaVersion($argumentFingerprint)"
 }
 
 private fun route(
