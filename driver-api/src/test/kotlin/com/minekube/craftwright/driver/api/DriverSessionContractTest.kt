@@ -33,6 +33,16 @@ class DriverSessionContractTest {
         assertEquals("1", capabilities.single { it.id == "player.move" }.schemaVersion)
         assertEquals("1", capabilities.single { it.id == "player.chat" }.schemaVersion)
 
+        val runtime = session.runtimeMetadata()
+        assertEquals("none", runtime.loaderVersion)
+        assertEquals("craftwright-fake", runtime.driver)
+        assertEquals("0.1.0-SNAPSHOT", runtime.driverVersion)
+        assertEquals("none", runtime.mappings)
+        assertEquals("none", runtime.installedModsFingerprint)
+        assertEquals("none", runtime.registryFingerprint)
+        assertEquals("none", runtime.serverFeatureFingerprint)
+        assertEquals("local-fake", runtime.permissionsFingerprint)
+
         val chatAction = session.invoke(
             DriverCapabilityInvocation(
                 capability = "player.chat",

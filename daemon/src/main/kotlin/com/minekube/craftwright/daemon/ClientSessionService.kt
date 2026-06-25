@@ -2,6 +2,7 @@ package com.minekube.craftwright.daemon
 
 import com.minekube.craftwright.driver.api.ConnectionTarget
 import com.minekube.craftwright.driver.api.DriverCapabilityDescriptor
+import com.minekube.craftwright.driver.api.DriverRuntimeMetadata
 import com.minekube.craftwright.driver.api.DriverSession
 import com.minekube.craftwright.driver.api.FakeDriverSession
 import com.minekube.craftwright.protocol.ApiRoute
@@ -76,8 +77,13 @@ class ClientSessionService private constructor(
 
     fun openApiFor(clientId: String): OpenApiDocument {
         val client = client(clientId)
-        val capabilities = driverFor(clientId).capabilities()
-        val runtimeMetadata = RuntimeOpenApiMetadata.forClient(client, capabilities)
+        val driver = driverFor(clientId)
+        val capabilities = driver.capabilities()
+        val runtimeMetadata = RuntimeOpenApiMetadata.forClient(
+            client = client,
+            capabilities = capabilities,
+            metadata = driver.runtimeMetadata(),
+        )
         return OpenApiDocument.from(
             catalog = ApiRouteCatalog(routesFor(clientId)),
             extensions = runtimeMetadata.extensions,
@@ -122,53 +128,46 @@ private data class RuntimeOpenApiMetadata(
     val extensions: Map<String, String>,
 ) {
     companion object {
-        private const val loaderVersion = "none"
-        private const val driver = "craftwright-daemon"
-        private const val driverVersion = "0.1.0-SNAPSHOT"
-        private const val mappings = "none"
-        private const val installedModsFingerprint = "none"
-        private const val registryFingerprint = "none"
-        private const val serverFeatureFingerprint = "none"
-        private const val permissionsFingerprint = "local-fake"
-
         fun forClient(
             client: Client,
             capabilities: List<DriverCapabilityDescriptor>,
+            metadata: DriverRuntimeMetadata,
         ): RuntimeOpenApiMetadata {
             val capabilityFingerprint = capabilities.joinToString(",") { "${it.id}:${it.schemaVersion}" }
             val extensions = linkedMapOf(
                 "x-craftwright-client-id" to client.id,
                 "x-craftwright-minecraft-version" to client.instance.version.id,
                 "x-craftwright-loader" to client.instance.loader.name,
-                "x-craftwright-loader-version" to loaderVersion,
-                "x-craftwright-driver" to driver,
-                "x-craftwright-driver-version" to driverVersion,
-                "x-craftwright-mappings" to mappings,
-                "x-craftwright-installed-mods-fingerprint" to installedModsFingerprint,
-                "x-craftwright-registry-fingerprint" to registryFingerprint,
-                "x-craftwright-server-feature-fingerprint" to serverFeatureFingerprint,
-                "x-craftwright-permissions-fingerprint" to permissionsFingerprint,
+                "x-craftwright-loader-version" to metadata.loaderVersion,
+                "x-craftwright-driver" to metadata.driver,
+                "x-craftwright-driver-version" to metadata.driverVersion,
+                "x-craftwright-mappings" to metadata.mappings,
+                "x-craftwright-installed-mods-fingerprint" to metadata.installedModsFingerprint,
+                "x-craftwright-registry-fingerprint" to metadata.registryFingerprint,
+                "x-craftwright-server-feature-fingerprint" to metadata.serverFeatureFingerprint,
+                "x-craftwright-permissions-fingerprint" to metadata.permissionsFingerprint,
                 "x-craftwright-capability-schema-version" to (capabilities.firstOrNull()?.schemaVersion ?: "none"),
                 "x-craftwright-capability-fingerprint" to capabilityFingerprint,
             )
-            extensions["x-craftwright-runtime-fingerprint"] = runtimeFingerprint(client, capabilityFingerprint)
+            extensions["x-craftwright-runtime-fingerprint"] = runtimeFingerprint(client, metadata, capabilityFingerprint)
             return RuntimeOpenApiMetadata(extensions)
         }
 
         private fun runtimeFingerprint(
             client: Client,
+            metadata: DriverRuntimeMetadata,
             capabilityFingerprint: String,
         ): String = listOf(
             "minecraft=${client.instance.version.id}",
             "loader=${client.instance.loader.name}",
-            "loaderVersion=$loaderVersion",
-            "driver=$driver",
-            "driverVersion=$driverVersion",
-            "mappings=$mappings",
-            "mods=$installedModsFingerprint",
-            "registries=$registryFingerprint",
-            "serverFeatures=$serverFeatureFingerprint",
-            "permissions=$permissionsFingerprint",
+            "loaderVersion=${metadata.loaderVersion}",
+            "driver=${metadata.driver}",
+            "driverVersion=${metadata.driverVersion}",
+            "mappings=${metadata.mappings}",
+            "mods=${metadata.installedModsFingerprint}",
+            "registries=${metadata.registryFingerprint}",
+            "serverFeatures=${metadata.serverFeatureFingerprint}",
+            "permissions=${metadata.permissionsFingerprint}",
             "actions=$capabilityFingerprint",
         ).joinToString(";")
     }

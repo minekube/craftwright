@@ -2,6 +2,8 @@ package com.minekube.craftwright.daemon
 
 import com.minekube.craftwright.driver.api.ChatCommand
 import com.minekube.craftwright.driver.api.ConnectionTarget
+import com.minekube.craftwright.driver.api.DriverCapabilityDescriptor
+import com.minekube.craftwright.driver.api.DriverRuntimeMetadata
 import com.minekube.craftwright.driver.api.DriverEventType
 import com.minekube.craftwright.driver.runtime.BackendDriverSession
 import com.minekube.craftwright.driver.runtime.DriverBackend
@@ -61,7 +63,7 @@ class ClientSessionServiceTest {
         assertEquals("1.21.4", document.extensions["x-craftwright-minecraft-version"])
         assertEquals("FABRIC", document.extensions["x-craftwright-loader"])
         assertEquals("none", document.extensions["x-craftwright-loader-version"])
-        assertEquals("craftwright-daemon", document.extensions["x-craftwright-driver"])
+        assertEquals("craftwright-fake", document.extensions["x-craftwright-driver"])
         assertEquals("0.1.0-SNAPSHOT", document.extensions["x-craftwright-driver-version"])
         assertEquals("none", document.extensions["x-craftwright-mappings"])
         assertEquals("none", document.extensions["x-craftwright-installed-mods-fingerprint"])
@@ -69,7 +71,7 @@ class ClientSessionServiceTest {
         assertEquals("none", document.extensions["x-craftwright-server-feature-fingerprint"])
         assertEquals("local-fake", document.extensions["x-craftwright-permissions-fingerprint"])
         assertEquals(
-            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftwright-daemon;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.move:1,player.chat:1",
+            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftwright-fake;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.move:1,player.chat:1",
             document.extensions["x-craftwright-runtime-fingerprint"],
         )
         assertTrue(document.paths.containsKey("/clients/alice/openapi.json"))
@@ -153,9 +155,57 @@ class ClientSessionServiceTest {
             backend.calls,
         )
     }
+
+    @Test
+    fun `client specific openapi uses runtime metadata from injected driver`() {
+        val backend = RecordingDriverBackend(
+            metadata = DriverRuntimeMetadata(
+                loaderVersion = "0.16.14",
+                driver = "craftwright-driver-fabric",
+                driverVersion = "0.2.0-test",
+                mappings = "yarn-test",
+                installedModsFingerprint = "mods-test",
+                registryFingerprint = "registries-test",
+                serverFeatureFingerprint = "server-features-test",
+                permissionsFingerprint = "permissions-test",
+            )
+        )
+        val service = ClientSessionService.inMemory { request ->
+            BackendDriverSession(
+                clientId = request.id,
+                profileName = request.profile.name,
+                backend = backend,
+            )
+        }
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            )
+        )
+
+        val extensions = service.openApiFor("alice").extensions
+
+        assertEquals("0.16.14", extensions["x-craftwright-loader-version"])
+        assertEquals("craftwright-driver-fabric", extensions["x-craftwright-driver"])
+        assertEquals("0.2.0-test", extensions["x-craftwright-driver-version"])
+        assertEquals("yarn-test", extensions["x-craftwright-mappings"])
+        assertEquals("mods-test", extensions["x-craftwright-installed-mods-fingerprint"])
+        assertEquals("registries-test", extensions["x-craftwright-registry-fingerprint"])
+        assertEquals("server-features-test", extensions["x-craftwright-server-feature-fingerprint"])
+        assertEquals("permissions-test", extensions["x-craftwright-permissions-fingerprint"])
+        assertEquals(
+            "minecraft=1.21.4;loader=FABRIC;loaderVersion=0.16.14;driver=craftwright-driver-fabric;driverVersion=0.2.0-test;mappings=yarn-test;mods=mods-test;registries=registries-test;serverFeatures=server-features-test;permissions=permissions-test;actions=player.move:1,player.chat:1",
+            extensions["x-craftwright-runtime-fingerprint"],
+        )
+    }
 }
 
-private class RecordingDriverBackend : DriverBackend {
+private class RecordingDriverBackend(
+    private val metadata: DriverRuntimeMetadata = DriverRuntimeMetadata.fake(),
+) : DriverBackend {
     val calls = mutableListOf<String>()
 
     override fun connect(clientId: String, target: ConnectionTarget): DriverBackendResult {
@@ -172,4 +222,13 @@ private class RecordingDriverBackend : DriverBackend {
         calls += "stop $clientId"
         return DriverBackendResult(DriverBackendAction.STOP)
     }
+
+    override fun capabilities(clientId: String): List<DriverCapabilityDescriptor> =
+        listOf(
+            DriverCapabilityDescriptor.playerMove(),
+            DriverCapabilityDescriptor.playerChat(),
+        )
+
+    override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
+        metadata
 }

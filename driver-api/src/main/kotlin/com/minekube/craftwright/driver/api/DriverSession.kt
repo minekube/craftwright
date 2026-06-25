@@ -21,6 +21,8 @@ interface DriverSession {
 
     fun capabilities(): List<DriverCapabilityDescriptor>
 
+    fun runtimeMetadata(): DriverRuntimeMetadata
+
     fun invoke(invocation: DriverCapabilityInvocation): DriverCapabilityResult
 
     fun stop(): DriverClientSnapshot
@@ -81,6 +83,37 @@ data class DriverCapabilityDescriptor(
                     "message" to DriverCapabilityArgument("string", required = true),
                 ),
             )
+    }
+}
+
+@Serializable
+data class DriverRuntimeMetadata(
+    val loaderVersion: String = "none",
+    val driver: String,
+    val driverVersion: String = "0.1.0-SNAPSHOT",
+    val mappings: String = "none",
+    val installedModsFingerprint: String = "none",
+    val registryFingerprint: String = "none",
+    val serverFeatureFingerprint: String = "none",
+    val permissionsFingerprint: String = "local-fake",
+) {
+    init {
+        require(loaderVersion.isNotBlank()) { "loader version is required" }
+        require(driver.isNotBlank()) { "driver is required" }
+        require(driverVersion.isNotBlank()) { "driver version is required" }
+        require(mappings.isNotBlank()) { "mappings fingerprint is required" }
+        require(installedModsFingerprint.isNotBlank()) { "installed mods fingerprint is required" }
+        require(registryFingerprint.isNotBlank()) { "registry fingerprint is required" }
+        require(serverFeatureFingerprint.isNotBlank()) { "server feature fingerprint is required" }
+        require(permissionsFingerprint.isNotBlank()) { "permissions fingerprint is required" }
+    }
+
+    companion object {
+        fun fake(): DriverRuntimeMetadata =
+            DriverRuntimeMetadata(driver = "craftwright-fake")
+
+        fun runtimeAdapter(): DriverRuntimeMetadata =
+            DriverRuntimeMetadata(driver = "craftwright-driver-runtime")
     }
 }
 
@@ -206,6 +239,9 @@ class FakeDriverSession(
             DriverCapabilityDescriptor.playerMove(),
             DriverCapabilityDescriptor.playerChat(),
         )
+
+    override fun runtimeMetadata(): DriverRuntimeMetadata =
+        DriverRuntimeMetadata.fake()
 
     override fun invoke(invocation: DriverCapabilityInvocation): DriverCapabilityResult {
         require(invocation.capability.isNotBlank()) { "capability is required" }

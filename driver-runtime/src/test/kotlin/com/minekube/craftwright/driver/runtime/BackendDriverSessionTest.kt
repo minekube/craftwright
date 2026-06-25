@@ -7,6 +7,7 @@ import com.minekube.craftwright.driver.api.DriverCapabilityInvocation
 import com.minekube.craftwright.driver.api.DriverCapabilityResult
 import com.minekube.craftwright.driver.api.DriverCapabilityStatus
 import com.minekube.craftwright.driver.api.DriverEventType
+import com.minekube.craftwright.driver.api.DriverRuntimeMetadata
 import com.minekube.craftwright.driver.api.PlayerPosition
 import com.minekube.craftwright.bridge.hmc.HmcBridgeBackend
 import com.minekube.craftwright.protocol.ClientState
@@ -41,6 +42,8 @@ class BackendDriverSessionTest {
         assertEquals(ClientState.CONNECTED, session.player().state)
         assertTrue(session.capabilities().any { it.id == "player.move" })
         assertTrue(session.capabilities().any { it.id == "player.chat" })
+        assertEquals("recording-backend", session.runtimeMetadata().driver)
+        assertEquals("test-mappings", session.runtimeMetadata().mappings)
 
         val stopped = session.stop()
         assertEquals(ClientState.STOPPED, stopped.state)
@@ -158,6 +161,18 @@ private class RecordingDriverBackend(
         listOf(
             DriverCapabilityDescriptor.playerMove(),
             DriverCapabilityDescriptor.playerChat(),
+        )
+
+    override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
+        DriverRuntimeMetadata(
+            loaderVersion = "test-loader",
+            driver = "recording-backend",
+            driverVersion = "test-driver",
+            mappings = "test-mappings",
+            installedModsFingerprint = "mods-test",
+            registryFingerprint = "registries-test",
+            serverFeatureFingerprint = "features-test",
+            permissionsFingerprint = "permissions-test",
         )
 
     override fun invoke(clientId: String, invocation: DriverCapabilityInvocation): DriverCapabilityResult {

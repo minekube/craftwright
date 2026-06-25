@@ -9,6 +9,7 @@ import com.minekube.craftwright.driver.api.DriverCapabilityStatus
 import com.minekube.craftwright.driver.api.DriverClientSnapshot
 import com.minekube.craftwright.driver.api.DriverEvent
 import com.minekube.craftwright.driver.api.DriverEventType
+import com.minekube.craftwright.driver.api.DriverRuntimeMetadata
 import com.minekube.craftwright.driver.api.DriverSession
 import com.minekube.craftwright.driver.api.PlayerPosition
 import com.minekube.craftwright.driver.api.PlayerSnapshot
@@ -76,6 +77,9 @@ class BackendDriverSession(
     override fun capabilities(): List<DriverCapabilityDescriptor> =
         backend.capabilities(clientId)
 
+    override fun runtimeMetadata(): DriverRuntimeMetadata =
+        backend.runtimeMetadata(clientId)
+
     override fun invoke(invocation: DriverCapabilityInvocation): DriverCapabilityResult {
         require(invocation.capability.isNotBlank()) { "capability is required" }
         return backend.invoke(clientId, invocation)
@@ -105,6 +109,9 @@ interface DriverBackend {
     fun player(clientId: String): DriverBackendPlayer? = null
 
     fun capabilities(clientId: String): List<DriverCapabilityDescriptor> = emptyList()
+
+    fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
+        DriverRuntimeMetadata.runtimeAdapter()
 
     fun invoke(clientId: String, invocation: DriverCapabilityInvocation): DriverCapabilityResult =
         DriverCapabilityResult(
