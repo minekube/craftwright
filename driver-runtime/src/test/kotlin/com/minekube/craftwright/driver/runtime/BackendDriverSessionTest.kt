@@ -11,6 +11,7 @@ import com.minekube.craftwright.driver.api.PlayerPosition
 import com.minekube.craftwright.bridge.hmc.HmcBridgeBackend
 import com.minekube.craftwright.protocol.ClientState
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -38,7 +39,8 @@ class BackendDriverSessionTest {
 
         assertEquals("Alice", session.player().name)
         assertEquals(ClientState.CONNECTED, session.player().state)
-        assertEquals("player.move", session.capabilities().single().id)
+        assertTrue(session.capabilities().any { it.id == "player.move" })
+        assertTrue(session.capabilities().any { it.id == "player.chat" })
 
         val stopped = session.stop()
         assertEquals(ClientState.STOPPED, stopped.state)
@@ -88,6 +90,17 @@ class BackendDriverSessionTest {
         assertEquals("player.move", result.capability)
         assertEquals(DriverCapabilityStatus.ACCEPTED, result.status)
         assertEquals("capability alice player.move forward=true ticks=20", backend.calls.single())
+
+        val chat = session.invoke(
+            DriverCapabilityInvocation(
+                capability = "player.chat",
+                arguments = mapOf("message" to JsonPrimitive("chat through action")),
+            )
+        )
+
+        assertEquals("player.chat", chat.capability)
+        assertEquals(DriverCapabilityStatus.ACCEPTED, chat.status)
+        assertEquals("capability alice player.chat message=chat through action", backend.calls.last())
     }
 
     @Test
@@ -107,8 +120,8 @@ class BackendDriverSessionTest {
             backend.invoke(
                 "alice",
                 DriverCapabilityInvocation(
-                    capability = "player.move",
-                    arguments = mapOf("right" to JsonPrimitive(true), "ticks" to JsonPrimitive(5)),
+                    capability = "player.chat",
+                    arguments = mapOf("message" to JsonPrimitive("hello as action")),
                 ),
             ).status,
         )
@@ -142,10 +155,13 @@ private class RecordingDriverBackend(
     }
 
     override fun capabilities(clientId: String): List<DriverCapabilityDescriptor> =
-        listOf(DriverCapabilityDescriptor.playerMove())
+        listOf(
+            DriverCapabilityDescriptor.playerMove(),
+            DriverCapabilityDescriptor.playerChat(),
+        )
 
     override fun invoke(clientId: String, invocation: DriverCapabilityInvocation): DriverCapabilityResult {
-        calls += "capability $clientId ${invocation.capability} ${invocation.arguments.entries.joinToString(" ") { "${it.key}=${it.value}" }}"
+        calls += "capability $clientId ${invocation.capability} ${invocation.arguments.entries.joinToString(" ") { "${it.key}=${it.value.jsonPrimitive.content}" }}"
         return DriverCapabilityResult(invocation.capability, DriverCapabilityStatus.ACCEPTED)
     }
 }

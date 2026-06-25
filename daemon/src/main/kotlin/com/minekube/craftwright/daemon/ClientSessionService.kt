@@ -64,7 +64,6 @@ class ClientSessionService private constructor(
             route("GET", "/clients/$clientId/openapi.json", "clientsOpenApi", "clients", "openapi", "route"),
             route("POST", "/clients/$clientId/connection/connect", "clientsConnect", "clients", "connection", "method"),
             route("POST", "/clients/$clientId/stop", "clientsStop", "clients", "stop", "method"),
-            route("POST", "/clients/$clientId/player/sendChat", "clientsPlayerSendChat", "clients", "sendChat", "method"),
             route("GET", "/clients/$clientId/actions", "clientsActions", "clients", "actions", "action"),
             route("POST", "/clients/$clientId:run", "clientsRunAction", "clients", "run", "action"),
             route("GET", "/clients/$clientId/player", "clientsPlayer", "clients", "player", "root", "handle"),

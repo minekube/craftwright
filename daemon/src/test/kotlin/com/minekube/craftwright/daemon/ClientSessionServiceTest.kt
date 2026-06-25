@@ -36,7 +36,7 @@ class ClientSessionServiceTest {
         assertEquals("Alice", client.profile.name)
         assertEquals("/clients/alice/events", service.routesFor("alice").first { it.path.endsWith("/events") }.path)
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/openapi.json" })
-        assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/player/sendChat" })
+        assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/player/sendChat" })
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/connection/connect" })
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/player/position" })
     }
@@ -67,6 +67,7 @@ class ClientSessionServiceTest {
         assertNotNull(actionOperation)
         assertEquals("action", actionOperation.extensions["x-craftwright-source"])
         assertEquals("1", document.capabilities.single { it.id == "player.move" }.schemaVersion)
+        assertEquals("1", document.capabilities.single { it.id == "player.chat" }.schemaVersion)
     }
 
     @Test

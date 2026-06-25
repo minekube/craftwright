@@ -72,6 +72,15 @@ data class DriverCapabilityDescriptor(
                     "ticks" to DriverCapabilityArgument("integer"),
                 ),
             )
+
+        fun playerChat(): DriverCapabilityDescriptor =
+            DriverCapabilityDescriptor(
+                id = "player.chat",
+                schemaVersion = "1",
+                arguments = mapOf(
+                    "message" to DriverCapabilityArgument("string", required = true),
+                ),
+            )
     }
 }
 
@@ -96,6 +105,9 @@ fun Map<String, JsonElement>.intArgument(name: String): Int? =
     this[name]?.jsonPrimitive?.let { primitive ->
         primitive.intOrNull ?: primitive.content.toIntOrNull()
     }
+
+fun Map<String, JsonElement>.stringArgument(name: String): String? =
+    this[name]?.jsonPrimitive?.content
 
 @Serializable
 data class DriverCapabilityResult(
@@ -190,10 +202,22 @@ class FakeDriverSession(
         )
 
     override fun capabilities(): List<DriverCapabilityDescriptor> =
-        listOf(DriverCapabilityDescriptor.playerMove())
+        listOf(
+            DriverCapabilityDescriptor.playerMove(),
+            DriverCapabilityDescriptor.playerChat(),
+        )
 
     override fun invoke(invocation: DriverCapabilityInvocation): DriverCapabilityResult {
         require(invocation.capability.isNotBlank()) { "capability is required" }
+        if (invocation.capability == "player.chat") {
+            val message = requireNotNull(invocation.arguments.stringArgument("message")) { "message is required" }
+            val event = sendChat(ChatCommand(message))
+            return DriverCapabilityResult(
+                capability = invocation.capability,
+                status = DriverCapabilityStatus.ACCEPTED,
+                message = event.message,
+            )
+        }
         return DriverCapabilityResult(
             capability = invocation.capability,
             status = DriverCapabilityStatus.ACCEPTED,

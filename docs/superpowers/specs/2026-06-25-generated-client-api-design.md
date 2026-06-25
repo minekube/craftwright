@@ -129,8 +129,9 @@ Test layers:
 - pure unit tests for route generation and OpenAPI generation;
 - fake-client tests for handles, events, JSON, and token behavior;
 - Ktor Client tests for JVM clients and local API routes;
-- opt-in Fabric real-client smoke tests for generated routes like
-  `GET /player/name` and `POST /player/sendChat`.
+- opt-in Fabric real-client smoke tests for generated state routes and action
+  invocation such as `GET /clients/{id}/player` and
+  `POST /clients/{id}:run` with `player.chat` or `player.move`.
 
 ### Java Fallbacks
 
@@ -216,7 +217,7 @@ Location: `/tmp/craftwright-generated-api-poc`
 Validated:
 
 - generated paths from root objects and getter/method chains;
-- nested paths such as `/mc/client/player/sendChat`;
+- generated action paths such as `/clients/{id}:run`;
 - OpenAPI generation from route metadata;
 - complex return values as handles;
 - selective method exposure.
@@ -232,7 +233,7 @@ Location: `/tmp/craftwright-ci-api-poc`
 Validated:
 
 - short root paths: `/client`, `/player`;
-- generated method route: `POST /player/sendChat`;
+- generated action invocation route: `POST /clients/{id}:run`;
 - generated getter route: `GET /player/name`;
 - `/version`;
 - `/events`;
@@ -315,7 +316,7 @@ GET  /client
 GET  /client/state
 GET  /player
 GET  /player/name
-POST /player/sendChat
+POST /clients/{id}:run
 GET  /world
 GET  /screen
 GET  /inventory
@@ -421,11 +422,10 @@ Example vendor extensions:
 
 ```json
 {
-  "x-craftwright-java-class": "net.minecraft.client.player.LocalPlayer",
-  "x-craftwright-java-method": "sendChat",
+  "x-craftwright-action": "player.chat",
   "x-craftwright-thread": "client",
   "x-craftwright-return": "value",
-  "x-craftwright-source": "method"
+  "x-craftwright-source": "action"
 }
 ```
 
@@ -523,8 +523,9 @@ The next implementation spike should be a Fabric 26.2 client mod:
 - exposes object handle fallback under `/o/{handle}`;
 - exposes class metadata under `/c/{className}`;
 - schedules calls on the Minecraft client thread;
-- supports `GET /player/name` and `POST /player/sendChat` against the real
-  client as the first proof.
+- supports `GET /clients/{id}/player` plus `POST /clients/{id}:run` actions
+  such as `player.chat` and `player.move` against the real client as the first
+  proof.
 
 ## Done Definition
 

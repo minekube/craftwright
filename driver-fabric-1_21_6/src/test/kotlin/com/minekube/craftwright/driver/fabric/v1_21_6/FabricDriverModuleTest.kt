@@ -119,6 +119,25 @@ class FabricDriverModuleTest {
         assertEquals(1, gateway.scheduled)
     }
 
+    @Test
+    fun `fabric backend maps player chat action to chat send`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = FabricDriverBackend.real(gateway)
+
+        val result = backend.invoke(
+            "alice",
+            DriverCapabilityInvocation(
+                capability = "player.chat",
+                arguments = mapOf("message" to JsonPrimitive("hello action")),
+            )
+        )
+
+        assertEquals("player.chat", result.capability)
+        assertEquals(DriverCapabilityStatus.ACCEPTED, result.status)
+        assertEquals(listOf("chat hello action"), gateway.actions)
+        assertEquals(1, gateway.scheduled)
+    }
+
     private fun resourceJson(path: String) =
         json.parseToJsonElement(
             requireNotNull(javaClass.classLoader.getResource(path)) { "missing resource $path" }.readText()

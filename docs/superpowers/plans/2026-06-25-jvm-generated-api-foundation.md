@@ -101,9 +101,9 @@ git commit -m "feat: add JVM protocol foundation"
 fun `openapi document includes craftwright metadata for fake player routes`() {
     val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
 
-    val operation = document.paths["/player/sendChat"]?.post
-    assertEquals("playerSendChat", operation?.operationId)
-    assertEquals("com.minekube.craftwright.player", operation?.extensions?.get("x-craftwright-java-class"))
+    val operation = document.paths["/clients/{id}:run"]?.post
+    assertEquals("runClientAction", operation?.operationId)
+    assertEquals("com.minekube.craftwright.daemon.clients", operation?.extensions?.get("x-craftwright-java-class"))
     assertEquals("client", operation?.extensions?.get("x-craftwright-thread"))
 }
 ```

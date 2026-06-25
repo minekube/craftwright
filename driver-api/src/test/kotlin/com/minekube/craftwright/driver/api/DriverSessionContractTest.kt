@@ -30,8 +30,18 @@ class DriverSessionContractTest {
         assertEquals(PlayerPosition(0.0, 0.0, 0.0), player.position)
 
         val capabilities = session.capabilities()
-        assertEquals("player.move", capabilities.single().id)
-        assertEquals("1", capabilities.single().schemaVersion)
+        assertEquals("1", capabilities.single { it.id == "player.move" }.schemaVersion)
+        assertEquals("1", capabilities.single { it.id == "player.chat" }.schemaVersion)
+
+        val chatAction = session.invoke(
+            DriverCapabilityInvocation(
+                capability = "player.chat",
+                arguments = mapOf("message" to JsonPrimitive("hello through action")),
+            )
+        )
+        assertEquals("player.chat", chatAction.capability)
+        assertEquals(DriverCapabilityStatus.ACCEPTED, chatAction.status)
+        assertEquals("hello through action", chatAction.message)
 
         val capability = session.invoke(
             DriverCapabilityInvocation(

@@ -1,6 +1,5 @@
 package com.minekube.craftwright.daemon
 
-import com.minekube.craftwright.driver.api.ChatCommand
 import com.minekube.craftwright.driver.api.ConnectionTarget
 import com.minekube.craftwright.driver.api.DriverCapabilityInvocation
 import com.minekube.craftwright.driver.api.PlayerPosition
@@ -116,22 +115,6 @@ class LocalSessionApiServer private constructor(
                     call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
                 }
             }
-            post("/clients/{id}/player/sendChat") {
-                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
-                runCatching {
-                    val request = json.decodeFromString<SendChatRequest>(call.receiveText())
-                    val driverEvent = service.driverFor(clientId).sendChat(ChatCommand(request.message))
-                    val event = SessionEvent(
-                        type = "chat",
-                        client = driverEvent.client,
-                        message = driverEvent.message,
-                    )
-                    events += event
-                    call.respondJson(HttpStatusCode.OK, event)
-                }.getOrElse { error ->
-                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
-                }
-            }
             get("/clients/{id}/player") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
@@ -175,6 +158,13 @@ class LocalSessionApiServer private constructor(
                             arguments = request.args,
                         )
                     )
+                    if (request.action == "player.chat" && result.message != null) {
+                        events += SessionEvent(
+                            type = "chat",
+                            client = clientId,
+                            message = result.message,
+                        )
+                    }
                     call.respondJson(
                         HttpStatusCode.OK,
                         ActionInvocationResponse(
@@ -271,11 +261,6 @@ data class ErrorResponse(
 data class ConnectRequest(
     val host: String,
     val port: Int,
-)
-
-@Serializable
-data class SendChatRequest(
-    val message: String,
 )
 
 @Serializable

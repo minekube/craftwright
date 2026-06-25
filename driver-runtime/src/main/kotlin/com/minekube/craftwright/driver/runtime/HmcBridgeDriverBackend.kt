@@ -11,6 +11,7 @@ import com.minekube.craftwright.driver.api.DriverCapabilityResult
 import com.minekube.craftwright.driver.api.DriverCapabilityStatus
 import com.minekube.craftwright.driver.api.booleanArgument
 import com.minekube.craftwright.driver.api.intArgument
+import com.minekube.craftwright.driver.api.stringArgument
 
 class HmcBridgeDriverBackend(
     private val bridge: HmcBridgeBackend,
@@ -34,9 +35,21 @@ class HmcBridgeDriverBackend(
     }
 
     override fun capabilities(clientId: String): List<DriverCapabilityDescriptor> =
-        listOf(DriverCapabilityDescriptor.playerMove())
+        listOf(
+            DriverCapabilityDescriptor.playerMove(),
+            DriverCapabilityDescriptor.playerChat(),
+        )
 
     override fun invoke(clientId: String, invocation: DriverCapabilityInvocation): DriverCapabilityResult {
+        if (invocation.capability == "player.chat") {
+            val message = requireNotNull(invocation.arguments.stringArgument("message")) { "message is required" }
+            val result = sendChat(clientId, ChatCommand(message))
+            return DriverCapabilityResult(
+                capability = invocation.capability,
+                status = DriverCapabilityStatus.ACCEPTED,
+                message = result.message,
+            )
+        }
         if (invocation.capability != "player.move") {
             return DriverCapabilityResult(
                 capability = invocation.capability,

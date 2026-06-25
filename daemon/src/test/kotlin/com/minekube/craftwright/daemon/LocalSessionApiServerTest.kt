@@ -34,7 +34,8 @@ class LocalSessionApiServerTest {
 
             http.get(server.url("/openapi.json")).let { openapi ->
                 assertEquals(HttpStatusCode.OK, openapi.status)
-                assertTrue(openapi.bodyAsText().contains("/player/sendChat"))
+                assertTrue(openapi.bodyAsText().contains("/clients/{id}:run"))
+                assertTrue(!openapi.bodyAsText().contains("/player/sendChat"))
             }
 
             http.get(server.url("/events")).let { events ->
@@ -74,7 +75,9 @@ class LocalSessionApiServerTest {
                 assertTrue(body.contains("/clients/alice/actions"))
                 assertTrue(body.contains("/clients/alice:run"))
                 assertTrue(body.contains("\"id\":\"player.move\""))
+                assertTrue(body.contains("\"id\":\"player.chat\""))
                 assertTrue(body.contains("\"args\""))
+                assertTrue(!body.contains("/player/sendChat"))
                 assertTrue(!body.contains("/actions/move"))
             }
         }
@@ -118,11 +121,12 @@ class LocalSessionApiServerTest {
                 assertTrue(response.bodyAsText().contains("\"state\":\"CONNECTED\""))
             }
 
-            http.post(server.url("/clients/alice/player/sendChat")) {
+            http.post(server.url("/clients/alice:run")) {
                 contentType(ContentType.Application.Json)
-                setBody("""{"message":"hello from route"}""")
+                setBody("""{"action":"player.chat","args":{"message":"hello from route"}}""")
             }.let { response ->
                 assertEquals(HttpStatusCode.OK, response.status)
+                assertTrue(response.bodyAsText().contains("\"action\":\"player.chat\""))
                 assertTrue(response.bodyAsText().contains("\"message\":\"hello from route\""))
             }
 
@@ -143,6 +147,7 @@ class LocalSessionApiServerTest {
                 val body = response.bodyAsText()
                 assertEquals(HttpStatusCode.OK, response.status)
                 assertTrue(body.contains("\"id\":\"player.move\""))
+                assertTrue(body.contains("\"id\":\"player.chat\""))
                 assertTrue(body.contains("\"args\""))
             }
 

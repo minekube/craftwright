@@ -6,16 +6,16 @@ import kotlin.test.assertNotNull
 
 class OpenApiGenerationTest {
     @Test
-    fun `openapi document includes craftwright metadata for fake player routes`() {
+    fun `openapi document includes craftwright metadata for generic action route`() {
         val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
 
-        val operation = document.paths["/player/sendChat"]?.post
+        val operation = document.paths["/clients/{id}:run"]?.post
         assertNotNull(operation)
-        assertEquals("playerSendChat", operation.operationId)
-        assertEquals("player", operation.tags.single())
-        assertEquals("com.minekube.craftwright.player", operation.extensions["x-craftwright-java-class"])
-        assertEquals("sendChat", operation.extensions["x-craftwright-java-method"])
+        assertEquals("runClientAction", operation.operationId)
+        assertEquals("clients", operation.tags.single())
+        assertEquals("com.minekube.craftwright.daemon.clients", operation.extensions["x-craftwright-java-class"])
+        assertEquals("run", operation.extensions["x-craftwright-java-method"])
         assertEquals("client", operation.extensions["x-craftwright-thread"])
-        assertEquals("method", operation.extensions["x-craftwright-source"])
+        assertEquals("action", operation.extensions["x-craftwright-source"])
     }
 }

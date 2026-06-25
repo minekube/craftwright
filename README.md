@@ -23,7 +23,8 @@ Craftwright is a Kotlin/JVM-first project with one implementation direction:
 - a compiled `driver-fabric-1_21_6` Fabric/Loom module with client entrypoint,
   mod metadata, mixin config, and a gateway-backed runtime backend for
   client-thread connect, chat, command, stop, player state, and player position
-  observation plus generic `player.move` action invocation;
+  observation plus generated `player.move` and `player.chat` action
+  invocation;
 - a temporary HeadlessMC/HMC-Specifics bridge backend for Phase 1 evidence;
 - a real Fabric driver implementation as the durable automation engine;
 - stable kernel OpenAPI at `/openapi.json` plus per-client OpenAPI at
@@ -70,14 +71,15 @@ Phase 1:
 - route daemon-created clients through an injectable driver runtime boundary;
 - keep the first Fabric 1.21.6 module compiling under Loom;
 - route Fabric connect, chat, command, stop, player state, player position
-  observation, and generic `player.move` action invocation through a real
-  Minecraft client gateway;
-- expose `/clients/{id}/openapi.json` with runtime metadata and `player.move`
-  action schema while avoiding static hand-written action route expansion;
+  observation, and generated `player.move`/`player.chat` action invocation
+  through a real Minecraft client gateway;
+- expose `/clients/{id}/openapi.json` with runtime metadata and discovered
+  action schemas while avoiding static hand-written action route expansion;
 - prefer AIP-style action invocation such as `POST /clients/{id}:run` and
   generated aliases such as `POST /clients/{id}/player:move`;
 - accept action invocation arguments as typed JSON values such as
-  `{"action":"player.move","args":{"forward":true,"ticks":20}}`;
+  `{"action":"player.move","args":{"forward":true,"ticks":20}}` and
+  `{"action":"player.chat","args":{"message":"hello"}}`;
 - add a temporary HeadlessMC/HMC-Specifics bridge backend;
 - add a real integration smoke test that launches a real client, joins a
   server, sends chat, moves forward, and verifies server-side position changed;
