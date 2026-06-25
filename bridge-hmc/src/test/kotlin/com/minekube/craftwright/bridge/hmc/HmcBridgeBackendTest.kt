@@ -14,6 +14,8 @@ class HmcBridgeBackendTest {
         assertEquals(ClientAction.CHAT, result.action)
         assertFalse(result.publicDescription.contains("hmc", ignoreCase = true))
         assertFalse(result.publicDescription.contains("specifics", ignoreCase = true))
+        assertFalse(result.publicDescription.contains("send chat", ignoreCase = true))
+        assertTrue(result.publicDescription.contains("player.chat"))
         assertTrue(result.internalCommand.redacted().contains("<internal bridge command>"))
     }
 

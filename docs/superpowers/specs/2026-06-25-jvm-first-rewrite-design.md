@@ -185,7 +185,7 @@ Responsibilities:
   reasons, current screen, inventory screens, and rendered text where possible.
 - Execute commands on the Minecraft client thread.
 - Connect and disconnect through real Minecraft APIs.
-- Send chat and slash commands through real `LocalPlayer`/connection APIs.
+- Invoke chat and command actions through real `LocalPlayer`/connection APIs.
 - Expose GUI and input actions through stable Craftwright abstractions.
 - Set player movement intent through generated/discovered actions. The current
   `player.move` action reaches the Fabric gateway and writes
@@ -492,7 +492,7 @@ Craftwright is complete enough for its original goal when:
 
 - `mcw` can launch and supervise real Minecraft Java clients in offline mode;
 - tests can connect clients to Gate, Connect, and ordinary Minecraft servers;
-- clients can send chat, send slash commands, wait for chat/disconnect/screen
+- clients can invoke chat and command actions, wait for chat/disconnect/screen
   state, and stop reliably;
 - structured events and artifacts are emitted without relying on human log text;
 - Playwright fixtures are stable enough for Minekube E2E tests;

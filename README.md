@@ -110,7 +110,7 @@ It proved the core loop:
 3. load Fabric 1.21.4 and HMC-Specifics 2.4.0;
 4. expose a local HTTP API wrapper;
 5. connect the real client to the server;
-6. send chat and move the player through API calls;
+6. invoke `player.chat` and `player.move` actions through API calls;
 7. verify join, chat, and position change from the server.
 
 Observed server evidence:
@@ -159,7 +159,8 @@ Phase 1:
   accepting the direct args body such as `{"message":"hello"}`;
 - add a temporary HeadlessMC/HMC-Specifics bridge backend;
 - add a real integration smoke test that launches a real client, joins a
-  server, sends chat, moves forward, and verifies server-side position changed;
+  server, invokes `player.chat` and `player.move`, and verifies server-side
+  position changed;
 - keep public API names independent from HMC-Specifics command strings.
 
 Phase 2:

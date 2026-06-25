@@ -30,7 +30,7 @@ class FabricDriverBackend private constructor(
         return DriverBackendResult(DriverBackendAction.CONNECT, "fabric ${mode.id} connect requested")
     }
 
-    private fun sendChatAction(clientId: String, message: String): String {
+    private fun invokePlayerChatAction(clientId: String, message: String): String {
         require(message.isNotBlank()) { "chat message is required" }
         record("chat $clientId $message")
         gateway?.execute {
@@ -68,7 +68,7 @@ class FabricDriverBackend private constructor(
             return DriverActionResult(
                 action = invocation.action,
                 status = DriverActionStatus.ACCEPTED,
-                message = sendChatAction(clientId, message),
+                message = invokePlayerChatAction(clientId, message),
             )
         }
         if (invocation.action != "player.move") {

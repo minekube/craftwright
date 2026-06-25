@@ -7,7 +7,7 @@ class HmcBridgeBackend private constructor(
         run(ClientAction.CONNECT, clientId, "connect to $server", BridgeCommand("connect $server"))
 
     fun chat(clientId: String, message: String): BridgeActionResult =
-        run(ClientAction.CHAT, clientId, "send chat message", BridgeCommand("chat $message"))
+        run(ClientAction.CHAT, clientId, "invoke player.chat action", BridgeCommand("chat $message"))
 
     fun move(clientId: String, intent: MoveIntent, ticks: Int): BridgeActionResult =
         run(ClientAction.MOVE, clientId, "move ${intent.name.lowercase()} for $ticks ticks", BridgeCommand("key ${intent.bridgeKey} $ticks"))
