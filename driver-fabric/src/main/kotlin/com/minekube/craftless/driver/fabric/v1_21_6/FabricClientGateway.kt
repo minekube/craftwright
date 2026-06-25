@@ -7,16 +7,13 @@ import net.minecraft.client.gui.screen.multiplayer.ConnectScreen
 import net.minecraft.client.network.CookieStorage
 import net.minecraft.client.network.ServerAddress
 import net.minecraft.client.network.ServerInfo
-import net.minecraft.util.PlayerInput
 
 interface FabricClientGateway {
     fun execute(action: () -> Unit)
 
+    fun executeOnClient(action: MinecraftClient.() -> Unit)
+
     fun connect(target: ConnectionTarget)
-
-    fun dispatchChatMessage(message: String)
-
-    fun move(intent: FabricMovementIntent)
 
     fun stop()
 
@@ -25,22 +22,17 @@ interface FabricClientGateway {
     fun isReadyToConnect(): Boolean
 }
 
-data class FabricMovementIntent(
-    val forward: Boolean = false,
-    val backward: Boolean = false,
-    val left: Boolean = false,
-    val right: Boolean = false,
-    val jump: Boolean = false,
-    val sneak: Boolean = false,
-    val sprint: Boolean = false,
-    val ticks: Int = 1,
-)
-
 class MinecraftFabricClientGateway(
     private val client: MinecraftClient = MinecraftClient.getInstance(),
 ) : FabricClientGateway {
     override fun execute(action: () -> Unit) {
         client.execute(action)
+    }
+
+    override fun executeOnClient(action: MinecraftClient.() -> Unit) {
+        client.execute {
+            client.action()
+        }
     }
 
     override fun connect(target: ConnectionTarget) {
@@ -57,27 +49,6 @@ class MinecraftFabricClientGateway(
             serverInfo,
             false,
             CookieStorage(emptyMap()),
-        )
-    }
-
-    override fun dispatchChatMessage(message: String) {
-        require(message.isNotBlank()) { "chat message is required" }
-        require(!message.startsWith("/")) { "chat message must not start with slash" }
-        val networkHandler = requireNotNull(client.networkHandler) { "client is not connected to a server" }
-        networkHandler.sendChatMessage(message)
-    }
-
-    override fun move(intent: FabricMovementIntent) {
-        require(intent.ticks > 0) { "movement ticks must be positive" }
-        val player = requireNotNull(client.player) { "client is not connected to a server" }
-        player.input.playerInput = PlayerInput(
-            intent.forward,
-            intent.backward,
-            intent.left,
-            intent.right,
-            intent.jump,
-            intent.sneak,
-            intent.sprint,
         )
     }
 

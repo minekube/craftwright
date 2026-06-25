@@ -45,6 +45,15 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric gateway exposes generic runtime boundaries instead of action-specific methods`() {
+        val methodNames = FabricClientGateway::class.java.methods.map { it.name }.toSet()
+
+        assertTrue("executeOnClient" in methodNames)
+        assertTrue("dispatchChatMessage" !in methodNames)
+        assertTrue("move" !in methodNames)
+    }
+
+    @Test
     fun `fabric backend exposes driver runtime actions without changing daemon contract`() {
         val backend = FabricDriverBackend.metadataOnly()
 
@@ -80,7 +89,7 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric backend schedules real client actions through a gateway`() {
+    fun `fabric backend schedules generated actions through generic client execution`() {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)
 
@@ -95,7 +104,7 @@ class FabricDriverModuleTest {
         assertEquals(
             listOf(
                 "connect 127.0.0.1:25565",
-                "chat hello client",
+                "client-action",
                 "stop",
             ),
             gateway.actions,
@@ -121,7 +130,7 @@ class FabricDriverModuleTest {
 
         assertEquals("player.move", result.action)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
-        assertEquals(listOf("move forward jump ticks=20"), gateway.actions)
+        assertEquals(listOf("client-action"), gateway.actions)
         assertEquals(1, gateway.scheduled)
     }
 
@@ -162,7 +171,7 @@ class FabricDriverModuleTest {
 
         assertEquals("player.chat", result.action)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
-        assertEquals(listOf("chat hello action"), gateway.actions)
+        assertEquals(listOf("client-action"), gateway.actions)
         assertEquals(1, gateway.scheduled)
     }
 
@@ -218,7 +227,7 @@ class FabricDriverModuleTest {
         assertEquals(
             listOf(
                 "connect localhost:25567",
-                "chat hello from fabric smoke",
+                "client-action",
                 "stop",
             ),
             gateway.actions,
@@ -249,7 +258,7 @@ class FabricDriverModuleTest {
         assertEquals(
             listOf(
                 "connect 127.0.0.1:25567",
-                "chat hello from Craftless Fabric smoke",
+                "client-action",
                 "stop",
             ),
             gateway.actions,
@@ -280,22 +289,9 @@ private class RecordingFabricClientGateway : FabricClientGateway {
         connected = true
     }
 
-    override fun dispatchChatMessage(message: String) {
-        actions += "chat $message"
-    }
-
-    override fun move(intent: FabricMovementIntent) {
-        actions += buildString {
-            append("move")
-            if (intent.forward) append(" forward")
-            if (intent.backward) append(" backward")
-            if (intent.left) append(" left")
-            if (intent.right) append(" right")
-            if (intent.jump) append(" jump")
-            if (intent.sneak) append(" sneak")
-            if (intent.sprint) append(" sprint")
-            append(" ticks=${intent.ticks}")
-        }
+    override fun executeOnClient(action: net.minecraft.client.MinecraftClient.() -> Unit) {
+        scheduled += 1
+        actions += "client-action"
     }
 
     override fun stop() {

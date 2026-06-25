@@ -129,6 +129,24 @@ Kotlin CLI source for every action.
 - Before claiming completion for a code change, run the narrow relevant tests
   and then `mise run ci` when practical.
 
+## Project Completion Checklist
+
+Use `docs/project-completion-checklist.md` as the project red line. Before
+starting substantial work, read it and identify the next unchecked item that
+moves Craftless toward completion.
+
+After work changes project status, update the checklist with:
+
+- status change;
+- commit SHA or working-tree note;
+- verification command run through `mise`;
+- evidence artifact path, when applicable;
+- remaining blocker or next action.
+
+Do not mark an item complete from docs, fake-driver tests, bridge-only evidence,
+or assumptions. Completion requires implementation plus verification evidence.
+If real-client Fabric smoke has not passed, the project is not complete.
+
 ## Documentation
 
 - Keep README and docs aligned with the current architecture.
