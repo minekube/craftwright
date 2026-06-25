@@ -70,13 +70,13 @@ class ClientSessionService private constructor(
         require(clients.containsKey(clientId)) { "client $clientId not found" }
         val actionAliases = driverFor(clientId).sortedActions().mapNotNull { it.toActionAliasRoute(clientId) }
         return listOf(
-            route("GET", "/clients/$clientId", "clientsGet", "clients", "get", "route"),
-            route("GET", "/clients/$clientId/openapi.json", "clientsOpenApi", "clients", "openapi", "route"),
-            route("POST", "/clients/$clientId:connect", "clientsConnect", "clients", "connect", "method"),
-            route("POST", "/clients/$clientId:stop", "clientsStop", "clients", "stop", "method"),
-            route("GET", "/clients/$clientId/actions", "clientsActions", "clients", "actions", "action"),
-            route("POST", "/clients/$clientId:run", "clientsRunAction", "clients", "run", "action"),
-            route("GET", "/clients/$clientId/events", "clientsEvents", "clients", "events", "route"),
+            route("GET", "/clients/$clientId", "getClient", "clients", "get", "route"),
+            route("GET", "/clients/$clientId/openapi.json", "getClientOpenapiJson", "clients", "openapi", "route"),
+            route("POST", "/clients/$clientId:connect", "clientConnect", "clients", "connect", "method"),
+            route("POST", "/clients/$clientId:stop", "stopClient", "clients", "stop", "method"),
+            route("GET", "/clients/$clientId/actions", "listClientActions", "clients", "actions", "action"),
+            route("POST", "/clients/$clientId:run", "runClientAction", "clients", "run", "action"),
+            route("GET", "/clients/$clientId/events", "getClientEvents", "clients", "events", "route"),
         ) + actionAliases
     }
 
