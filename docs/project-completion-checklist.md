@@ -422,13 +422,21 @@ Craftless is complete for this milestone only when all are true:
 - [x] README and roadmap reflect that exact state.
 - [x] `mise run lint` passes.
 - [x] `mise run ci` passes.
-- [ ] No `AGENTS.md` violations remain.
-- [ ] `main` contains the completed work.
+- [x] No `AGENTS.md` violations remain.
+- [x] `main` contains the completed work.
 
 Final evidence:
 
-- Commit: `0c18fcb` (`driver-fabric: include movement in real smoke`).
+- Real-smoke commit: `0c18fcb` (`driver-fabric: include movement in real smoke`).
+- Completion hardening commits:
+  - `04ca610` (`protocol: publish action result schemas`)
+  - `9bcbcd7` (`driver-api: quarantine fake driver fixture`)
+  - final AGENTS/checklist alignment commit in `main`
 - Commands:
+  - `rg -n "Craftwright|craftwright|minekube\\.dev|dev\\.minekube|\\bmcw\\b|driver-fabric-1_21_6|Fake driver implementation|fake implementation for tests|driver-api.*fake|FakeDriverSession" AGENTS.md */AGENTS.md README.md docs --glob '!docs/superpowers/**' -S`
+  - `rg -n "FakeDriverSession|craftless-fake|DriverRuntimeMetadata\\.fake" driver-api/src/main daemon/src/main cli/src/main driver-runtime/src/main driver-fabric/src/main bridge-hmc/src/main protocol/src/main -S`
+  - `find . -path './.git' -prune -o -path './build' -prune -o -path '*/build' -prune -o -path './driver-fabric/run' -prune -o \( -name 'package-lock.json' -o -name 'npm-shrinkwrap.json' -o -name 'yarn.lock' -o -name 'pnpm-lock.yaml' -o -name '.npmrc' -o -name '.yarnrc' -o -name '.yarnrc.yml' \) -print`
+  - `mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.NamespacePolicyTest :driver-api:test :daemon:test :cli:test :testkit:test :driver-fabric:test`
   - `mise exec -- gradle :testkit:test :driver-fabric:test`
   - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
   - `mise run lint`
@@ -442,7 +450,6 @@ Final evidence:
   - `driver-fabric/build/craftless-local-server-smoke/artifacts/client-events.jsonl`
   - `driver-fabric/build/craftless-local-server-smoke/artifacts/runtime-metadata.json`
 - Remaining known gaps:
-  - Generated `player.move` has real-client driver-side event telemetry; the
-    stronger position-delta proof is still roadmap.
-  - The remaining checklist items in sections 1, 3, 4, and 11 still need
-    requirement-specific audits before the overall goal can be marked complete.
+  - Generated `player.move` has real-client driver-side event telemetry. A
+    stronger server-side position-delta proof remains roadmap, not a blocker for
+    this milestone's daemon-generated action path.

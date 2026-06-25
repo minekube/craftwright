@@ -12,6 +12,7 @@
 
 - Fakes should exercise the same action descriptor and generic invocation paths
   as real drivers.
+- Fake driver sessions belong here, not in product driver/runtime modules.
 - Keep tests deterministic and offline by default.
 - Do not hide product behavior in test-only shortcuts that bypass public
   protocol or driver contracts.

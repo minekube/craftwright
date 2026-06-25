@@ -58,14 +58,14 @@ each Minecraft action.
   DTOs, and API naming rules.
 - `daemon/`: Ktor local supervisor API, client session lifecycle, per-client
   OpenAPI/action endpoints, and runtime driver wiring.
-- `driver-api/`: stable JVM driver contract and fake implementation for tests.
+- `driver-api/`: stable JVM driver contract and driver-facing DTOs.
 - `driver-runtime/`: adapters from `DriverSession` to concrete backends,
   including temporary bridge adapters.
 - `driver-fabric/`: Fabric/Loom driver module with internal version-aware
   bindings where practical.
 - `bridge-hmc/`: evidence-only HeadlessMC/HMC-Specifics bridge code.
 - `cli/`: adaptive `craftless` CLI core and runtime OpenAPI/action dispatch.
-- `testkit/`: fake clients, fixtures, and test helpers.
+- `testkit/`: fake clients, fake driver sessions, fixtures, and test helpers.
 - `playwright/`: Bun-powered helper tests and external integration fixtures.
 - `docs/`: architecture, roadmap, and evidence docs.
 

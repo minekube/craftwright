@@ -7,7 +7,6 @@ in-client automation implementation.
 
 - `DriverSession` and stable driver-facing DTOs.
 - Action descriptors and invocation results.
-- Fake driver implementation for daemon/protocol tests.
 
 ## Rules
 
@@ -18,8 +17,6 @@ in-client automation implementation.
   Internal convenience methods are acceptable only when they do not leak into
   daemon routes, CLI commands, or public docs as the action model.
 - Action IDs and DTOs must be Craftless-owned.
-- Fake implementations should exercise the same descriptors and invocation
-  path that real drivers use.
 - Preserve typed `JsonElement` action args.
 
 ## Verification
