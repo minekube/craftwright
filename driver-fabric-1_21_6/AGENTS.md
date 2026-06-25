@@ -8,8 +8,8 @@ internal version-aware bindings where practical. Delete this dir when made obsol
 
 - Fabric client entrypoint and metadata.
 - Mixins/accessors and bytecode-sensitive Minecraft glue.
-- Client-thread gateway for connect, chat, command, stop, player state,
-  position, and action invocation.
+- Client-thread gateway for connect, chat, command, stop, and generated action
+  invocation.
 - First real Fabric backend behavior.
 
 ## Rules

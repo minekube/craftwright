@@ -89,8 +89,8 @@ Craftless is a Kotlin/JVM-first project with one implementation direction:
   `driver-fabric-1_21_6` while the codebase consolidates toward one
   `driver-fabric` module with internal version-aware bindings, mod metadata,
   mixin config, and a gateway-backed runtime backend for client-thread connect,
-  chat, command, stop, player state, and player position observation plus
-  generated `player.move` and `player.chat` action invocation;
+  chat, command, stop, and generated `player.move`/`player.chat` action
+  invocation;
 - a temporary HeadlessMC/HMC-Specifics bridge backend for Phase 1 evidence;
 - a real Fabric driver implementation as the durable automation engine;
 - stable kernel OpenAPI at `/openapi.json` plus per-client OpenAPI at
@@ -144,9 +144,9 @@ Phase 1:
 - keep the current Fabric module compiling under Loom while consolidating
   version-specific code behind internal driver bindings instead of one public
   subproject per Minecraft version;
-- route Fabric connect, chat, command, stop, player state, player position
-  observation, and generated `player.move`/`player.chat` action invocation
-  through a real Minecraft client gateway;
+- route Fabric connect, chat, command, stop, and generated
+  `player.move`/`player.chat` action invocation through a real Minecraft
+  client gateway;
 - expose `/clients/{id}/openapi.json` with runtime fingerprint metadata and
   discovered action schemas while avoiding static hand-written action route
   expansion;
@@ -168,9 +168,10 @@ Phase 2:
   `player.move` movement intent;
 - move more runtime/version/mod/registry inputs into per-client OpenAPI
   fingerprints and binding support checks;
-- expose stable roots such as `/player`, `/world`, `/screen`, and `/events`,
-  with generated per-client action schemas for movement, look, raycast,
-  inventory, world/entity queries, and screen interaction.
+- expose generated/discovered roots such as player, world, screen, and events
+  when described by the per-client OpenAPI document, with action schemas for
+  movement, look, raycast, inventory, world/entity queries, and screen
+  interaction.
 
 Later:
 
