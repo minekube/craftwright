@@ -109,6 +109,14 @@ class ClientSessionServiceTest {
         assertTrue(document.paths.containsKey("/clients/alice:run"))
         assertTrue(document.paths.containsKey("/clients/alice/player:chat"))
         assertTrue(document.paths.containsKey("/clients/alice/player:move"))
+        val clientSchema = document.paths["/clients/alice"]?.get
+            ?.responses
+            ?.get("200")
+            ?.content
+            ?.get("application/json")
+            ?.schema
+        assertNotNull(clientSchema)
+        assertEquals(listOf("id", "instance", "profile", "state"), clientSchema.required)
         assertEquals("runPlayerChat", document.paths["/clients/alice/player:chat"]?.post?.operationId)
         val chatSchema = document.paths["/clients/alice/player:chat"]?.post?.requestBody
             ?.content

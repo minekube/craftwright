@@ -68,4 +68,53 @@ class OpenApiGenerationTest {
         assertEquals("string", connectSchema.properties["host"]?.type)
         assertEquals("integer", connectSchema.properties["port"]?.type)
     }
+
+    @Test
+    fun `stable lifecycle routes describe client response bodies`() {
+        val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
+
+        val listSchema = document.paths["/clients"]?.get?.okSchema()
+        assertNotNull(listSchema)
+        assertEquals("array", listSchema.type)
+        val listItemSchema = listSchema.items
+        assertNotNull(listItemSchema)
+        assertClientSchema(listItemSchema)
+
+        assertClientSchema(requireNotNull(document.paths["/clients"]?.post?.successSchema("201")))
+        assertClientSchema(requireNotNull(document.paths["/clients/{id}"]?.get?.okSchema()))
+        assertClientSchema(requireNotNull(document.paths["/clients/{id}/connection/connect"]?.post?.okSchema()))
+        assertClientSchema(requireNotNull(document.paths["/clients/{id}/stop"]?.post?.okSchema()))
+    }
+
+    private fun OpenApiOperation.okSchema(): OpenApiSchema? =
+        successSchema("200")
+
+    private fun OpenApiOperation.successSchema(status: String): OpenApiSchema? =
+        responses[status]?.content?.get("application/json")?.schema
+
+    private fun assertClientSchema(schema: OpenApiSchema) {
+        assertEquals("object", schema.type)
+        assertEquals(listOf("id", "instance", "profile", "state"), schema.required)
+        assertEquals("string", schema.properties["id"]?.type)
+        assertEquals("string", schema.properties["state"]?.type)
+
+        val instanceSchema = schema.properties["instance"]
+        assertNotNull(instanceSchema)
+        assertEquals("object", instanceSchema.type)
+        assertEquals(listOf("id", "version", "loader"), instanceSchema.required)
+        assertEquals("string", instanceSchema.properties["id"]?.type)
+        assertEquals("string", instanceSchema.properties["loader"]?.type)
+        val versionSchema = instanceSchema.properties["version"]
+        assertNotNull(versionSchema)
+        assertEquals("object", versionSchema.type)
+        assertEquals(listOf("id"), versionSchema.required)
+        assertEquals("string", versionSchema.properties["id"]?.type)
+
+        val profileSchema = schema.properties["profile"]
+        assertNotNull(profileSchema)
+        assertEquals("object", profileSchema.type)
+        assertEquals(listOf("kind", "name"), profileSchema.required)
+        assertEquals("string", profileSchema.properties["kind"]?.type)
+        assertEquals("string", profileSchema.properties["name"]?.type)
+    }
 }
