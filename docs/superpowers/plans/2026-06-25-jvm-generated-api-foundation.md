@@ -332,8 +332,8 @@ Expected: FAIL until the package is scaffolded.
 
 - [x] **Step 3: Write minimal implementation**
 
-Create fixture and matcher helpers that do not depend on a checked-in
-TypeScript SDK.
+Create fixture and matcher helpers that do not depend on a checked-in external
+SDK package.
 
 - [x] **Step 4: Verify**
 

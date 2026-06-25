@@ -1,4 +1,0 @@
-interface:
-  display_name: "Craftwright Kotlin/JVM"
-  short_description: "Craftwright JVM, Ktor, Gradle conventions"
-  default_prompt: "Use $craftwright-kotlin-jvm to make a Craftwright Kotlin/JVM change that follows the repo conventions."

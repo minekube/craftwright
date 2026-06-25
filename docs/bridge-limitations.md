@@ -24,6 +24,6 @@ Known limitations:
 - Nearby blocks, nearby entities, raycasts, inventory, screen state, and clicks
   need a Craftwright Fabric driver with direct Minecraft client API access.
 
-The next durable milestone is replacing the current Fabric placeholder backend
-with code that sets movement intent, look direction, chat, connection
-lifecycle, raycasts, and perception directly inside the client.
+The Fabric backend now has a client-thread gateway for connection, chat,
+command, and stop actions. The next durable milestone is adding direct movement
+intent, look direction, raycasts, and perception inside the client.

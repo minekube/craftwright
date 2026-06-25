@@ -50,8 +50,56 @@ class FabricDriverModuleTest {
         assertTrue(backend.events().any { it.contains("connect alice 127.0.0.1:25565") })
     }
 
+    @Test
+    fun `fabric backend schedules real client actions through a gateway`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = FabricDriverBackend.real(gateway)
+
+        backend.connect("alice", ConnectionTarget("127.0.0.1", 25565))
+        backend.sendChat("alice", ChatCommand("hello client"))
+        backend.sendChat("alice", ChatCommand("/server lobby"))
+        backend.stop("alice")
+
+        assertEquals(4, gateway.scheduled)
+        assertEquals(
+            listOf(
+                "connect 127.0.0.1:25565",
+                "chat hello client",
+                "command server lobby",
+                "stop",
+            ),
+            gateway.actions,
+        )
+    }
+
     private fun resourceJson(path: String) =
         json.parseToJsonElement(
             requireNotNull(javaClass.classLoader.getResource(path)) { "missing resource $path" }.readText()
         ).jsonObject
+}
+
+private class RecordingFabricClientGateway : FabricClientGateway {
+    var scheduled = 0
+    val actions = mutableListOf<String>()
+
+    override fun execute(action: () -> Unit) {
+        scheduled += 1
+        action()
+    }
+
+    override fun connect(target: ConnectionTarget) {
+        actions += "connect ${target.host}:${target.port}"
+    }
+
+    override fun sendChat(message: String) {
+        actions += "chat $message"
+    }
+
+    override fun sendCommand(command: String) {
+        actions += "command $command"
+    }
+
+    override fun stop() {
+        actions += "stop"
+    }
 }

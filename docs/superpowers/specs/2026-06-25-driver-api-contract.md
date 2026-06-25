@@ -34,6 +34,8 @@ The module currently exposes:
 
 - `CraftwrightFabricClientEntrypoint`
 - `FabricDriverBackend`
+- `FabricClientGateway`
+- `MinecraftFabricClientGateway`
 - `fabric.mod.json`
 - `craftwright-driver-fabric-1_21_6.mixins.json`
 
@@ -52,9 +54,10 @@ the same public contract before the Fabric module lands.
 
 `BackendDriverSession` is the first runtime adapter. It keeps `DriverSession`
 state and events in Craftwright-owned types while delegating automation actions
-to a `DriverBackend`. The current HMC bridge adapter is temporary. The first
-Fabric module compiles and exposes a placeholder backend; it must still replace
-placeholder behavior with real in-client actions.
+to a `DriverBackend`. The current HMC bridge adapter is temporary. The Fabric
+module now routes connect, chat, command, and stop actions through a
+client-thread gateway. It must still add real player state, movement,
+perception, and structured event observation.
 
 ## Fabric Handoff
 
@@ -62,7 +65,9 @@ The first Fabric driver module should continue implementing the runtime
 backend/session boundary for real client state:
 
 - map `connect(ConnectionTarget)` to in-client server connection behavior;
-- map `sendChat(ChatCommand)` to real client chat send behavior;
+- map `sendChat(ChatCommand)` to real client chat and slash-command send
+  behavior;
+- keep Minecraft calls scheduled on the client thread;
 - make `player()` return real player state;
 - emit `DriverEvent` values for ready, connect, chat, movement, stop, and
   error lifecycle events;

@@ -21,11 +21,12 @@ Craftwright is a Kotlin/JVM-first project with one implementation direction:
 - a `driver-runtime` adapter layer that can run `DriverSession` over bridge or
   Fabric-style backends without changing daemon routes;
 - a compiled `driver-fabric-1_21_6` Fabric/Loom module with client entrypoint,
-  mod metadata, mixin config, and placeholder runtime backend;
+  mod metadata, mixin config, and a gateway-backed runtime backend for
+  client-thread connect, chat, command, and stop actions;
 - a temporary HeadlessMC/HMC-Specifics bridge backend for Phase 1 evidence;
 - a real Fabric driver implementation as the durable automation engine;
 - generated OpenAPI for the running client/session;
-- Playwright/Vitest-style testing integrations.
+- Playwright helper tests.
 
 ## Evidence
 
@@ -65,6 +66,8 @@ Phase 1:
 - implement the CLI and local API surface;
 - route daemon-created clients through an injectable driver runtime boundary;
 - keep the first Fabric 1.21.6 module compiling under Loom;
+- route Fabric connect, chat, command, and stop actions through a real
+  Minecraft client gateway;
 - add a temporary HeadlessMC/HMC-Specifics bridge backend;
 - add a real integration smoke test that launches a real client, joins a
   server, sends chat, moves forward, and verifies server-side position changed;
@@ -107,7 +110,7 @@ mise run ci
 mise exec -- gradle test
 ```
 
-Use Bun for TypeScript package work:
+Use Bun for Playwright helper tests:
 
 ```sh
 mise exec -- bun test playwright

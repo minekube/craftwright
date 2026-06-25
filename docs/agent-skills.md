@@ -6,14 +6,26 @@ should not be installed unless the repository starts using those technologies.
 
 ## Installed Repo-Local Skills
 
-- `.agent/skills/craftwright-kotlin-jvm` is the active repository skill for
-  Kotlin/JVM, Gradle, Ktor, CLI, daemon, protocol, bridge, Fabric-driver, and
-  TypeScript integration work in this repo.
+- `.agents/skills/kotlin-jvm-modern-practices` captures Craftwright's modern
+  Kotlin/JVM defaults: Gradle Kotlin DSL, Ktor Server/Client, structured
+  concurrency, JVM tests, Fabric client-thread boundaries, and no old Java HTTP
+  stack.
+- `.agents/skills/kotlin-tooling-java-to-kotlin` is installed for concrete
+  Java-to-Kotlin conversion tasks. Java still remains appropriate for Fabric
+  Mixins and bytecode-sensitive Minecraft glue.
+- `.agents/skills/gradle-kotlin-dsl-doctor` is installed for Gradle Kotlin DSL
+  and dependency-model repair.
+- `.agents/skills/dependency-conflict-resolver` is installed for Gradle
+  classpath, version-authority, and binary compatibility issues.
+- `.agents/skills/test-suite-builder` is installed for layered Kotlin test
+  design.
+- `.agents/skills/performance-concurrency-advisor` is installed for
+  evidence-driven Kotlin/JVM concurrency and performance work.
+- `.agents/skills/integration-resilience-engineer` is installed for resilient
+  HTTP, process, and remote-boundary design.
 
-This skill exists because the public Kotlin marketplace skills found so far are
-either task-specific or mismatch Craftwright's stack. Repo-local guidance is
-safer than importing external rules that would push Android, Exposed ORM,
-Either managers, Retrofit, or blanket Java-to-Kotlin conversion into this codebase.
+This curated set avoids Android, KMP mobile, JPA, database, Retrofit, Exposed,
+and project-specific Spring controller assumptions.
 
 ## Researched Sources
 
@@ -21,8 +33,13 @@ Either managers, Retrofit, or blanket Java-to-Kotlin conversion into this codeba
   collection following the Agent Skills standard.
 - Kotlin's documentation describes these skills as reusable instructions for
   Kotlin-specific agent workflows and lists Codex compatibility.
+- JetBrains' verified skills catalog lists Kotlin backend skills such as
+  `gradle-kotlin-dsl-doctor`, `dependency-conflict-resolver`,
+  `performance-concurrency-advisor`, `integration-resilience-engineer`, and
+  `test-suite-builder`.
 - Google documents Android skills as project-local instructions under
-  `.skills/` or `.agent/skills/`, but those workflows target Android apps.
+  `.skills/` or repo-local skill folders, but those workflows target Android
+  apps.
 - Marketplace search for "modern kotlin best practices" surfaced broad
   community skills, but none should be installed into Craftwright as-is.
 
@@ -58,13 +75,8 @@ server, CLI, Fabric-driver, and Playwright helper work:
 - no JPA/Hibernate model;
 - no `kotlinx.collections.immutable` dependency.
 
-Install `kotlin-tooling-java-to-kotlin` only when there is a concrete conversion
-task. Craftwright intentionally keeps Java for Fabric Mixins and bytecode-facing
-Minecraft glue, so a Java-to-Kotlin skill should not be globally active by
-default.
-
 Do not install the broad community candidates listed above. If Craftwright needs
-more Kotlin guidance, evolve `.agent/skills/craftwright-kotlin-jvm` with
+more Kotlin guidance, evolve `.agents/skills/kotlin-jvm-modern-practices` with
 project-specific rules instead.
 
 ## Useful Install Commands
@@ -80,8 +92,8 @@ Then install `kotlin-agent-skills@Kotlin` from `/plugins`.
 For manual repo-local installation of one upstream skill:
 
 ```sh
-mkdir -p .agent/skills
-cp -R path/to/kotlin-agent-skills/skills/kotlin-tooling-java-to-kotlin .agent/skills/
+mkdir -p .agents/skills
+cp -R path/to/kotlin-agent-skills/skills/kotlin-tooling-java-to-kotlin .agents/skills/
 ```
 
 Do this only when that workflow is needed by a branch.

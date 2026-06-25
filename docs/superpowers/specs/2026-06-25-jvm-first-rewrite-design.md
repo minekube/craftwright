@@ -22,8 +22,9 @@ for low-level Minecraft integration.
 - Kotlin is the default language for product logic.
 - Java is the default language for Mixins, accessors, and bytecode-sensitive
   Minecraft-version glue.
-- Playwright remains the first TypeScript integration surface; a TypeScript SDK
-  is postponed until the JVM protocol and generated API are steadier.
+- Playwright remains the first JavaScript/TypeScript integration surface;
+  generated external client code is postponed until the JVM protocol and
+  generated API are steadier.
 - HeadlessMC, HMC-Specifics, and MC-Runtime-Test are primary prior art and
   implementation references, but Craftwright should not expose their text
   console as its public automation contract.
@@ -133,7 +134,8 @@ craftwright/
 
   driver-fabric-1_21_6/
     Fabric Loom module for Minecraft 1.21.6. The repository now includes the
-    client entrypoint, metadata, mixin config, and placeholder runtime backend.
+    client entrypoint, metadata, mixin config, and a gateway-backed runtime
+    backend for client-thread connect, chat, command, and stop actions.
 
   driver-fabric-<version>/
     Additional versioned adapters added only when tested.
@@ -170,8 +172,10 @@ engine.
 The supervisor and daemon should talk to this layer through `driver-api/` and
 the `driver-runtime/` backend adapter. Current default daemon state still uses
 `FakeDriverSession`, but `ClientSessionService` can now be constructed with an
-injected runtime driver factory. The Fabric module should replace the backend
-implementation without changing daemon or Playwright-facing routes.
+injected runtime driver factory. The Fabric module now has a real
+client-thread gateway for connect, chat, command, and stop actions, and should
+continue replacing backend behavior without changing daemon or
+Playwright-facing routes.
 
 Responsibilities:
 
@@ -319,13 +323,13 @@ Standalone multi-invocation client commands require a persistent daemon or
 background supervisor. The project must not fake persistence by launching
 orphaned Minecraft processes.
 
-## TypeScript And Playwright Direction
+## Playwright Direction
 
-TypeScript is still essential for adoption.
+JavaScript/TypeScript test helpers are still useful for adoption.
 
-The checked-in TypeScript SDK has been removed for now. Keep the Playwright
-package as a thin helper layer around injected automation clients until the JVM
-protocol is ready for generated client code.
+The checked-in external SDK package has been removed for now. Keep the
+Playwright package as a thin helper layer around injected automation clients
+until the JVM protocol is ready for generated client code.
 
 Playwright should be the primary test runner integration:
 
@@ -379,8 +383,8 @@ public abstraction.
 
 ### Phase 3: First In-Client Driver
 
-Fill out `driver-fabric-1_21_6` beyond the current Loom scaffold by replacing
-the placeholder backend with Java Mixins and a small Kotlin/Java driver API.
+Fill out `driver-fabric-1_21_6` beyond the current Loom scaffold by extending
+the client-thread gateway with Java Mixins and a small Kotlin/Java driver API.
 
 Minimum capabilities:
 
