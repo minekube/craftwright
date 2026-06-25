@@ -7,6 +7,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption.APPEND
 import java.nio.file.StandardOpenOption.CREATE
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.io.path.readLines
@@ -96,13 +97,7 @@ data class LocalServerLayout(
         }
         outputReader.join()
 
-        Files.writeString(serverLog, output.joinToString("\n", postfix = "\n"), CREATE, APPEND)
-        var imported = 0
-        output.forEach { line ->
-            if (recordEvidenceFromLogLine(line)) {
-                imported += 1
-            }
-        }
+        val imported = persistProcessOutput(output)
         return LocalServerProcessResult(
             exitCode = process.exitValue(),
             evidenceCount = imported,
@@ -134,6 +129,75 @@ data class LocalServerLayout(
         )
     }
 
+    fun collectMinecraftServerStartupEvidence(
+        serverJar: Path,
+        javaExecutable: Path = Path.of(System.getProperty("java.home")).resolve("bin").resolve("java"),
+        minHeap: String = "512M",
+        maxHeap: String = "1G",
+        readinessTimeoutMillis: Long = 120_000,
+        shutdownTimeoutMillis: Long = 10_000,
+    ): LocalServerProcessResult {
+        require(Files.exists(serverJar)) { "minecraft server jar does not exist: $serverJar" }
+        require(Files.exists(javaExecutable)) { "java executable does not exist: $javaExecutable" }
+        require(minHeap.isNotBlank()) { "minecraft server minimum heap is required" }
+        require(maxHeap.isNotBlank()) { "minecraft server maximum heap is required" }
+        require(readinessTimeoutMillis > 0) { "minecraft server readiness timeout must be positive" }
+        require(shutdownTimeoutMillis > 0) { "minecraft server shutdown timeout must be positive" }
+        Files.writeString(eulaFile, "eula=true\n", CREATE)
+        Files.createDirectories(serverLog.parent)
+
+        val process = ProcessBuilder(
+            javaExecutable.toString(),
+            "-Xms$minHeap",
+            "-Xmx$maxHeap",
+            "-jar",
+            serverJar.toString(),
+            "nogui",
+        )
+            .directory(root.toFile())
+            .redirectErrorStream(true)
+            .start()
+        val output = mutableListOf<String>()
+        val ready = CountDownLatch(1)
+        val outputReader = thread(name = "craftless-minecraft-server-output") {
+            process.inputStream.bufferedReader().useLines { lines ->
+                lines.forEach { line ->
+                    output += line
+                    if (line.isMinecraftServerReadyLine()) {
+                        ready.countDown()
+                    }
+                }
+            }
+        }
+
+        fun stopAndCollect(message: String): Nothing {
+            process.destroyForcibly()
+            outputReader.join(1_000)
+            persistProcessOutput(output)
+            error(message)
+        }
+
+        if (!ready.await(readinessTimeoutMillis, TimeUnit.MILLISECONDS)) {
+            stopAndCollect("minecraft server did not become ready after ${readinessTimeoutMillis}ms")
+        }
+
+        process.outputStream.bufferedWriter().use { writer ->
+            writer.write("stop\n")
+            writer.flush()
+        }
+        val exited = process.waitFor(shutdownTimeoutMillis, TimeUnit.MILLISECONDS)
+        if (!exited) {
+            stopAndCollect("minecraft server did not stop after ${shutdownTimeoutMillis}ms")
+        }
+        outputReader.join()
+
+        val imported = persistProcessOutput(output)
+        return LocalServerProcessResult(
+            exitCode = process.exitValue(),
+            evidenceCount = imported,
+        )
+    }
+
     fun readEvidence(): List<LocalServerEvidence> {
         if (!Files.exists(evidenceLog)) {
             return emptyList()
@@ -141,6 +205,17 @@ data class LocalServerLayout(
         return evidenceLog.readLines()
             .filter { it.isNotBlank() }
             .map { line -> localServerEvidenceJson.decodeFromString<LocalServerEvidence>(line) }
+    }
+
+    private fun persistProcessOutput(output: List<String>): Int {
+        Files.writeString(serverLog, output.joinToString("\n", postfix = "\n"), CREATE, APPEND)
+        var imported = 0
+        output.forEach { line ->
+            if (recordEvidenceFromLogLine(line)) {
+                imported += 1
+            }
+        }
+        return imported
     }
 }
 
@@ -250,3 +325,6 @@ private val movementRegex = Regex(
         "$coordinatePattern $coordinatePattern $coordinatePattern to " +
         "$coordinatePattern $coordinatePattern $coordinatePattern"
 )
+
+private fun String.isMinecraftServerReadyLine(): Boolean =
+    contains("Done (") && contains("For help, type")

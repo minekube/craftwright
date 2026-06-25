@@ -114,6 +114,9 @@ Implemented now:
   stopping daemon-managed clients.
 - Fabric/Loom driver module with internal version-aware bindings and
   gateway-backed runtime hooks for current action evidence.
+- Testkit helpers and an opt-in `:testkit:localMinecraftServerSmoke` task for
+  provisioning a Minecraft server jar, accepting the EULA, starting the server,
+  and collecting server log evidence.
 
 Still roadmap:
 
@@ -122,7 +125,8 @@ Still roadmap:
 - broader generated action families for look, raycast, inventory, world/entity
   queries, screen interaction, and events;
 - consolidated Fabric driver support across more Minecraft versions;
-- optional PrismLauncher import/adapter work.
+- client file and instance management informed by Prism Launcher source, with
+  any Prism import/adapter remaining optional rather than a core dependency.
 
 ## Design Docs
 
@@ -149,4 +153,11 @@ Use Bun for Playwright helper tests:
 
 ```sh
 mise exec -- bun test playwright
+```
+
+Opt into the local Minecraft server smoke only when network downloads and a
+real server process are acceptable:
+
+```sh
+CRAFTLESS_LOCAL_SERVER_SMOKE=1 mise exec -- gradle :testkit:localMinecraftServerSmoke
 ```

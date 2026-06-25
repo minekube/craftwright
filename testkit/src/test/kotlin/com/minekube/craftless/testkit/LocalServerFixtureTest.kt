@@ -174,6 +174,55 @@ class LocalServerFixtureTest {
             layout.readEvidence(),
         )
     }
+
+    @Test
+    fun `fixture stops minecraft server after readiness before collecting evidence`() {
+        val root = Files.createTempDirectory("craftless-minecraft-server-ready")
+        val layout = LocalServerFixture(root = root, port = 25567).prepare()
+        val fakeJava = root.resolve("fake-java")
+        val fakeServerJar = root.resolve("server.jar")
+        Files.writeString(fakeServerJar, "fake")
+        Files.writeString(
+            fakeJava,
+            """
+            #!/bin/sh
+            printf '%s\n' "$@" > minecraft-server-args.txt
+            echo '[12:00:00] [Server thread/INFO]: Done (1.000s)! For help, type "help"'
+            read command
+            printf '%s\n' "${'$'}command" > minecraft-server-stdin.txt
+            echo '[12:00:01] [Server thread/INFO]: Alice joined the game'
+            echo '[12:00:02] [Server thread/INFO]: <Alice> hello after readiness'
+            echo '[12:00:03] [Server thread/INFO]: Alice left the game'
+            """.trimIndent() + "\n"
+        )
+        assertTrue(fakeJava.toFile().setExecutable(true))
+
+        val result = layout.collectMinecraftServerStartupEvidence(
+            serverJar = fakeServerJar,
+            javaExecutable = fakeJava,
+            minHeap = "256M",
+            maxHeap = "512M",
+            readinessTimeoutMillis = 5_000,
+            shutdownTimeoutMillis = 5_000,
+        )
+
+        assertEquals(0, result.exitCode)
+        assertEquals(3, result.evidenceCount)
+        assertEquals("stop\n", Files.readString(root.resolve("minecraft-server-stdin.txt")))
+        assertTrue(Files.readString(layout.serverLog).contains("Done (1.000s)!"))
+        assertEquals(
+            listOf(
+                LocalServerEvidence(type = LocalServerEvidenceType.PLAYER_JOINED, player = "Alice"),
+                LocalServerEvidence(
+                    type = LocalServerEvidenceType.CHAT,
+                    player = "Alice",
+                    message = "hello after readiness",
+                ),
+                LocalServerEvidence(type = LocalServerEvidenceType.PLAYER_DISCONNECTED, player = "Alice"),
+            ),
+            layout.readEvidence(),
+        )
+    }
 }
 
 private object LocalServerLogEmitter {

@@ -26,6 +26,9 @@ Craftless currently has:
 - a Ktor Client based testkit provisioner that resolves the Mojang launcher
   version manifest and downloads a requested Minecraft server jar into the
   fixture artifacts directory;
+- an opt-in `:testkit:localMinecraftServerSmoke` task that provisions and starts
+  a local Minecraft server, waits for startup, sends `stop`, and records server
+  log/evidence artifacts without running during default tests;
 - repo-local Kotlin/JVM agent skills scoped to this codebase.
 
 ## Completion Definition
@@ -51,9 +54,9 @@ Craftless is not complete until the repository can prove all of the following:
 Goal: prove that Craftless can automate a real Minecraft Java client through
 the durable Fabric direction.
 
-- Add an opt-in smoke task that provisions the Minecraft `1.21.6` server jar,
-  starts it through the process-backed testkit fixture, and collects real
-  server output for player join, chat, movement, and disconnect evidence.
+- Extend the opt-in local server smoke into the Fabric proof path by launching
+  a real client against the provisioned Minecraft `1.21.6` server and asserting
+  join, chat, movement, and disconnect evidence.
 - Add a Fabric smoke command or Gradle task that launches the current
   `driver-fabric` module against Minecraft `1.21.6`.
 - Invoke generated `player.chat` through the daemon action API and assert that
@@ -144,6 +147,11 @@ Goal: make Craftless usable as local and CI infrastructure.
   automated.
 - Add configuration for profiles, client files, logs, auth mode, and runtime
   directories.
+- Model client files and instance layout after Prism Launcher source findings:
+  per-instance settings like `instance.cfg`, component metadata like
+  `mmc-pack.json` plus `patches/*.json`, and separate game-root folders such as
+  `mods`, `config`, `saves`, `resourcepacks`, and `shaderpacks`, without making
+  Prism a required runtime dependency.
 - Add observability for daemon requests, client lifecycle, driver action
   latency, and failure categories.
 - Publish examples that create a client, fetch its OpenAPI, invoke generated
