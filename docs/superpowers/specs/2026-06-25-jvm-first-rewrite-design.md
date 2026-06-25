@@ -132,13 +132,14 @@ craftwright/
     now includes `BackendDriverSession`, a pluggable `DriverBackend`, and an HMC
     bridge adapter so daemon routes are no longer hard-wired to fake state.
 
-  driver-fabric-1_21_6/
-    Fabric Loom module for Minecraft 1.21.6. The repository now includes the
-    client entrypoint, metadata, mixin config, and a gateway-backed runtime
-    backend for client-thread connect, chat, command, and stop actions.
+  driver-fabric/
+    Target Fabric Loom module. It should contain common runtime code plus
+    internal version-aware bindings, reflection/mapping probes, metadata, mixin
+    config, and gateway-backed runtime behavior.
 
-  driver-fabric-<version>/
-    Additional versioned adapters added only when tested.
+  driver-fabric-1_21_6/
+    Current transitional module name while the first Fabric driver slice is
+    being consolidated into `driver-fabric`.
 
   testkit/
     Fake clients, fake servers, process fixtures, and integration helpers.
@@ -148,8 +149,8 @@ craftwright/
 ```
 
 Module names may be refined during implementation, but the boundary should
-remain: product logic outside Minecraft, version-specific driver code inside
-Minecraft-facing modules, and TypeScript test helpers outside the JVM core.
+remain: product logic outside Minecraft, version-sensitive binding code behind
+the Fabric driver contract, and helper tests outside the JVM core.
 
 ## Runtime Architecture
 
@@ -233,8 +234,13 @@ The same protocol powers:
 - Playwright fixtures.
 - future MCP/agent tools.
 
-CLI remains canonical for human and script usage. TypeScript helpers should
-speak the daemon/protocol contract and should not parse human CLI text.
+CLI remains canonical for human and script usage, but it should not duplicate
+the API as static Kotlin commands. Keep a small static core for daemon startup,
+configuration, auth, output modes, and generic dispatch. Load `/openapi.json`,
+`/clients/{id}/openapi.json`, and `/clients/{id}/actions` at runtime to adapt
+per-client command aliases and help to the running client's actual action set.
+TypeScript helpers should speak the daemon/protocol contract and should not
+parse human CLI text.
 
 ## Client Management Decision
 
@@ -293,7 +299,7 @@ can be compared against working HeadlessMC behavior.
 ## Public CLI Direction
 
 Keep `mcw` as the primary command name unless renamed separately. The CLI should
-continue following the existing `mcw` CLI design:
+continue following the existing `mcw` UX contract:
 
 - stdout for primary data.
 - stderr for diagnostics and progress.
@@ -303,21 +309,26 @@ continue following the existing `mcw` CLI design:
 - explicit timeouts.
 - idempotent cache/setup commands.
 
-The JVM rewrite should preserve the command tree where it still fits:
+The JVM rewrite should use a static core plus adaptive action dispatch. Static
+commands should cover setup, daemon/supervisor lifecycle, config, profiles,
+client creation/listing, raw OpenAPI/action discovery, generic action
+invocation, and output modes. Per-client action aliases and their `--help`
+output should be loaded from OpenAPI/action descriptors on demand.
 
 ```text
 mcw init
 mcw cache prepare --mc VERSION --loader fabric
-mcw client launch NAME --mc VERSION --offline
-mcw client connect NAME HOST[:PORT]
-mcw client chat NAME MESSAGE
-mcw client command NAME COMMAND
-mcw client wait NAME --chat PATTERN
-mcw client gui NAME --json
-mcw client stop NAME
+mcw daemon start
+mcw clients create --mc VERSION --offline --name NAME
+mcw clients list
+mcw clients NAME openapi
+mcw clients NAME actions
+mcw clients NAME run player.move --forward --ticks 20
+mcw clients NAME player move --forward --ticks 20
+mcw clients NAME player chat "hello"
+mcw clients NAME player move --help
+mcw clients NAME stop
 mcw scenario run FILE
-mcw daemon --stdio
-mcw daemon --tcp ADDR
 ```
 
 Standalone multi-invocation client commands require a persistent daemon or
@@ -384,8 +395,9 @@ public abstraction.
 
 ### Phase 3: First In-Client Driver
 
-Fill out `driver-fabric-1_21_6` beyond the current Loom scaffold by extending
-the client-thread gateway with Java Mixins and a small Kotlin/Java driver API.
+Fill out the Fabric driver beyond the current Loom scaffold by extending the
+client-thread gateway with Java Mixins, a small Kotlin/Java driver API, and
+internal version-aware bindings.
 
 Minimum actions/capabilities:
 
@@ -413,12 +425,17 @@ Add:
 
 ### Phase 5: Version Expansion
 
-Add versions one row at a time. Each version requires:
+Add version support one row at a time through the consolidated Fabric driver
+where possible. Each version requires:
 
-- dedicated driver module or source set;
+- runtime fingerprint and binding support checks;
 - real smoke test;
-- documented supported actions/capabilities;
+- documented supported actions/capabilities through that client's OpenAPI;
 - update path for mappings and modloader versions.
+
+Only split into a dedicated Gradle module or source set if Minecraft, Fabric
+Loom, mappings, or classpath constraints make a consolidated artifact
+unreliable.
 
 ## Testing Strategy
 

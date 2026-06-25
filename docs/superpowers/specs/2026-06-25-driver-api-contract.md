@@ -30,7 +30,7 @@ The module currently exposes:
 - `DriverBackendAction`
 - `HmcBridgeDriverBackend`
 
-`driver-fabric-1_21_6/` now adds the first versioned Fabric/Loom module:
+`driver-fabric-1_21_6/` is the current transitional Fabric/Loom module:
 
 - `CraftwrightFabricClientEntrypoint`
 - `FabricDriverBackend`
@@ -38,6 +38,11 @@ The module currently exposes:
 - `MinecraftFabricClientGateway`
 - `fabric.mod.json`
 - `craftwright-driver-fabric-1_21_6.mixins.json`
+
+The target shape is a consolidated `driver-fabric/` module with internal
+version-aware bindings, reflection/mapping probes, and small Java
+Mixins/accessors where bytecode shape matters. Do not treat the Minecraft
+version in the current module name as part of the public architecture.
 
 Minimum supported actions:
 
@@ -62,8 +67,10 @@ real-client movement smoke proof, perception, and structured event observation.
 
 ## Fabric Handoff
 
-The first Fabric driver module should continue implementing the runtime
-backend/session boundary for real client state:
+The Fabric driver should continue implementing the runtime backend/session
+boundary for real client state. Version differences should be handled by
+internal binding support checks and by publishing only working actions in the
+per-client OpenAPI document:
 
 - map `connect(ConnectionTarget)` to in-client server connection behavior;
 - map `sendChat(ChatCommand)` to real client chat and slash-command send
@@ -83,8 +90,9 @@ The public daemon routes remain:
 - `GET /clients/{id}/openapi.json`
 - `GET /clients/{id}/actions`
 - `POST /clients/{id}:run`
-- generated aliases such as `POST /clients/{id}/player:move` when described by
-  that client's OpenAPI document
+- generated aliases such as `POST /clients/{id}/player:move` and
+  `POST /clients/{id}/player:chat` when described by that client's OpenAPI
+  document
 - `GET /clients/{id}/player`
 - `POST /clients/{id}/stop`
 - `GET /clients/{id}/events`
@@ -93,6 +101,12 @@ Generic action invocation request bodies use typed JSON argument values:
 
 ```json
 {"action":"player.move","args":{"forward":true,"ticks":20}}
+```
+
+Generated alias request bodies use the direct typed args object:
+
+```json
+{"forward":true,"ticks":20}
 ```
 
 The Fabric module should change the driver implementation behind those routes,

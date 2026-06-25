@@ -13,6 +13,7 @@ data class ApiRoute(
     val thread: String = "client",
     val source: String,
     val returnKind: String = "value",
+    val actionId: String? = null,
 )
 
 class ApiRouteCatalog(

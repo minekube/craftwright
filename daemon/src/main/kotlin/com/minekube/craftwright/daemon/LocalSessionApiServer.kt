@@ -10,6 +10,7 @@ import com.minekube.craftwright.protocol.OpenApiDocument
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
@@ -191,6 +192,36 @@ class LocalSessionApiServer private constructor(
                     call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
                 }
             }
+            post("/clients/{id}/{actionAlias}") {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                val actionAlias = requireNotNull(call.parameters["actionAlias"]) { "action alias is required" }
+                runCatching {
+                    val actionId = actionAlias.toActionId()
+                    val result = service.driverFor(clientId).invoke(
+                        DriverCapabilityInvocation(
+                            capability = actionId,
+                            arguments = call.receiveActionArguments(),
+                        )
+                    )
+                    if (actionId == "player.chat" && result.message != null) {
+                        events += SessionEvent(
+                            type = "chat",
+                            client = clientId,
+                            message = result.message,
+                        )
+                    }
+                    call.respondJson(
+                        HttpStatusCode.OK,
+                        ActionInvocationResponse(
+                            action = result.capability,
+                            status = result.status.name,
+                            message = result.message,
+                        )
+                    )
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                }
+            }
         }
     }
 
@@ -216,6 +247,17 @@ private fun allocateLoopbackPort(): Int =
         socket.reuseAddress = true
         socket.localPort
     }
+
+private suspend fun ApplicationCall.receiveActionArguments(): Map<String, JsonElement> {
+    val body = receiveText()
+    return if (body.isBlank()) emptyMap() else Json.decodeFromString(body)
+}
+
+private fun String.toActionId(): String {
+    val parts = split(":", limit = 2)
+    require(parts.size == 2 && parts.none { it.isBlank() }) { "action alias must use resource:action syntax" }
+    return "${parts[0]}.${parts[1]}"
+}
 
 @Serializable
 data class RuntimeVersion(

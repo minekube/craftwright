@@ -132,6 +132,11 @@ The wrapper exposed Craftwright-shaped routes such as:
   runtime can expose a clean Craftwright resource and method name;
 - root/session routes for current player, UI, events, and object handles.
 
+The CLI should consume this same API shape adaptively. Static `mcw` code should
+own daemon/config/output behavior and a generic action runner, while per-client
+aliases such as `mcw clients default player move --forward` and their help text
+come from `/clients/default/openapi.json` and `/clients/default/actions`.
+
 This must be labelled as a bridge PoC. The API surface was Craftwright-shaped,
 but the implementation still drove HMC-Specifics commands over stdin.
 

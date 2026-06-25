@@ -22,7 +22,9 @@
 - Create `docs/bridge-limitations.md`: public warning that bridge movement is simulated and not the final Fabric driver.
 - `driver-api/`, `driver-runtime/`, `driver-fabric-1_21_6/`, and
   `playwright/` now exist. The Fabric module currently compiles as a
-  Fabric/Loom scaffold with placeholder backend behavior.
+  Fabric/Loom scaffold and is transitional; the target is one consolidated
+  `driver-fabric` module with internal version-aware bindings unless separate
+  artifacts become technically necessary.
 
 ## Task 1: Gradle/Kotlin Foundation
 
@@ -274,7 +276,9 @@ Expected: FAIL because the driver API module is missing.
 
 - [ ] **Step 3: Write minimal interfaces**
 
-Add stable interfaces only. Do not add Fabric Loom until a real Fabric module is ready.
+Add stable interfaces only. Keep Fabric Loom details behind the Fabric driver
+module and avoid adding one public driver subproject per Minecraft version
+unless build/runtime constraints require it.
 
 - [ ] **Step 4: Verify**
 
@@ -282,16 +286,21 @@ Run: `mise exec -- gradle :driver-api:test`
 
 Expected: PASS.
 
-## Task 8: JVM CLI Command Design And Output Contracts
+## Task 8: Adaptive JVM CLI Command Design And Output Contracts
 
 **Files:**
 - Create: `cli/build.gradle.kts`
 - Create: `cli/src/test/kotlin/com/minekube/craftwright/cli/McwCliTest.kt`
 - Create: `cli/src/main/kotlin/com/minekube/craftwright/cli/Main.kt`
 
-- [ ] **Step 1: Write failing CLI help test**
+- [ ] **Step 1: Write failing CLI help and dynamic dispatch tests**
 
-Test `mcw --help`, `mcw versions`, `mcw profiles`, `mcw clients create`, `mcw clients list`, `mcw clients connect`, `mcw clients api`, `mcw server start`, and `mcw test run` command registration.
+Test `mcw --help`, `mcw daemon start`, `mcw clients create`, `mcw clients list`,
+`mcw clients NAME openapi`, `mcw clients NAME actions`, and the stable generic
+runner `mcw clients NAME run player.move --forward --ticks 20`. Add a fake
+per-client OpenAPI/actions fixture and test that `mcw clients NAME player move
+--help` and `mcw clients NAME player move --forward --ticks 20` are resolved
+from that runtime metadata rather than from static action commands.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -301,7 +310,14 @@ Expected: FAIL because CLI module is missing.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Use Clikt to register commands and output JSON/plain help-safe placeholders. Do not claim real Minecraft launch from the CLI until the bridge smoke is wired.
+Use Clikt for the static core and Mordant for terminal output. Keep setup,
+daemon, config, client creation/listing, OpenAPI/action discovery, output flags,
+and generic `clients NAME run ACTION` as handwritten commands. Add a dynamic
+dispatcher after the stable `clients NAME` prefix that loads the target
+client's OpenAPI/actions metadata, maps remaining tokens to action aliases, and
+generates `--help` from action summaries/descriptions/arg schemas. Do not
+generate Kotlin CLI source per action, and do not claim real Minecraft launch
+from the CLI until the bridge smoke is wired.
 
 - [ ] **Step 4: Verify**
 

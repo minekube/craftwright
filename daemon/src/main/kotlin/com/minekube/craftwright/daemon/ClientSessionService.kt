@@ -1,6 +1,7 @@
 package com.minekube.craftwright.daemon
 
 import com.minekube.craftwright.driver.api.ConnectionTarget
+import com.minekube.craftwright.driver.api.DriverCapabilityDescriptor
 import com.minekube.craftwright.driver.api.DriverSession
 import com.minekube.craftwright.driver.api.FakeDriverSession
 import com.minekube.craftwright.protocol.ApiRoute
@@ -60,6 +61,7 @@ class ClientSessionService private constructor(
 
     fun routesFor(clientId: String): List<ApiRoute> {
         require(clients.containsKey(clientId)) { "client $clientId not found" }
+        val actionAliases = driverFor(clientId).capabilities().mapNotNull { it.toActionAliasRoute(clientId) }
         return listOf(
             route("GET", "/clients/$clientId/openapi.json", "clientsOpenApi", "clients", "openapi", "route"),
             route("POST", "/clients/$clientId/connection/connect", "clientsConnect", "clients", "connection", "method"),
@@ -69,7 +71,7 @@ class ClientSessionService private constructor(
             route("GET", "/clients/$clientId/player", "clientsPlayer", "clients", "player", "root", "handle"),
             route("GET", "/clients/$clientId/player/position", "clientsPlayerPosition", "clients", "position", "getter"),
             route("GET", "/clients/$clientId/events", "clientsEvents", "clients", "events", "route"),
-        )
+        ) + actionAliases
     }
 
     fun openApiFor(clientId: String): OpenApiDocument {
@@ -130,6 +132,7 @@ private fun route(
     member: String,
     source: String,
     returnKind: String = "value",
+    actionId: String? = null,
 ): ApiRoute = ApiRoute(
     method = method,
     path = path,
@@ -139,4 +142,25 @@ private fun route(
     javaMember = member,
     source = source,
     returnKind = returnKind,
+    actionId = actionId,
 )
+
+private fun DriverCapabilityDescriptor.toActionAliasRoute(clientId: String): ApiRoute? {
+    val parts = id.split(".")
+    if (parts.size != 2 || parts.any { it.isBlank() }) return null
+    val (resource, action) = parts
+    return route(
+        method = "POST",
+        path = "/clients/$clientId/$resource:$action",
+        operationId = "run${resource.toPascalIdentifier()}${action.toPascalIdentifier()}",
+        tag = "clients",
+        member = "run",
+        source = "action",
+        actionId = id,
+    )
+}
+
+private fun String.toPascalIdentifier(): String =
+    split('-', '_')
+        .filter { it.isNotBlank() }
+        .joinToString("") { part -> part.replaceFirstChar { it.uppercaseChar() } }

@@ -79,6 +79,7 @@ private fun ApiRoute.toOperation(): OpenApiOperation {
             put("x-craftwright-thread", thread)
             put("x-craftwright-return", returnKind)
             put("x-craftwright-source", source)
+            actionId?.let { put("x-craftwright-action", it) }
         },
     )
 }

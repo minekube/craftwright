@@ -26,11 +26,12 @@ Known limitations:
 
 The Fabric backend now has a client-thread gateway for connection, chat,
 command, stop, player name/connection-state observation, and player position.
-It also accepts `player.move` through generic action invocation and maps it to
-client movement intent. The daemon should expose `/clients/{id}/openapi.json`
-with client metadata plus discovered action schemas, `GET /clients/{id}/actions`
-for discovery, `POST /clients/{id}:run` as the stable generic invocation path,
-and generated aliases such as `POST /clients/{id}/player:move` when Fabric can
-map runtime APIs to clean Craftwright names. The next durable milestone is
-proving movement in a real-client smoke and adding look direction, raycasts,
-and perception inside the client.
+It also accepts `player.move` and `player.chat` through generic action
+invocation and maps them to client movement intent and chat send. The daemon
+exposes `/clients/{id}/openapi.json` with client metadata plus discovered action
+schemas, `GET /clients/{id}/actions` for discovery, `POST /clients/{id}:run` as
+the stable generic invocation path, and generated aliases such as
+`POST /clients/{id}/player:move` and `POST /clients/{id}/player:chat` from
+those action descriptors. The next durable milestone is proving movement in a
+real-client smoke and adding look direction, raycasts, and perception inside
+the client.

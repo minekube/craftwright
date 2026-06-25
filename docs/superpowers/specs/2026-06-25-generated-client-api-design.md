@@ -106,7 +106,11 @@ Use coroutines for:
 
 ### CLI
 
-Use Clikt for the JVM `mcw` CLI and Mordant for terminal output.
+Use Clikt for the JVM `mcw` CLI and Mordant for terminal output. The CLI should
+be adaptive at runtime, not generated Kotlin source. Keep a small handwritten
+core for daemon startup, configuration, authentication, output modes, and
+generic dispatch; load kernel and per-client OpenAPI plus action descriptors to
+build action commands and help on demand.
 
 Current Maven metadata during research showed:
 
@@ -116,6 +120,21 @@ Current Maven metadata during research showed:
 The CLI must still follow the existing CLI UX contract: stdout for primary data,
 stderr for diagnostics/progress, stable `--json`/`--jsonl` output, explicit
 exit codes, and non-interactive `--no-input` behavior.
+
+Dynamic command examples:
+
+```text
+mcw clients alice actions
+mcw clients alice run player.move --forward --ticks 20
+mcw clients alice player move --forward --ticks 20
+mcw clients alice player chat "hello"
+mcw clients alice player move --help
+```
+
+The generic `run` command is the stable fallback. Pretty aliases and their
+`--help` output should be derived from `/clients/{id}/openapi.json` and
+`/clients/{id}/actions`, with cached metadata keyed by the client's capability
+fingerprint and a refresh path for changed clients.
 
 ### Testing
 
@@ -345,9 +364,9 @@ GET /c/{className}/fields
 GET /c/{className}/methods
 ```
 
-The exact generated path set is per Minecraft version, loader, driver module,
-and live client state. The stable contract is that `/openapi.json` describes the
-available operations for the current session.
+The exact generated path set is per Minecraft version, loader, driver runtime,
+active bindings, and live client state. The stable contract is that
+`/openapi.json` describes the available operations for the current session.
 
 ## Route Generation Rules
 
@@ -430,8 +449,10 @@ Example vendor extensions:
 ```
 
 For huge generated APIs, clients should filter the OpenAPI document locally.
-Agents and SDK generators can use tags, operation IDs, and extensions to find
-the relevant operations.
+Agents, SDK generators, and the adaptive CLI can use tags, operation IDs, action
+descriptors, and extensions to find the relevant operations. Human-facing CLI
+help should prefer action descriptor summaries, descriptions, examples, and arg
+schemas, with raw OpenAPI as the fallback machine contract.
 
 The daemon-level client management routes must also appear in the route catalog
 while the fake local API exists:
@@ -440,14 +461,16 @@ while the fake local API exists:
 - `GET /clients/{id}/openapi.json`
 - `GET /clients/{id}/actions`
 - `POST /clients/{id}:run`
+- generated aliases such as `POST /clients/{id}/player:move` and
+  `POST /clients/{id}/player:chat`
 - `GET /clients/{id}/player`
 - `POST /clients/{id}/stop`
 - `GET /clients/{id}/events`
 
 These are session-management and discovery routes, not HMC-Specifics command
-strings or raw Fabric/Yarn class paths. The Fabric driver should generate
-per-client AIP-style aliases such as `POST /clients/{id}/player:move` when it
-can map the runtime API to clean Craftwright-owned names.
+strings or raw Fabric/Yarn class paths. Per-client AIP-style aliases are
+generated from discovered action descriptors with Craftwright-owned
+`resource.action` ids.
 
 ## Version Endpoint
 
@@ -507,11 +530,18 @@ Version compatibility should be a separate track:
 - NeoForge should be added for modern Forge-like environments after Fabric proves
   the generated API model.
 - HeadlessMC/HMC-Specifics remain valuable references for headless CI, launcher
-  behavior, versioned driver modules, and runtime command bridging.
+  behavior, runtime command bridging, and version support evidence.
+
+Prefer one consolidated Fabric driver with internal version-aware bindings,
+reflection/mapping probes, and support checks. Per-client OpenAPI is the public
+truth for what a running client supports, so Minecraft versions should not
+force separate public API surfaces or one Gradle subproject per version unless
+the build/runtime classpath requires it.
 
 ## First Real Spike
 
-The next implementation spike should be a Fabric 26.2 client mod:
+The next implementation spike should be a Fabric client mod for the current
+target Minecraft version:
 
 - starts local API server on `127.0.0.1`;
 - requires a random token;
@@ -532,7 +562,8 @@ The next implementation spike should be a Fabric 26.2 client mod:
 This design is ready for implementation planning when:
 
 - the JVM-first rewrite remains the parent architecture;
-- the first generated API target is Fabric 26.2;
+- the first generated API target is Fabric on the current target Minecraft
+  version;
 - OpenAPI is accepted as the primary generated machine contract;
 - route generation does not require annotating thousands of Minecraft methods;
 - object handles are accepted as the way to represent complex live JVM objects;

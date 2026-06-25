@@ -74,6 +74,8 @@ class LocalSessionApiServerTest {
                 assertTrue(body.contains("\"x-craftwright-actions\""))
                 assertTrue(body.contains("/clients/alice/actions"))
                 assertTrue(body.contains("/clients/alice:run"))
+                assertTrue(body.contains("/clients/alice/player:chat"))
+                assertTrue(body.contains("/clients/alice/player:move"))
                 assertTrue(body.contains("\"id\":\"player.move\""))
                 assertTrue(body.contains("\"id\":\"player.chat\""))
                 assertTrue(body.contains("\"args\""))
@@ -130,6 +132,15 @@ class LocalSessionApiServerTest {
                 assertTrue(response.bodyAsText().contains("\"message\":\"hello from route\""))
             }
 
+            http.post(server.url("/clients/alice/player:chat")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"message":"hello from alias"}""")
+            }.let { response ->
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertTrue(response.bodyAsText().contains("\"action\":\"player.chat\""))
+                assertTrue(response.bodyAsText().contains("\"message\":\"hello from alias\""))
+            }
+
             http.get(server.url("/clients/alice/player")).let { response ->
                 assertEquals(HttpStatusCode.OK, response.status)
                 assertTrue(response.bodyAsText().contains("\"name\":\"Alice\""))
@@ -154,6 +165,16 @@ class LocalSessionApiServerTest {
             http.post(server.url("/clients/alice:run")) {
                 contentType(ContentType.Application.Json)
                 setBody("""{"action":"player.move","args":{"forward":true,"ticks":20}}""")
+            }.let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertTrue(body.contains("\"action\":\"player.move\""))
+                assertTrue(body.contains("\"status\":\"ACCEPTED\""))
+            }
+
+            http.post(server.url("/clients/alice/player:move")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"forward":true,"ticks":20}""")
             }.let { response ->
                 val body = response.bodyAsText()
                 assertEquals(HttpStatusCode.OK, response.status)
