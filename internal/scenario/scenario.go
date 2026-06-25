@@ -40,9 +40,14 @@ func (s *Step) UnmarshalYAML(value *yaml.Node) error {
 	if value.Kind != yaml.MappingNode {
 		return fmt.Errorf("step must be a mapping")
 	}
+	seen := make(map[string]struct{}, len(value.Content)/2)
 	for i := 0; i < len(value.Content); i += 2 {
 		key := value.Content[i]
 		val := value.Content[i+1]
+		if _, ok := seen[key.Value]; ok {
+			return fmt.Errorf("line %d: duplicate field %s in type scenario.Step", key.Line, key.Value)
+		}
+		seen[key.Value] = struct{}{}
 		switch key.Value {
 		case "launch":
 			s.launchSet = true
@@ -334,8 +339,13 @@ func decodeKnownStringFields(value *yaml.Node, typeName string, fields map[strin
 	if value.Kind != yaml.MappingNode {
 		return fmt.Errorf("%s must be a mapping", typeName)
 	}
+	seen := make(map[string]struct{}, len(value.Content)/2)
 	for i := 0; i < len(value.Content); i += 2 {
 		key := value.Content[i]
+		if _, ok := seen[key.Value]; ok {
+			return fmt.Errorf("line %d: duplicate field %s in type %s", key.Line, key.Value, typeName)
+		}
+		seen[key.Value] = struct{}{}
 		field, ok := fields[key.Value]
 		if !ok {
 			return fmt.Errorf("line %d: field %s not found in type %s", key.Line, key.Value, typeName)
