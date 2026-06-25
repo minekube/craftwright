@@ -42,7 +42,7 @@ Baseline evidence:
   - `mise run lint`
   - `mise run ci`
   - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
-- Current known local-only file: `.vscode/` is untracked and unrelated.
+- Current known local-only files: none in `git status`.
 
 ## 1. Product Positioning And README
 
@@ -78,9 +78,9 @@ Verification:
   per-client OpenAPI descriptor as the argument/help schema authority.
 - [ ] CLI, agents, and generated clients consume OpenAPI/descriptors at
   runtime instead of hard-coding gameplay commands.
-- [ ] `DriverSession` remains lifecycle/events/runtime metadata plus
+- [x] `DriverSession` remains lifecycle/events/runtime metadata plus
   `actions()` and `invoke(...)`; no static player/world/inventory methods.
-- [ ] Fabric discovery/projection and execution bindings stay internal and
+- [x] Fabric discovery/projection and execution bindings stay internal and
   client-thread safe.
 
 Verification:
@@ -130,7 +130,7 @@ Verification:
   binding or probe-backed unavailable metadata.
 - [x] No future gameplay action is added as a hand-written placeholder
   descriptor.
-- [ ] `FabricClientGateway` stays generic and does not grow one method per
+- [x] `FabricClientGateway` stays generic and does not grow one method per
   gameplay action.
 
 Verification:

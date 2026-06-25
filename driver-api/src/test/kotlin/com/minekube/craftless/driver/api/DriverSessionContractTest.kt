@@ -4,8 +4,44 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class DriverSessionContractTest {
+    @Test
+    fun `driver session exposes lifecycle and generic action methods only`() {
+        val methodNames =
+            DriverSession::class.java
+                .declaredMethods
+                .map { it.name }
+                .toSet()
+
+        assertEquals(
+            setOf(
+                "getClientId",
+                "snapshot",
+                "connect",
+                "actions",
+                "runtimeMetadata",
+                "invoke",
+                "stop",
+                "events",
+            ),
+            methodNames,
+        )
+        assertTrue(
+            methodNames.none { name ->
+                name in
+                    setOf(
+                        "sendChat",
+                        "player",
+                        "inventory",
+                        "world",
+                        "raycast",
+                    )
+            },
+        )
+    }
+
     @Test
     fun `driver action descriptors reject invalid argument metadata`() {
         listOf(
