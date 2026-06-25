@@ -19,6 +19,8 @@ Craftless currently has:
   action discovery and invocation;
 - Fabric/Loom driver scaffolding with current action evidence;
 - bridge code treated as evidence infrastructure only;
+- a testkit local server layout with JSONL evidence artifacts for join, chat,
+  movement, and disconnect assertions;
 - repo-local Kotlin/JVM agent skills scoped to this codebase.
 
 ## Completion Definition
@@ -44,8 +46,9 @@ Craftless is not complete until the repository can prove all of the following:
 Goal: prove that Craftless can automate a real Minecraft Java client through
 the durable Fabric direction.
 
-- Add a focused local server fixture that records player join, chat, movement,
-  and disconnect evidence.
+- Connect the testkit evidence artifact to a launched local Minecraft server
+  so player join, chat, movement, and disconnect events come from real runtime
+  output.
 - Add a Fabric smoke command or Gradle task that launches the current
   `driver-fabric` module against Minecraft `1.21.6`.
 - Invoke generated `player.chat` through the daemon action API and assert that
