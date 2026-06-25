@@ -50,6 +50,30 @@ class ClientSessionServiceTest {
     }
 
     @Test
+    fun `session service lists clients in creation order`() {
+        val service = ClientSessionService.inMemory()
+
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            )
+        )
+        service.createClient(
+            CreateClientRequest(
+                id = "bob",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Bob"),
+            )
+        )
+
+        assertEquals(listOf("alice", "bob"), service.listClients().map { it.id })
+    }
+
+    @Test
     fun `client specific openapi exposes action metadata without static action routes`() {
         val service = ClientSessionService.inMemory()
         service.createClient(

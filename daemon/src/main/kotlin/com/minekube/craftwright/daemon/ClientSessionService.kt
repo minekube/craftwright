@@ -44,6 +44,9 @@ class ClientSessionService private constructor(
         return client
     }
 
+    fun listClients(): List<Client> =
+        clients.values.toList()
+
     fun client(clientId: String): Client =
         clients[clientId] ?: error("client $clientId not found")
 

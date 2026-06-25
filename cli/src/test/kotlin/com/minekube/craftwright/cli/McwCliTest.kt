@@ -61,6 +61,60 @@ class McwCliTest {
     }
 
     @Test
+    fun `clients create posts an offline client request to daemon`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "create",
+                    "alice",
+                    "--api",
+                    server.url,
+                    "--version",
+                    "1.21.4",
+                    "--loader",
+                    "FABRIC",
+                    "--offline-name",
+                    "Alice",
+                ),
+                stdout = { output.appendLine(it) },
+            )
+
+            assertEquals(0, exit)
+        }
+
+        val client = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals("alice", client["id"]?.jsonPrimitive?.content)
+        assertEquals("RUNNING", client["state"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `clients list fetches clients from daemon`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "list",
+                    "--api",
+                    server.url,
+                ),
+                stdout = { output.appendLine(it) },
+            )
+
+            assertEquals(0, exit)
+        }
+
+        val clients = Json.parseToJsonElement(output.toString().trim()).jsonArray
+        assertTrue(clients.any { it.jsonObject["id"]?.jsonPrimitive?.content == "alice" })
+    }
+
+    @Test
     fun `clients run posts typed action args to daemon`() {
         val output = StringBuilder()
 

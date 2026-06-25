@@ -5,6 +5,9 @@ import com.github.ajalt.clikt.core.CoreCliktCommand
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.core.subcommands
 import com.minekube.craftwright.daemon.LocalSessionApiServer
+import com.minekube.craftwright.protocol.CreateClientRequest
+import com.minekube.craftwright.protocol.Loader
+import com.minekube.craftwright.protocol.Profile
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
@@ -71,6 +74,12 @@ object McwCli {
         if (args.take(2) == listOf("clients", "api")) {
             return runClientsApi(args.drop(2), stdout, stderr, afterStart)
         }
+        if (args.take(2) == listOf("clients", "create")) {
+            return createClient(args.drop(2), stdout, stderr)
+        }
+        if (args.take(2) == listOf("clients", "list")) {
+            return listClients(args.drop(2), stdout, stderr)
+        }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "openapi") {
             return getClientOpenApi(args.drop(1), stdout, stderr)
         }
@@ -84,6 +93,63 @@ object McwCli {
         return 0
     }
 
+    private fun createClient(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+    ): Int {
+        val clientId = args.firstOrNull { !it.startsWith("--") }.orEmpty()
+        val version = args.optionValue("--version")
+        val loader = args.optionValue("--loader")?.let { value ->
+            runCatching { Loader.valueOf(value.uppercase()) }.getOrNull()
+        }
+        val profileName = args.optionValue("--offline-name")
+        if (clientId.isBlank() || version.isNullOrBlank() || loader == null || profileName.isNullOrBlank()) {
+            stderr("error: usage is clients create <id> --version <version> --loader <loader> --offline-name <name> [--api <url>]")
+            return 2
+        }
+        val api = args.apiBaseUrl()
+        val request = CreateClientRequest(
+            id = clientId,
+            version = version,
+            loader = loader,
+            profile = Profile.offline(profileName),
+        )
+
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    val response = http.post("${api.trimEnd('/')}/clients") {
+                        contentType(ContentType.Application.Json)
+                        setBody(json.encodeToString(request))
+                    }
+                    response.forwardBody(stdout, stderr)
+                }
+            }
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to create client"}")
+            2
+        }
+    }
+
+    private fun listClients(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+    ): Int {
+        val api = args.apiBaseUrl()
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    http.get("${api.trimEnd('/')}/clients").forwardBody(stdout, stderr)
+                }
+            }
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to list clients"}")
+            2
+        }
+    }
+
     private fun runClientAction(
         args: List<String>,
         stdout: (String) -> Unit,
@@ -95,7 +161,7 @@ object McwCli {
             stderr("error: usage is clients <id> run <action> [--api <url>] [--arg key=value]")
             return 2
         }
-        val api = args.optionValue("--api") ?: System.getenv("CRAFTWRIGHT") ?: "http://127.0.0.1:8080"
+        val api = args.apiBaseUrl()
         val payload = ActionRunRequest(
             action = action,
             args = args.optionValues("--arg").associate { argument ->
@@ -131,7 +197,7 @@ object McwCli {
             stderr("error: usage is clients <id> actions [--api <url>]")
             return 2
         }
-        val api = args.optionValue("--api") ?: System.getenv("CRAFTWRIGHT") ?: "http://127.0.0.1:8080"
+        val api = args.apiBaseUrl()
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
@@ -154,7 +220,7 @@ object McwCli {
             stderr("error: usage is clients <id> openapi [--api <url>]")
             return 2
         }
-        val api = args.optionValue("--api") ?: System.getenv("CRAFTWRIGHT") ?: "http://127.0.0.1:8080"
+        val api = args.apiBaseUrl()
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
@@ -201,6 +267,9 @@ object McwCli {
         val index = indexOf(name)
         return if (index >= 0 && index + 1 < size) this[index + 1] else null
     }
+
+    private fun List<String>.apiBaseUrl(): String =
+        optionValue("--api") ?: System.getenv("CRAFTWRIGHT") ?: "http://127.0.0.1:8080"
 
     private fun List<String>.optionValues(name: String): List<String> =
         mapIndexedNotNull { index, value ->

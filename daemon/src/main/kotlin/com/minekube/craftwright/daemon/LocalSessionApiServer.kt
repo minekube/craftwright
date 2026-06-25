@@ -86,6 +86,9 @@ class LocalSessionApiServer private constructor(
                     call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
                 }
             }
+            get("/clients") {
+                call.respondJson(HttpStatusCode.OK, service.listClients())
+            }
             get("/clients/{id}/events") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {

@@ -20,9 +20,14 @@ class ApiRouteCatalog(
     val routes: List<ApiRoute>,
 ) {
     private val byPath: Map<String, ApiRoute> = routes.associateBy { it.path }
+    private val byMethodAndPath: Map<Pair<String, String>, ApiRoute> =
+        routes.associateBy { it.method to it.path }
 
     fun route(path: String): ApiRoute =
         byPath[path] ?: error("route not found: $path")
+
+    fun route(method: String, path: String): ApiRoute =
+        byMethodAndPath[method to path] ?: error("route not found: $method $path")
 
     companion object {
         fun sessionDefaults(): ApiRouteCatalog = ApiRouteCatalog(
@@ -36,6 +41,7 @@ class ApiRouteCatalog(
                 route("GET", "/player/name", "getPlayerName", "player", "com.minekube.craftwright.player", "name", "getter"),
                 route("GET", "/player/position", "getPlayerPosition", "player", "com.minekube.craftwright.player", "position", "getter"),
                 route("GET", "/connection", "getConnection", "connection", "com.minekube.craftwright.connection", "connection", "root", "handle"),
+                route("GET", "/clients", "listClients", "clients", "com.minekube.craftwright.daemon.clients", "list", "route"),
                 route("POST", "/clients", "createClient", "clients", "com.minekube.craftwright.daemon.clients", "create", "route"),
                 route("GET", "/clients/{id}/openapi.json", "getClientOpenapiJson", "clients", "com.minekube.craftwright.daemon.clients", "openapi", "route"),
                 route("POST", "/clients/{id}/connection/connect", "clientConnect", "clients", "com.minekube.craftwright.daemon.clients", "connect", "method"),
