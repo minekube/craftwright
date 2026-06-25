@@ -40,6 +40,27 @@ class BackendDriverSessionTest {
     }
 
     @Test
+    fun `runtime driver session reads observed player state from backend`() {
+        val backend = RecordingDriverBackend(
+            observedPlayer = DriverBackendPlayer(
+                name = "ObservedAlice",
+                state = ClientState.CONNECTED,
+            )
+        )
+        val session = BackendDriverSession(
+            clientId = "alice",
+            profileName = "Alice",
+            backend = backend,
+        )
+
+        val player = session.player()
+
+        assertEquals("ObservedAlice", player.name)
+        assertEquals(ClientState.CONNECTED, player.state)
+        assertEquals(listOf("player alice"), backend.calls)
+    }
+
+    @Test
     fun `hmc bridge backend adapts the temporary bridge to runtime backend actions`() {
         val backend = HmcBridgeDriverBackend(HmcBridgeBackend.dryRun())
 
@@ -55,7 +76,9 @@ class BackendDriverSessionTest {
     }
 }
 
-private class RecordingDriverBackend : DriverBackend {
+private class RecordingDriverBackend(
+    private val observedPlayer: DriverBackendPlayer? = null,
+) : DriverBackend {
     val calls = mutableListOf<String>()
 
     override fun connect(clientId: String, target: ConnectionTarget): DriverBackendResult {
@@ -71,5 +94,10 @@ private class RecordingDriverBackend : DriverBackend {
     override fun stop(clientId: String): DriverBackendResult {
         calls += "stop $clientId"
         return DriverBackendResult(DriverBackendAction.STOP, "stopped")
+    }
+
+    override fun player(clientId: String): DriverBackendPlayer? {
+        calls += "player $clientId"
+        return observedPlayer
     }
 }

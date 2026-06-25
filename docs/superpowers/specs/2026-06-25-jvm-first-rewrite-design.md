@@ -173,9 +173,9 @@ The supervisor and daemon should talk to this layer through `driver-api/` and
 the `driver-runtime/` backend adapter. Current default daemon state still uses
 `FakeDriverSession`, but `ClientSessionService` can now be constructed with an
 injected runtime driver factory. The Fabric module now has a real
-client-thread gateway for connect, chat, command, and stop actions, and should
-continue replacing backend behavior without changing daemon or
-Playwright-facing routes.
+client-thread gateway for connect, chat, command, stop, and player
+name/connection-state observation, and should continue replacing backend
+behavior without changing daemon or Playwright-facing routes.
 
 Responsibilities:
 

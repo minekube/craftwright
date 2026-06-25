@@ -1,5 +1,5 @@
 dependencies {
-    implementation(project(":protocol"))
-    implementation(project(":driver-api"))
-    implementation(project(":bridge-hmc"))
+    api(project(":protocol"))
+    api(project(":driver-api"))
+    api(project(":bridge-hmc"))
 }

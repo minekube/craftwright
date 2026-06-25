@@ -4,6 +4,7 @@ import dev.minekube.craftwright.driver.api.ChatCommand
 import dev.minekube.craftwright.driver.api.ConnectionTarget
 import dev.minekube.craftwright.driver.runtime.DriverBackend
 import dev.minekube.craftwright.driver.runtime.DriverBackendAction
+import dev.minekube.craftwright.driver.runtime.DriverBackendPlayer
 import dev.minekube.craftwright.driver.runtime.DriverBackendResult
 
 class FabricDriverBackend private constructor(
@@ -35,6 +36,14 @@ class FabricDriverBackend private constructor(
         }
         return DriverBackendResult(DriverBackendAction.CHAT, command.message)
     }
+
+    override fun player(clientId: String): DriverBackendPlayer? =
+        gateway?.player()?.let { player ->
+            DriverBackendPlayer(
+                name = player.name,
+                state = player.state,
+            )
+        }
 
     override fun stop(clientId: String): DriverBackendResult {
         record("stop $clientId")

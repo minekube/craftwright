@@ -54,7 +54,13 @@ class BackendDriverSession(
     }
 
     override fun player(): PlayerSnapshot =
-        PlayerSnapshot(
+        backend.player(clientId)?.let { observed ->
+            PlayerSnapshot(
+                id = clientId,
+                name = observed.name,
+                state = observed.state,
+            )
+        } ?: PlayerSnapshot(
             id = clientId,
             name = profileName,
             state = state,
@@ -81,8 +87,15 @@ interface DriverBackend {
 
     fun sendChat(clientId: String, command: ChatCommand): DriverBackendResult
 
+    fun player(clientId: String): DriverBackendPlayer? = null
+
     fun stop(clientId: String): DriverBackendResult
 }
+
+data class DriverBackendPlayer(
+    val name: String,
+    val state: ClientState,
+)
 
 data class DriverBackendResult(
     val action: DriverBackendAction,

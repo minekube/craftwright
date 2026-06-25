@@ -3,6 +3,7 @@ package dev.minekube.craftwright.driver.fabric.v1_21_6
 import dev.minekube.craftwright.driver.api.ChatCommand
 import dev.minekube.craftwright.driver.api.ConnectionTarget
 import dev.minekube.craftwright.driver.runtime.DriverBackendAction
+import dev.minekube.craftwright.protocol.ClientState
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -72,13 +73,32 @@ class FabricDriverModuleTest {
         )
     }
 
+    @Test
+    fun `fabric backend exposes observed player state from gateway`() {
+        val gateway = RecordingFabricClientGateway(
+            observedPlayer = FabricClientPlayer(
+                name = "ObservedAlice",
+                state = ClientState.CONNECTED,
+            )
+        )
+        val backend = FabricDriverBackend.real(gateway)
+
+        val player = backend.player("alice")
+
+        assertEquals("ObservedAlice", player?.name)
+        assertEquals(ClientState.CONNECTED, player?.state)
+        assertEquals(listOf("player"), gateway.actions)
+    }
+
     private fun resourceJson(path: String) =
         json.parseToJsonElement(
             requireNotNull(javaClass.classLoader.getResource(path)) { "missing resource $path" }.readText()
         ).jsonObject
 }
 
-private class RecordingFabricClientGateway : FabricClientGateway {
+private class RecordingFabricClientGateway(
+    private val observedPlayer: FabricClientPlayer? = null,
+) : FabricClientGateway {
     var scheduled = 0
     val actions = mutableListOf<String>()
 
@@ -97,6 +117,11 @@ private class RecordingFabricClientGateway : FabricClientGateway {
 
     override fun sendCommand(command: String) {
         actions += "command $command"
+    }
+
+    override fun player(): FabricClientPlayer? {
+        actions += "player"
+        return observedPlayer
     }
 
     override fun stop() {
