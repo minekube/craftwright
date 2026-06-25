@@ -12,8 +12,10 @@ class HmcBridgeBackend private constructor(
         return run(ClientAction.CHAT, clientId, "invoke player.chat action", BridgeCommand("chat $message"))
     }
 
-    fun move(clientId: String, intent: MoveIntent, ticks: Int): BridgeActionResult =
-        run(ClientAction.MOVE, clientId, "move ${intent.name.lowercase()} for $ticks ticks", BridgeCommand("key ${intent.bridgeKey} $ticks"))
+    fun move(clientId: String, intent: MoveIntent, ticks: Int): BridgeActionResult {
+        require(ticks > 0) { "movement ticks must be positive" }
+        return run(ClientAction.MOVE, clientId, "move ${intent.name.lowercase()} for $ticks ticks", BridgeCommand("key ${intent.bridgeKey} $ticks"))
+    }
 
     fun jump(clientId: String): BridgeActionResult =
         run(ClientAction.JUMP, clientId, "jump", BridgeCommand("key space 2"))

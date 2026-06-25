@@ -38,4 +38,13 @@ class HmcBridgeBackendTest {
         assertEquals(ClientAction.JUMP, backend.jump("alice").action)
         assertEquals(ClientAction.LOOK, backend.look("alice", yaw = 90.0, pitch = 0.0).action)
     }
+
+    @Test
+    fun `bridge move action rejects nonpositive movement ticks`() {
+        val backend = HmcBridgeBackend.dryRun()
+
+        assertFailsWith<IllegalArgumentException> {
+            backend.move("alice", MoveIntent.FORWARD, ticks = 0)
+        }
+    }
 }

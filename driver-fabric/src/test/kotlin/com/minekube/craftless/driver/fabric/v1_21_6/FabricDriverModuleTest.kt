@@ -106,6 +106,28 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend rejects nonpositive movement ticks before scheduling gateway`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = FabricDriverBackend.real(gateway)
+
+        assertFailsWith<IllegalArgumentException> {
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "player.move",
+                    arguments = mapOf(
+                        "forward" to JsonPrimitive(true),
+                        "ticks" to JsonPrimitive(0),
+                    ),
+                )
+            )
+        }
+
+        assertEquals(emptyList(), gateway.actions)
+        assertEquals(0, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric backend maps player chat action to chat execution`() {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)

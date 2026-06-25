@@ -85,6 +85,7 @@ class FabricDriverBackend private constructor(
             sprint = invocation.arguments.booleanArgument("sprint"),
             ticks = invocation.arguments.intArgument("ticks") ?: 1,
         )
+        require(intent.ticks > 0) { "movement ticks must be positive" }
         gateway?.execute {
             gateway.move(intent)
         }
