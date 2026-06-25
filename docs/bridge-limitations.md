@@ -24,8 +24,8 @@ Known limitations:
 - Nearby blocks, nearby entities, raycasts, inventory, screen state, and clicks
   need a Craftless Fabric driver with direct Minecraft client API access.
 
-The Fabric backend now has a client-thread gateway for connection, chat,
-command, stop, and generated action invocation. It accepts `player.move` and
+The Fabric backend now has a client-thread gateway for connection, chat, stop,
+and generated action invocation. It accepts `player.move` and
 `player.chat` through generic action invocation and maps them to client movement
 intent and Craftless-owned chat action execution. The daemon exposes
 `/clients/{id}/openapi.json` with client metadata plus discovered action
