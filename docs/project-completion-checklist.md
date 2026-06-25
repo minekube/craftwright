@@ -70,7 +70,7 @@ Verification:
   stale static action routes.
 - [x] Supervisor/client-management API remains lifecycle/setup/discovery only;
   gameplay does not move into the stable kernel route catalog.
-- [ ] Live per-client OpenAPI owns gameplay actions/resources, generated
+- [x] Live per-client OpenAPI owns gameplay actions/resources, generated
   aliases, schemas, handles, availability, and runtime fingerprints.
 - [x] `/clients/{id}/actions` remains a projection of per-client OpenAPI, not
   a separate source of truth.
