@@ -8,6 +8,7 @@ import com.minekube.craftless.daemon.LocalSessionApiServer
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.OpenApiAction
+import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.Profile
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -324,8 +325,20 @@ object CraftlessCli {
                         stderr("error: action $actionId is not available for client $clientId")
                         return@runBlocking 1
                     }
+                    val openApiResponse = http.get("${api.trimEnd('/')}/clients/$clientId/openapi.json")
+                    val openApiBody = openApiResponse.bodyAsText()
+                    if (!openApiResponse.status.isSuccess()) {
+                        stderr(openApiBody)
+                        return@runBlocking 1
+                    }
+                    val aliasPath = "/clients/$clientId/$namespace:$actionName"
+                    val openApi = json.decodeFromString<OpenApiDocument>(openApiBody)
+                    if (openApi.paths[aliasPath]?.post == null) {
+                        stderr("error: action $actionId is not described by live OpenAPI for client $clientId")
+                        return@runBlocking 1
+                    }
                     if (args.contains("--help")) {
-                        stdout(action.generatedAliasHelp(clientId, namespace, actionName))
+                        stdout(action.generatedAliasHelp(clientId, namespace, actionName, "POST $aliasPath"))
                         return@runBlocking 0
                     }
                     val response = http.post("${api.trimEnd('/')}/clients/$clientId/$namespace:$actionName") {
@@ -490,8 +503,10 @@ object CraftlessCli {
         clientId: String,
         namespace: String,
         actionName: String,
+        route: String,
     ): String = buildString {
         appendLine("Action: $id")
+        appendLine("Route: $route")
         appendLine("Usage: craftless clients $clientId $namespace $actionName [--api <url>] [args]")
         appendLine("Arguments:")
         if (arguments.isEmpty()) {

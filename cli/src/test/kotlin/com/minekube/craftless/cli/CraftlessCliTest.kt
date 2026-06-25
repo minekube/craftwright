@@ -503,6 +503,7 @@ class CraftlessCliTest {
         assertEquals("", errors.toString())
         val help = output.toString()
         assertTrue(help.contains("Action: player.move"))
+        assertTrue(help.contains("Route: POST /clients/alice/player:move"))
         assertTrue(help.contains("Usage: craftless clients alice player move"))
         assertTrue(help.contains("--forward boolean"))
         assertTrue(help.contains("--ticks integer"))
