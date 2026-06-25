@@ -121,7 +121,7 @@ private fun ApiRoute.responses(): Map<String, OpenApiResponse> {
             source == "action" && method == "POST" -> actionInvocationResponse()
             path == "/clients" && method == "GET" -> clientListResponse()
             path == "/clients" && method == "POST" -> clientResponse()
-            path.endsWith("/connection/connect") && method == "POST" -> clientResponse()
+            path.endsWith(":connect") && method == "POST" -> clientResponse()
             path.endsWith("/stop") && method == "POST" -> clientResponse()
             path.matches(Regex("/clients/\\{?[^/]+}?")) && method == "GET" -> clientResponse()
             else -> OpenApiResponse()
@@ -134,7 +134,7 @@ private fun ApiRoute.requestBody(actionsById: Map<String, OpenApiAction>): OpenA
         method != "POST" -> null
         actionId != null -> actionsById[actionId]?.arguments?.toRequestBody()
         path == "/clients" -> createClientRequestBody()
-        path.endsWith("/connection/connect") -> connectRequestBody()
+        path.endsWith(":connect") -> connectRequestBody()
         path.endsWith(":run") -> genericActionRequestBody()
         else -> null
     }

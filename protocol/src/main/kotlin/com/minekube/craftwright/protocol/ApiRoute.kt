@@ -39,7 +39,7 @@ class ApiRouteCatalog(
                 route("POST", "/clients", "createClient", "clients", "com.minekube.craftwright.daemon.clients", "create", "route"),
                 route("GET", "/clients/{id}", "getClient", "clients", "com.minekube.craftwright.daemon.clients", "get", "route"),
                 route("GET", "/clients/{id}/openapi.json", "getClientOpenapiJson", "clients", "com.minekube.craftwright.daemon.clients", "openapi", "route"),
-                route("POST", "/clients/{id}/connection/connect", "clientConnect", "clients", "com.minekube.craftwright.daemon.clients", "connect", "method"),
+                route("POST", "/clients/{id}:connect", "clientConnect", "clients", "com.minekube.craftwright.daemon.clients", "connect", "method"),
                 route("GET", "/clients/{id}/actions", "listClientActions", "clients", "com.minekube.craftwright.daemon.clients", "actions", "action"),
                 route("POST", "/clients/{id}:run", "runClientAction", "clients", "com.minekube.craftwright.daemon.clients", "run", "action"),
                 route("POST", "/clients/{id}/stop", "stopClient", "clients", "com.minekube.craftwright.daemon.clients", "stop", "method"),

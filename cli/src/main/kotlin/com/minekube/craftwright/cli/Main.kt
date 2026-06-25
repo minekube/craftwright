@@ -184,7 +184,7 @@ object McwCli {
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
-                    val response = http.post("${api.trimEnd('/')}/clients/$clientId/connection/connect") {
+                    val response = http.post("${api.trimEnd('/')}/clients/$clientId:connect") {
                         contentType(ContentType.Application.Json)
                         setBody(json.encodeToString(request))
                     }

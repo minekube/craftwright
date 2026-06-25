@@ -157,13 +157,21 @@ class LocalSessionApiServerTest {
             server.start()
             createAlice(http, server)
 
-            http.post(server.url("/clients/alice/connection/connect")) {
+            http.post(server.url("/clients/alice:connect")) {
                 contentType(ContentType.Application.Json)
                 setBody("""{"host":"localhost","port":25565}""")
             }.let { response ->
                 assertEquals(HttpStatusCode.OK, response.status)
                 assertTrue(response.bodyAsText().contains("\"state\":\"CONNECTED\""))
             }
+
+            assertEquals(
+                HttpStatusCode.NotFound,
+                http.post(server.url("/clients/alice/connection/connect")) {
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"host":"localhost","port":25565}""")
+                }.status,
+            )
 
             http.post(server.url("/clients/alice:run")) {
                 contentType(ContentType.Application.Json)

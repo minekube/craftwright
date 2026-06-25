@@ -69,7 +69,7 @@ class ClientSessionService private constructor(
         return listOf(
             route("GET", "/clients/$clientId", "clientsGet", "clients", "get", "route"),
             route("GET", "/clients/$clientId/openapi.json", "clientsOpenApi", "clients", "openapi", "route"),
-            route("POST", "/clients/$clientId/connection/connect", "clientsConnect", "clients", "connection", "method"),
+            route("POST", "/clients/$clientId:connect", "clientsConnect", "clients", "connect", "method"),
             route("POST", "/clients/$clientId/stop", "clientsStop", "clients", "stop", "method"),
             route("GET", "/clients/$clientId/actions", "clientsActions", "clients", "actions", "action"),
             route("POST", "/clients/$clientId:run", "clientsRunAction", "clients", "run", "action"),

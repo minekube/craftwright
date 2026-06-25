@@ -105,7 +105,7 @@ class LocalSessionApiServer private constructor(
                     call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
                 }
             }
-            post("/clients/{id}/connection/connect") {
+            post("/clients/{id}:connect") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
                     val request = json.decodeFromString<ConnectRequest>(call.receiveText())

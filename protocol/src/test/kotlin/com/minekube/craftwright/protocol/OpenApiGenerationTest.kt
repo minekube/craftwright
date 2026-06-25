@@ -57,7 +57,7 @@ class OpenApiGenerationTest {
         assertEquals("string", profileSchema.properties["kind"]?.type)
         assertEquals("string", profileSchema.properties["name"]?.type)
 
-        val connectSchema = document.paths["/clients/{id}/connection/connect"]?.post
+        val connectSchema = document.paths["/clients/{id}:connect"]?.post
             ?.requestBody
             ?.content
             ?.get("application/json")
@@ -82,7 +82,7 @@ class OpenApiGenerationTest {
 
         assertClientSchema(requireNotNull(document.paths["/clients"]?.post?.successSchema("201")))
         assertClientSchema(requireNotNull(document.paths["/clients/{id}"]?.get?.okSchema()))
-        assertClientSchema(requireNotNull(document.paths["/clients/{id}/connection/connect"]?.post?.okSchema()))
+        assertClientSchema(requireNotNull(document.paths["/clients/{id}:connect"]?.post?.okSchema()))
         assertClientSchema(requireNotNull(document.paths["/clients/{id}/stop"]?.post?.okSchema()))
     }
 
