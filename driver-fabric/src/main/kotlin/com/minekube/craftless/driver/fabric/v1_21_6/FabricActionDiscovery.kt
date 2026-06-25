@@ -43,15 +43,37 @@ internal data class FabricDiscoveredAction(
 
 internal fun defaultFabricActionDiscovery(): FabricActionDiscovery =
     FabricActionDiscovery { context ->
-        context.bindings.values.map { binding ->
+        val bindingBackedActions =
+            context.bindings.values.map { binding ->
+                FabricDiscoveredAction(
+                    descriptor =
+                        binding.descriptor.copy(
+                            source = DriverActionSource.BINDING,
+                            availability = DriverActionAvailability.AVAILABLE,
+                            availabilityReason = null,
+                        ),
+                    binding = binding,
+                )
+            }
+        bindingBackedActions + context.probeUnavailableActions()
+    }
+
+private fun FabricActionDiscoveryContext.probeUnavailableActions(): List<FabricDiscoveredAction> {
+    val gateway = gateway ?: return emptyList()
+    return if (gateway.isConnected()) {
+        emptyList()
+    } else {
+        listOf(
             FabricDiscoveredAction(
                 descriptor =
-                    binding.descriptor.copy(
-                        source = DriverActionSource.BINDING,
-                        availability = DriverActionAvailability.AVAILABLE,
-                        availabilityReason = null,
+                    DriverActionDescriptor(
+                        id = "player.raycast",
+                        schemaVersion = "1",
+                        source = DriverActionSource.RUNTIME_PROBE,
+                        availability = DriverActionAvailability.UNAVAILABLE,
+                        availabilityReason = "client-not-connected",
                     ),
-                binding = binding,
-            )
-        }
+            ),
+        )
     }
+}

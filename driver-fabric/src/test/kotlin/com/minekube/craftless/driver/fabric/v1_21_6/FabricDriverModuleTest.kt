@@ -240,6 +240,25 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric runtime discovery probes client state before advertising unavailable raycast`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = false
+        val backend = FabricDriverBackend.real(gateway)
+
+        val raycast = backend.actions("alice").single { it.id == "player.raycast" }
+        val result = backend.invoke("alice", DriverActionInvocation("player.raycast"))
+
+        assertEquals(DriverActionSource.RUNTIME_PROBE, raycast.source)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, raycast.availability)
+        assertEquals("client-not-connected", raycast.availabilityReason)
+        assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
+        assertEquals("client-not-connected", result.message)
+
+        gateway.connected = true
+        assertFalse(backend.actions("alice").any { it.id == "player.raycast" })
+    }
+
+    @Test
     fun `fabric discovery rejects available actions without execution binding`() {
         val error =
             assertFailsWith<IllegalArgumentException> {
