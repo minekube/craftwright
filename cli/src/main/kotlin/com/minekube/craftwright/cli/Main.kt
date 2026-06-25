@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.core.subcommands
 import com.minekube.craftwright.daemon.LocalSessionApiServer
 import com.minekube.craftwright.protocol.CreateClientRequest
 import com.minekube.craftwright.protocol.Loader
+import com.minekube.craftwright.protocol.OpenApiAction
 import com.minekube.craftwright.protocol.Profile
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -18,6 +19,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.isSuccess
 import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
@@ -63,6 +65,7 @@ object McwCli {
         "clients <id> openapi",
         "clients <id> actions",
         "clients <id> run <action>",
+        "clients <id> <namespace> <action>",
         "server start",
         "test run",
     )
@@ -100,6 +103,9 @@ object McwCli {
         }
         if (args.size >= 4 && args[0] == "clients" && args[2] == "run") {
             return runClientAction(args.drop(1), stdout, stderr, env)
+        }
+        if (args.size >= 4 && args[0] == "clients") {
+            return runGeneratedClientAction(args.drop(1), stdout, stderr, env)
         }
         root().main(args)
         return 0
@@ -287,6 +293,50 @@ object McwCli {
         }
     }
 
+    private fun runGeneratedClientAction(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+        env: Map<String, String>,
+    ): Int {
+        val clientId = args.getOrNull(0).orEmpty()
+        val namespace = args.getOrNull(1).orEmpty()
+        val actionName = args.getOrNull(2).orEmpty()
+        if (clientId.isBlank() || namespace.isBlank() || actionName.isBlank()) {
+            stderr("error: usage is clients <id> <namespace> <action> [--api <url>] [--arg key=value] [--<arg> value]")
+            return 2
+        }
+        val api = args.apiBaseUrl(env)
+        val actionId = "$namespace.$actionName"
+
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    val actionsResponse = http.get("${api.trimEnd('/')}/clients/$clientId/actions")
+                    val actionsBody = actionsResponse.bodyAsText()
+                    if (!actionsResponse.status.isSuccess()) {
+                        stderr(actionsBody)
+                        return@runBlocking 1
+                    }
+                    val action = json.decodeFromString<List<OpenApiAction>>(actionsBody)
+                        .firstOrNull { it.id == actionId }
+                    if (action == null) {
+                        stderr("error: action $actionId is not available for client $clientId")
+                        return@runBlocking 1
+                    }
+                    val response = http.post("${api.trimEnd('/')}/clients/$clientId/$namespace:$actionName") {
+                        contentType(ContentType.Application.Json)
+                        setBody(json.encodeToString(args.actionAliasArguments(action)))
+                    }
+                    response.forwardBody(stdout, stderr)
+                }
+            }
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to run generated action"}")
+            2
+        }
+    }
+
     private fun getClientActions(
         args: List<String>,
         stdout: (String) -> Unit,
@@ -381,12 +431,79 @@ object McwCli {
             if (value == name && index + 1 < size) this[index + 1] else null
         }
 
+    private fun List<String>.actionAliasArguments(action: OpenApiAction): Map<String, JsonElement> {
+        val values = linkedMapOf<String, JsonElement>()
+        optionValues("--arg").forEach { argument ->
+            val parts = argument.split("=", limit = 2)
+            require(parts.size == 2 && parts[0].isNotBlank()) { "--arg must use key=value syntax" }
+            values[parts[0]] = parts[1].toJsonArgument(action.arguments[parts[0]]?.type)
+        }
+
+        val positional = mutableListOf<String>()
+        var index = 3
+        while (index < size) {
+            val token = this[index]
+            when {
+                token == "--api" || token == "--arg" -> index += 2
+                token.startsWith("--") -> {
+                    val name = token.removePrefix("--")
+                    require(name.isNotBlank()) { "action argument flag is required" }
+                    val argument = requireNotNull(action.arguments[name]) {
+                        "action ${action.id} does not declare argument $name"
+                    }
+                    val next = getOrNull(index + 1)
+                    if (argument.type == "boolean" && (next == null || next.startsWith("--"))) {
+                        values[name] = JsonPrimitive(true)
+                        index += 1
+                    } else {
+                        require(next != null && !next.startsWith("--")) { "--$name requires a value" }
+                        values[name] = next.toJsonArgument(argument.type)
+                        index += 2
+                    }
+                }
+                else -> {
+                    positional += token
+                    index += 1
+                }
+            }
+        }
+
+        if (positional.isNotEmpty()) {
+            val missingRequired = action.arguments
+                .filterValues { it.required }
+                .keys
+                .filterNot { it in values }
+            require(positional.size == 1 && missingRequired.size == 1) {
+                "positional action args require exactly one missing required argument"
+            }
+            val name = missingRequired.single()
+            values[name] = positional.single().toJsonArgument(action.arguments[name]?.type)
+        }
+
+        return values
+    }
+
     private fun String.toJsonArgument(): JsonElement =
         when {
             equals("true", ignoreCase = true) -> JsonPrimitive(true)
             equals("false", ignoreCase = true) -> JsonPrimitive(false)
             toIntOrNull() != null -> JsonPrimitive(toInt())
             else -> JsonPrimitive(this)
+        }
+
+    private fun String.toJsonArgument(type: String?): JsonElement =
+        when (type) {
+            "boolean" -> JsonPrimitive(
+                when {
+                    equals("true", ignoreCase = true) -> true
+                    equals("false", ignoreCase = true) -> false
+                    else -> error("boolean argument must be true or false")
+                }
+            )
+            "integer" -> JsonPrimitive(requireNotNull(toIntOrNull()) { "integer argument is required" })
+            "number" -> JsonPrimitive(requireNotNull(toDoubleOrNull()) { "number argument is required" })
+            "string" -> JsonPrimitive(this)
+            else -> toJsonArgument()
         }
 
     private suspend fun io.ktor.client.statement.HttpResponse.forwardBody(

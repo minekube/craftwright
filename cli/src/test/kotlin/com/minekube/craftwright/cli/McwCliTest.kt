@@ -31,6 +31,7 @@ class McwCliTest {
         assertTrue(commands.contains("clients <id> openapi"))
         assertTrue(commands.contains("clients <id> actions"))
         assertTrue(commands.contains("clients <id> run <action>"))
+        assertTrue(commands.contains("clients <id> <namespace> <action>"))
         assertTrue(commands.contains("server start"))
         assertTrue(commands.contains("test run"))
     }
@@ -404,6 +405,123 @@ class McwCliTest {
         val response = Json.parseToJsonElement(output.toString().trim()).jsonObject
         assertEquals("player.move", response["action"]?.jsonPrimitive?.content)
         assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `generated client action alias dispatches from runtime action metadata`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "player",
+                    "chat",
+                    "--api",
+                    server.url,
+                    "--message",
+                    "hello from alias cli",
+                ),
+                stdout = { output.appendLine(it) },
+            )
+
+            assertEquals(0, exit)
+        }
+
+        val response = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals("player.chat", response["action"]?.jsonPrimitive?.content)
+        assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
+        assertEquals("hello from alias cli", response["message"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `generated client action alias maps single positional arg to required action argument`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "player",
+                    "chat",
+                    "hello from positional alias",
+                    "--api",
+                    server.url,
+                ),
+                stdout = { output.appendLine(it) },
+            )
+
+            assertEquals(0, exit)
+        }
+
+        val response = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals("player.chat", response["action"]?.jsonPrimitive?.content)
+        assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
+        assertEquals("hello from positional alias", response["message"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `generated client action alias preserves typed args from action schema`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "player",
+                    "move",
+                    "--api",
+                    server.url,
+                    "--forward",
+                    "--ticks",
+                    "20",
+                ),
+                stdout = { output.appendLine(it) },
+            )
+
+            assertEquals(0, exit)
+        }
+
+        val response = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals("player.move", response["action"]?.jsonPrimitive?.content)
+        assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `generated client action alias rejects unavailable runtime action`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = McwCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "player",
+                    "fly",
+                    "--api",
+                    server.url,
+                ),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
+
+            assertEquals(1, exit)
+        }
+
+        assertEquals("", output.toString())
+        assertTrue(errors.toString().contains("action player.fly is not available for client alice"))
     }
 
     @Test

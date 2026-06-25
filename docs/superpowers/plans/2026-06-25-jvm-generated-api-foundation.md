@@ -297,10 +297,11 @@ Expected: PASS.
 Test `mcw --help`, `mcw daemon start`, `mcw clients create`, `mcw clients list`,
 `mcw clients NAME get`, `mcw clients NAME connect`, `mcw clients NAME stop`,
 `mcw clients NAME openapi`, `mcw clients NAME actions`, and the stable generic
-runner `mcw clients NAME run player.move --forward --ticks 20`. Add a fake
-per-client OpenAPI/actions fixture and test that `mcw clients NAME player move
---help` and `mcw clients NAME player move --forward --ticks 20` are resolved
-from that runtime metadata rather than from static action commands.
+runner `mcw clients NAME run player.move --arg forward=true --arg ticks=20`.
+Add a fake per-client OpenAPI/actions fixture and test that
+`mcw clients NAME player move --forward --ticks 20` is resolved from that
+runtime metadata rather than from static action commands. Generated alias help
+is follow-up work from the same metadata.
 
 - [ ] **Step 2: Run test to verify it fails**
 

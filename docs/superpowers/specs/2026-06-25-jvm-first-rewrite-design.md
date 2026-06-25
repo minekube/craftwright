@@ -313,8 +313,9 @@ continue following the existing `mcw` UX contract:
 The JVM rewrite should use a static core plus adaptive action dispatch. Static
 commands should cover setup, daemon/supervisor lifecycle, config, profiles,
 client creation/listing, raw OpenAPI/action discovery, generic action
-invocation, and output modes. Per-client action aliases and their `--help`
-output should be loaded from OpenAPI/action descriptors on demand.
+invocation, and output modes. Per-client action aliases should be loaded from
+OpenAPI/action descriptors on demand; generated alias `--help` is follow-up
+work from the same metadata.
 
 ```text
 mcw init
@@ -324,10 +325,10 @@ mcw clients create --mc VERSION --offline --name NAME
 mcw clients list
 mcw clients NAME openapi
 mcw clients NAME actions
-mcw clients NAME run player.move --forward --ticks 20
+mcw clients NAME run player.move --arg forward=true --arg ticks=20
 mcw clients NAME player move --forward --ticks 20
 mcw clients NAME player chat "hello"
-mcw clients NAME player move --help
+mcw clients NAME player move --help  # roadmap
 mcw clients NAME stop
 mcw scenario run FILE
 ```
