@@ -1,11 +1,11 @@
 ---
 name: performance-concurrency-advisor
-description: Analyze and improve performance, throughput, latency, and concurrency behavior in Kotlin plus Spring services using real evidence from metrics, traces, SQL, thread or heap signals, and code paths. Use when endpoints are slow, pools saturate, coroutines or reactive flows block unexpectedly, N+1 or contention appears, or caching and parallelism decisions need precise, non-generic guidance.
+description: Analyze and improve performance, throughput, latency, and concurrency behavior in Craftwright Kotlin/JVM code using real evidence from metrics, traces, event loops, process/thread signals, heap signals, and code paths. Use when Ktor endpoints are slow, clients or driver boundaries block unexpectedly, queues saturate, or caching and parallelism decisions need precise, non-generic guidance.
 ---
 
 # Performance Concurrency Advisor
 
-Source mapping: Tier 2 high-value skill derived from `Kotlin_Spring_Developer_Pipeline.md` (`SK-18`).
+Source mapping: Craftwright Ktor, coroutine, process, driver, and Minecraft client-thread performance analysis.
 
 ## Mission
 
@@ -17,7 +17,7 @@ Treat performance work as evidence-driven systems analysis, not as a bag of folk
 - Latency metrics, percentile breakdowns, throughput, and error rate.
 - Traces for slow flows.
 - SQL count or explain plans when persistence is involved.
-- Hikari, thread pool, event loop, or queue metrics when available.
+- Ktor, coroutine dispatcher, process, Minecraft client thread, or queue metrics when available.
 - Thread dumps, heap or GC signals, and recent code changes when the issue is severe.
 
 ## Diagnose By Layer
@@ -38,8 +38,8 @@ Check these layers explicitly:
 
 - N+1 is both a latency bug and a load amplifier. Fixing it often helps pool pressure and downstream CPU together.
 - Bigger pools are not a universal fix. If the database is slow, increasing concurrency often worsens tail latency.
-- Hikari tuning should follow database capacity and workload pattern, not only CPU count.
-- Blocking calls inside WebFlux or coroutine event loops are catastrophic even when average latency looks acceptable.
+- Dispatcher and event-loop tuning should follow workload shape and blocking boundaries, not only CPU count.
+- Blocking calls inside Ktor event loops, coroutine dispatchers, or the Minecraft client thread are catastrophic even when average latency looks acceptable.
 - `Dispatchers.IO` is not a free performance button. It moves blocking but can also hide architectural mismatch and increase context switching.
 - Parallelizing downstream calls can reduce mean latency while worsening saturation and timeouts under load.
 - Caches need invalidation, warm-up, and cardinality discipline. A bad cache can improve benchmarks and hurt production correctness.

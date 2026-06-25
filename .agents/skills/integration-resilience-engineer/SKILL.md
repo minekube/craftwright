@@ -1,11 +1,11 @@
 ---
 name: integration-resilience-engineer
-description: Design resilient HTTP, messaging, and scheduled integrations for Kotlin plus Spring services with explicit timeout budgets, retries, idempotency, circuit breakers, DLQ behavior, and failure observability. Use when integrating with unstable external systems, designing retry logic, handling duplicate delivery, preventing thundering herds, or making message-driven and scheduled workflows safe in production.
+description: Design resilient HTTP, process, WebSocket, and scheduled integrations for Craftwright Kotlin/JVM services with explicit timeout budgets, retries, idempotency, circuit breakers, bounded queues, and failure observability. Use when integrating with unstable external systems, local daemons, Minecraft client processes, generated APIs, or driver bridges.
 ---
 
 # Integration Resilience Engineer
 
-Source mapping: Tier 2 high-value skill derived from `Kotlin_Spring_Developer_Pipeline.md` (`SK-12`).
+Source mapping: Craftwright daemon, Ktor client/server, process, and driver-boundary resilience.
 
 ## Mission
 

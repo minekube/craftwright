@@ -1,11 +1,11 @@
 ---
 name: test-suite-builder
-description: Design and generate layered Kotlin + Spring tests that balance speed, realism, and regression value across unit, slice, and integration levels. Use when adding coverage for business logic, controllers, repositories, security, serialization, or end-to-end workflows, and when generic AI output would otherwise overuse `@SpringBootTest`, misuse mocks, or ignore MockK and coroutine testing idioms.
+description: Design and generate layered Craftwright Kotlin/JVM tests that balance speed, realism, and regression value across unit, protocol, Ktor HTTP, CLI, Fabric-boundary, and integration levels. Use when adding coverage for protocol logic, daemon routes, client lifecycle, serialization, adaptive CLI behavior, driver contracts, or end-to-end workflows.
 ---
 
 # Test Suite Builder
 
-Source mapping: Tier 1 critical skill derived from `Kotlin_Spring_Developer_Pipeline.md` (`SK-14`).
+Source mapping: Craftwright Kotlin/JVM, Ktor, CLI, protocol, and driver test strategy.
 
 ## Mission
 
@@ -18,25 +18,26 @@ Before writing code, classify what needs to be proven:
 
 - pure business logic
 - HTTP contract and validation
-- repository query behavior
+- daemon/session behavior
 - serialization behavior
-- security rules
+- CLI stdout/stderr and exit-code behavior
+- driver contract behavior
 - cross-component integration
-- database or message-broker integration
+- real process or Minecraft client integration
 
 ## Three-Layer Strategy
 
 - Use unit tests for domain logic, calculations, decision tables, and deterministic branching.
 - Use slice tests for framework boundaries:
-  - `@WebMvcTest` or `WebTestClient` for HTTP
-  - `@DataJpaTest` for repositories
-  - focused JSON or security slices when available in the project
-- Use `@SpringBootTest` and Testcontainers only when a realistic application graph or infrastructure boundary must be proven.
+  - Ktor test host or focused daemon server tests for HTTP contracts
+  - focused JSON tests for serialization and OpenAPI metadata
+  - CLI tests with in-memory daemon fixtures for command behavior
+- Use process-level, Fabric, or external integration tests only when a realistic runtime boundary must be proven.
 
 ## Kotlin Testing Rules
 
 - Prefer JUnit 5.
-- Prefer MockK over Mockito unless the repository already standardizes on something else.
+- Prefer real fakes and small fixtures over mocks unless the boundary is otherwise impractical.
 - Use readable backtick test names when that matches the project style.
 - Use `runTest` and the coroutine test toolkit for coroutine-heavy code.
 - Build reusable fixtures, builders, or object mothers instead of duplicating inline object construction.
@@ -51,7 +52,6 @@ Before writing code, classify what needs to be proven:
 
 ## What Not To Do
 
-- Do not default to `@SpringBootTest` when a slice test or unit test is enough.
 - Do not write tests that only verify mock interactions and prove nothing observable.
 - Do not couple assertions to private implementation details when public behavior is enough.
 - Do not use real time, random values, or shared mutable state without control.
@@ -68,26 +68,24 @@ Return these sections:
 
 ## Framework-Specific Checks
 
-- Match `MockMvc` vs `WebTestClient` to MVC vs WebFlux.
-- Match Testcontainers setup to the actual database or broker in the repository.
+- Match Ktor server/client test style to the module under test.
+- Match Fabric or process fixtures to the actual runtime boundary being verified.
 - If serialization or validation is the bug, include a test that proves the wire contract, not only the service logic.
-- If transaction behavior matters, add a test that proves rollback or uniqueness behavior in the real persistence layer.
+- If CLI behavior is the bug, assert stdout, stderr, exit code, and daemon payload shape.
 
 ## Advanced Testing Nuances
 
-- A transactional test that always rolls back can hide commit-time failures. Use explicit flush or real commit boundaries when unique constraints, triggers, or transaction listeners matter.
-- H2 is not a safe stand-in for Postgres or MySQL when dialect, JSON, locking, index use, or transaction semantics matter. Prefer the real engine with Testcontainers for those cases.
-- `@MockBean` is powerful but expensive. Overusing it turns integration tests into slow unit tests with hidden wiring.
-- Security tests should usually prove both `401` and `403`, not just the happy authorized path.
+- In-memory fakes can hide process, classloader, and Minecraft client thread behavior. Use higher-level smoke tests for those boundaries.
+- Avoid testing generated OpenAPI by string fragments alone when structured JSON assertions are practical.
 - Async and event-driven flows need deterministic waiting strategies such as controlled schedulers, latches, or Awaitility. Do not scatter sleeps.
-- Concurrency and deadlock behavior cannot be proven in a single-threaded rollback test. Use multiple transactions and explicit synchronization when reviewing those cases.
-- Reused containers improve speed but require strict state isolation. Do not trade determinism away for a faster green build.
+- Concurrency and deadlock behavior cannot be proven in a single-threaded fake. Use multiple clients or explicit synchronization when reviewing those cases.
+- Reused runtime fixtures improve speed but require strict state isolation. Do not trade determinism away for a faster green build.
 - Use deterministic time and ID providers when business logic depends on clocks or UUIDs.
 
 ## Expert Heuristics
 
 - If a bug was caused by framework wiring, add at least one test above unit level.
-- If a bug was caused by domain branching, do not drag the whole Spring context into the fix.
+- If a bug was caused by domain branching, do not drag the whole daemon or runtime process into the fix.
 - When in doubt, choose the smallest test that would have failed before the change.
 - Treat test code as production code for readability and maintenance. Fixtures and helpers should reduce noise, not hide behavior.
 

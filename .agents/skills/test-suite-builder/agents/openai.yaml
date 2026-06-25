@@ -1,4 +1,4 @@
 interface:
   display_name: "Test Suite Builder"
-  short_description: "Design layered Kotlin/Spring tests"
+  short_description: "Design layered Craftwright tests"
   default_prompt: "Use $test-suite-builder to design and generate the right mix of unit, slice, and integration tests."

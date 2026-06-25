@@ -1,11 +1,11 @@
 ---
 name: gradle-kotlin-dsl-doctor
-description: Generate, debug, and repair Kotlin + Spring Gradle builds with minimal, compatible changes. Use when `build.gradle.kts` or `settings.gradle.kts` is failing, plugins or toolchains are incompatible, dependency management is drifting from the Spring Boot BOM, test or runtime classpaths are broken, or a Kotlin DSL patch must be safe and incremental.
+description: Generate, debug, and repair Craftwright Kotlin/JVM Gradle builds with minimal, compatible changes. Use when `build.gradle.kts` or `settings.gradle.kts` is failing, Kotlin/Fabric/Loom/Ktor plugins or toolchains are incompatible, test or runtime classpaths are broken, or a Kotlin DSL patch must be safe and incremental.
 ---
 
 # Gradle Kotlin DSL Doctor
 
-Source mapping: Tier 1 critical skill derived from `Kotlin_Spring_Developer_Pipeline.md` (`SK-04`).
+Source mapping: Craftwright Kotlin/JVM and Gradle Kotlin DSL build maintenance.
 
 ## Mission
 
@@ -27,10 +27,10 @@ Classify the problem before editing anything:
 
 - plugin resolution or plugin version mismatch
 - Kotlin DSL syntax or type-safe accessor issue
-- dependency resolution or BOM conflict
+- dependency resolution or platform conflict
 - JDK toolchain or target mismatch
 - source set or test runtime misconfiguration
-- compiler plugin problem such as `plugin.spring`, `plugin.jpa`, KAPT, or KSP
+- compiler plugin problem such as serialization, Loom, KAPT, or KSP
 - task wiring or multi-module convention issue
 
 ## Work Sequence
@@ -38,27 +38,25 @@ Classify the problem before editing anything:
 1. Identify the failing task and the first meaningful error line.
 2. Determine whether the breakage is in plugin resolution, dependency resolution, compilation, test execution, or packaging.
 3. Extract the current version authorities:
-   - Spring Boot plugin
    - Kotlin plugin
+   - Fabric Loom plugin
    - Gradle wrapper
    - JDK toolchain
    - version catalog or convention plugin
-4. Verify whether the project should inherit versions from the Spring Boot BOM instead of declaring them manually.
+4. Verify whether dependency versions belong in the root build, a version catalog, plugin management, or module-local declarations.
 5. Patch the narrowest file possible. Prefer module-local fixes over global rewrites.
 6. Recommend the smallest verification command that proves the fix before running the full build.
 
-## Kotlin And Spring Checks
+## Kotlin/JVM Checks
 
-- Verify `kotlin("plugin.spring")` when Spring-managed classes rely on proxies.
-- Verify `kotlin("plugin.jpa")` when JPA entities are present.
 - Verify JVM target and Java toolchain alignment.
-- Verify `kotlin-reflect`, serialization, and coroutine libraries align with the Kotlin version in use.
+- Verify Ktor, `kotlinx.serialization`, coroutine, and Kotlin stdlib libraries align with the Kotlin version in use.
+- Verify Fabric Loom and Minecraft/Fabric dependencies stay inside driver modules unless intentionally shared.
 - Verify whether annotation processing should use KAPT or KSP in this project.
 
 ## Preferred Fix Style
 
 - Remove unnecessary explicit versions before adding new ones.
-- Let the Spring Boot BOM manage compatible dependency versions whenever possible.
 - Prefer small diffs over full-file replacement.
 - Preserve existing conventions such as version catalogs, convention plugins, or build logic modules.
 - If a fix spans several modules, explain the dependency graph that forces it.
@@ -66,9 +64,8 @@ Classify the problem before editing anything:
 ## Advanced Build Diagnostics
 
 - Distinguish dependency declaration problems from variant-selection problems. A dependency can exist and still resolve the wrong JVM target, classifier, or capability.
-- Check whether the repo uses `platform(...)` or `enforcedPlatform(...)` in addition to the Spring Boot BOM. That changes how conflict resolution behaves.
+- Check whether the repo uses `platform(...)`, `enforcedPlatform(...)`, constraints, or dependency locking. That changes how conflict resolution behaves.
 - Check whether the real plugin source of truth is `pluginManagement`, a version catalog, or a convention plugin rather than the module build file.
-- Check whether the Boot plugin is applied to library modules that should publish plain jars instead of executable jars.
 - Check configuration-cache compatibility if the project is trying to use it. Eager task access and mutable global state in custom build logic often explain strange Gradle behavior.
 - Check whether KAPT, KSP, code generation, or source-set wiring requires generated-source directories or task ordering that is currently missing.
 - Check dependency locking, verification metadata, or repository policy files before suggesting new repositories or version changes.
@@ -103,13 +100,13 @@ Return these sections:
 
 Use these when the repository permits command execution:
 
-- `./gradlew help`
-- `./gradlew build`
-- `./gradlew :module:compileKotlin`
-- `./gradlew dependencies`
-- `./gradlew dependencyInsight --dependency <artifact>`
+- `mise exec -- gradle help`
+- `mise exec -- gradle test`
+- `mise exec -- gradle :module:compileKotlin`
+- `mise exec -- gradle dependencies`
+- `mise exec -- gradle dependencyInsight --dependency <artifact>`
 
 ## Quality Bar
 
 A good run of this skill leaves the build model clearer than before and produces a fix that survives CI.
-A bad run throws version guesses at the problem, rewrites too much, or ignores the Spring Boot compatibility model.
+A bad run throws version guesses at the problem, rewrites too much, or ignores the repository's real version authority.
