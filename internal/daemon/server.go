@@ -41,7 +41,15 @@ func Serve(ctx context.Context, eng engine.Engine, in io.Reader, out io.Writer) 
 
 		var req request
 		if err := json.Unmarshal(scanner.Bytes(), &req); err != nil {
-			return err
+			resp := response{
+				JSONRPC: "2.0",
+				ID:      json.RawMessage("null"),
+				Error:   newRPCError(-32700, err),
+			}
+			if err := encoder.Encode(resp); err != nil {
+				return err
+			}
+			continue
 		}
 
 		resp := handle(ctx, eng, req)

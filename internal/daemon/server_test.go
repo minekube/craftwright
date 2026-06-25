@@ -88,6 +88,23 @@ func TestServeAcceptsRequestsAboveDefaultScannerLimit(t *testing.T) {
 	assertRPCError(t, responses[0], "11", -32000)
 }
 
+func TestServeParseErrorReturnsRPCErrorAndContinues(t *testing.T) {
+	input := strings.NewReader("{not-json\n" +
+		`{"jsonrpc":"2.0","id":2,"method":"client.status","params":{"name":"missing"}}` + "\n")
+	var output bytes.Buffer
+
+	if err := daemon.Serve(context.Background(), engine.NewMemory(), input, &output); err != nil {
+		t.Fatalf("Serve returned error: %v", err)
+	}
+
+	responses := decodeRPCResponses(t, output.String())
+	if len(responses) != 2 {
+		t.Fatalf("len(responses) = %d output = %q", len(responses), output.String())
+	}
+	assertRPCError(t, responses[0], "null", -32700)
+	assertRPCError(t, responses[1], "2", -32000)
+}
+
 func decodeRPCResponses(t *testing.T, output string) []rpcResponse {
 	t.Helper()
 	var responses []rpcResponse
