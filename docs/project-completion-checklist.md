@@ -403,8 +403,7 @@ Craftless is complete for this milestone only when all are true:
 
 Final evidence:
 
-- Commit: `a66d96e` (`driver-fabric: prove real smoke chat action`) plus
-  current working-tree movement smoke updates pending commit.
+- Commit: `0c18fcb` (`driver-fabric: include movement in real smoke`).
 - Commands:
   - `mise exec -- gradle :testkit:test :driver-fabric:test`
   - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
