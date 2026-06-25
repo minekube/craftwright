@@ -124,8 +124,17 @@ class ClientSessionService private constructor(
     }
 }
 
-private fun DriverSession.sortedActions(): List<DriverActionDescriptor> =
-    actions().sortedBy { it.id }
+private fun DriverSession.sortedActions(): List<DriverActionDescriptor> {
+    val actions = actions()
+    val duplicateAction = actions
+        .groupBy { it.id }
+        .entries
+        .firstOrNull { (_, matches) -> matches.size > 1 }
+    if (duplicateAction != null) {
+        throw IllegalArgumentException("duplicate action id ${duplicateAction.key}")
+    }
+    return actions.sortedBy { it.id }
+}
 
 fun interface DriverSessionFactory {
     fun create(request: CreateClientRequest): DriverSession

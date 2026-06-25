@@ -23,6 +23,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -337,6 +338,35 @@ class ClientSessionServiceTest {
             "player.chat:1(message:string!),player.move:1(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)",
             document.extensions["x-craftless-action-fingerprint"],
         )
+    }
+
+    @Test
+    fun `client specific openapi rejects duplicate action ids`() {
+        val service = ClientSessionService.inMemory { request ->
+            BackendDriverSession(
+                clientId = request.id,
+                backend = RecordingDriverBackend(
+                    actions = listOf(
+                        testPlayerChatActionDescriptor(),
+                        testPlayerChatActionDescriptor().copy(schemaVersion = "2"),
+                    )
+                ),
+            )
+        }
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            )
+        )
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            service.openApiFor("alice")
+        }
+
+        assertEquals("duplicate action id player.chat", error.message)
     }
 
     @Test
