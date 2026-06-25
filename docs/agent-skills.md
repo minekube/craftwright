@@ -29,17 +29,26 @@ and project-specific Spring controller assumptions.
 
 ## Researched Sources
 
-- JetBrains/Kotlin publishes `Kotlin/kotlin-agent-skills`, an Apache-2.0
-  collection following the Agent Skills standard.
-- Kotlin's documentation describes these skills as reusable instructions for
-  Kotlin-specific agent workflows and lists Codex compatibility.
-- JetBrains' verified skills catalog lists Kotlin backend skills such as
-  `gradle-kotlin-dsl-doctor`, `dependency-conflict-resolver`,
-  `performance-concurrency-advisor`, `integration-resilience-engineer`, and
-  `test-suite-builder`.
-- Google documents Android skills as project-local instructions under
-  `.skills/` or repo-local skill folders, but those workflows target Android
-  apps.
+- [Kotlin/kotlin-agent-skills](https://github.com/Kotlin/kotlin-agent-skills)
+  is an Apache-2.0 collection following the Agent Skills standard. As of the
+  2026-06-25 research pass, its public workflow set is mostly migration-focused:
+  Java-to-Kotlin conversion, AGP 9 migration, CocoaPods-to-SwiftPM migration,
+  immutable collections migration, and JPA entity mapping.
+- [Kotlin AI skills documentation](https://kotlinlang.org/docs/kotlin-ai-skills.html)
+  describes skills as reusable instructions for Kotlin-specific agent
+  workflows and lists OpenAI Codex among compatible agents.
+- [JetBrains/skills](https://github.com/JetBrains/skills) is a
+  JetBrains-filtered catalog of upstream skills. It includes useful Kotlin
+  backend skill patterns such as dependency-conflict resolution, Gradle Kotlin
+  DSL repair, test-suite design, integration resilience, and performance or
+  concurrency analysis.
+- [OpenAI Codex skills documentation](https://developers.openai.com/codex/skills)
+  documents the skill shape Craftless uses: a `SKILL.md` file plus optional
+  scripts, references, assets, and agent metadata.
+- [Android Studio skill documentation](https://developer.android.com/studio/gemini/skills)
+  documents `.agents/skills` as a project-local skill location, but Android
+  workflows are not a fit for this repository unless Craftless later adds an
+  Android target.
 - Marketplace search for "modern kotlin best practices" surfaced broad
   community skills, but none should be installed into Craftless as-is.
 
