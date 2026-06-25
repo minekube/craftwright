@@ -1,6 +1,7 @@
 package com.minekube.craftless.driver.api
 
 import com.minekube.craftless.protocol.ClientState
+import com.minekube.craftless.protocol.isCraftlessActionArgumentType
 import com.minekube.craftless.protocol.isCraftlessActionId
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -90,12 +91,7 @@ data class DriverActionArgument(
     val required: Boolean = false,
 ) {
     init {
-        require(type.isNotBlank()) { "action argument type is required" }
-        require(type in SUPPORTED_TYPES) { "unsupported action argument type $type" }
-    }
-
-    companion object {
-        private val SUPPORTED_TYPES = setOf("boolean", "integer", "number", "string", "object", "array")
+        require(type.isCraftlessActionArgumentType()) { "unsupported action argument type $type" }
     }
 }
 

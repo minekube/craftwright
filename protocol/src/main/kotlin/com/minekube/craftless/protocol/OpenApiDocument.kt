@@ -99,6 +99,7 @@ data class OpenApiAction(
     init {
         require(id.isCraftlessActionId()) { "invalid action id $id" }
         require(schemaVersion.isNotBlank()) { "action schema version is required" }
+        require(arguments.keys.none { it.isBlank() }) { "action argument name is required" }
     }
 }
 
@@ -110,7 +111,17 @@ fun String.isCraftlessActionId(): Boolean =
 data class OpenApiActionArgument(
     val type: String,
     val required: Boolean = false,
-)
+) {
+    init {
+        require(type.isCraftlessActionArgumentType()) { "unsupported action argument type $type" }
+    }
+}
+
+fun String.isCraftlessActionArgumentType(): Boolean =
+    this in CRAFTLESS_ACTION_ARGUMENT_TYPES
+
+private val CRAFTLESS_ACTION_ARGUMENT_TYPES =
+    setOf("boolean", "integer", "number", "string", "object", "array")
 
 private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenApiOperation {
     val route = this

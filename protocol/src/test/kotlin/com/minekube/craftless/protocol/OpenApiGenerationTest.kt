@@ -77,6 +77,27 @@ class OpenApiGenerationTest {
     }
 
     @Test
+    fun `openapi action metadata rejects invalid argument metadata`() {
+        assertFailsWith<IllegalArgumentException> {
+            OpenApiAction(
+                id = "player.move",
+                schemaVersion = "1",
+                arguments = mapOf("" to OpenApiActionArgument("boolean")),
+            )
+        }
+        assertFailsWith<IllegalArgumentException> {
+            OpenApiAction(
+                id = "player.move",
+                schemaVersion = "1",
+                arguments = mapOf("forward" to OpenApiActionArgument("")),
+            )
+        }
+        assertFailsWith<IllegalArgumentException> {
+            OpenApiActionArgument("minecraft-block-pos")
+        }
+    }
+
+    @Test
     fun `stable lifecycle routes describe create and connect request bodies`() {
         val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
         val versionOperation = document.paths["/version"]?.get
