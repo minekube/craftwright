@@ -41,6 +41,16 @@ tasks.register<JavaExec>("fabricClientSmoke") {
             """["mise","exec","--","gradle",":driver-fabric:runClient"]""",
         )
     }
+    if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE").isNullOrBlank()) {
+        environment(
+            "CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE",
+            System.getenv("CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE")
+                ?: "hello from Craftless Fabric smoke",
+        )
+    }
+    if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_EXPECT_DISCONNECT").isNullOrBlank()) {
+        environment("CRAFTLESS_SMOKE_EXPECT_DISCONNECT", "1")
+    }
 
     doFirst {
         if (fabricSmokeEnabled) {

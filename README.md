@@ -126,7 +126,8 @@ Implemented now:
   alive. By default, the enabled Fabric smoke command is
   `mise exec -- gradle :driver-fabric:runClient`, whose in-client smoke
   controller connects to the test server and invokes generated `player.chat`
-  through the Fabric driver backend.
+  through the Fabric driver backend. The task is evidence-gated by expected
+  server-side chat and disconnect artifacts.
 
 Still roadmap:
 
@@ -182,7 +183,9 @@ Override the client command with `CRAFTLESS_SMOKE_ACTION_COMMAND_JSON`, encoded
 as a JSON string array, when testing a different launch wrapper. The in-client
 Fabric smoke controller reads `CRAFTLESS_SMOKE_SERVER_HOST`,
 `CRAFTLESS_SMOKE_SERVER_PORT`, `CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE`, and
-`CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS`.
+`CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS`. Evidence checks can be overridden
+with `CRAFTLESS_SMOKE_EXPECT_PLAYER`, `CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE`,
+and `CRAFTLESS_SMOKE_EXPECT_DISCONNECT`.
 
 That task is not yet recorded proof of a full real-client run in CI. Completion
 still requires running the opt-in smoke against a real Minecraft client and

@@ -68,6 +68,7 @@ object LocalMinecraftServerSmoke {
                     evidenceCount = processResult.evidenceCount,
                     actionLog = commandResult?.log,
                     actionExitCode = commandResult?.exitCode,
+                    evidenceSummary = layout.assertExpectedEvidence(config),
                 )
             }
         }
@@ -84,6 +85,13 @@ data class LocalMinecraftServerSmokeResult(
     val evidenceCount: Int = 0,
     val actionLog: Path? = null,
     val actionExitCode: Int? = null,
+    val evidenceSummary: LocalMinecraftSmokeEvidenceSummary = LocalMinecraftSmokeEvidenceSummary(),
+)
+
+data class LocalMinecraftSmokeEvidenceSummary(
+    val playerJoined: Boolean = false,
+    val chatObserved: Boolean = false,
+    val playerDisconnected: Boolean = false,
 )
 
 enum class LocalMinecraftServerSmokeStatus {
@@ -107,6 +115,9 @@ data class LocalMinecraftServerSmokeConfig(
     val javaExecutable: Path = Path.of(System.getProperty("java.home")).resolve("bin").resolve("java"),
     val actionCommand: List<String> = emptyList(),
     val actionTimeoutMillis: Long = 300_000,
+    val expectedPlayer: String? = null,
+    val expectedChatMessage: String? = null,
+    val expectDisconnect: Boolean = false,
     val readinessTimeoutMillis: Long = 120_000,
     val shutdownTimeoutMillis: Long = 10_000,
     val minHeap: String = "512M",
@@ -117,6 +128,8 @@ data class LocalMinecraftServerSmokeConfig(
         require(port in 1..65535) { "minecraft smoke server port must be between 1 and 65535" }
         require(actionCommand.none { it.isBlank() }) { "minecraft smoke action command entries must not be blank" }
         require(actionTimeoutMillis > 0) { "minecraft smoke action timeout must be positive" }
+        expectedPlayer?.let { require(it.isNotBlank()) { "minecraft smoke expected player must not be blank" } }
+        expectedChatMessage?.let { require(it.isNotBlank()) { "minecraft smoke expected chat must not be blank" } }
         require(readinessTimeoutMillis > 0) { "minecraft smoke readiness timeout must be positive" }
         require(shutdownTimeoutMillis > 0) { "minecraft smoke shutdown timeout must be positive" }
         require(minHeap.isNotBlank()) { "minecraft smoke minimum heap is required" }
@@ -132,6 +145,9 @@ data class LocalMinecraftServerSmokeConfig(
         private const val JAVA_EXECUTABLE = "CRAFTLESS_SMOKE_JAVA_EXECUTABLE"
         private const val ACTION_COMMAND_JSON = "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON"
         private const val ACTION_TIMEOUT = "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS"
+        private const val EXPECT_PLAYER = "CRAFTLESS_SMOKE_EXPECT_PLAYER"
+        private const val EXPECT_CHAT_MESSAGE = "CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE"
+        private const val EXPECT_DISCONNECT = "CRAFTLESS_SMOKE_EXPECT_DISCONNECT"
         private const val READINESS_TIMEOUT = "CRAFTLESS_SMOKE_READINESS_TIMEOUT_MS"
         private const val SHUTDOWN_TIMEOUT = "CRAFTLESS_SMOKE_SHUTDOWN_TIMEOUT_MS"
         private const val MIN_HEAP = "CRAFTLESS_SMOKE_MIN_HEAP"
@@ -152,6 +168,9 @@ data class LocalMinecraftServerSmokeConfig(
                     ?.let { smokeJson.decodeFromString<List<String>>(it) }
                     ?: emptyList(),
                 actionTimeoutMillis = env[ACTION_TIMEOUT]?.toLongStrict(ACTION_TIMEOUT) ?: 300_000,
+                expectedPlayer = env[EXPECT_PLAYER]?.takeIf { it.isNotBlank() },
+                expectedChatMessage = env[EXPECT_CHAT_MESSAGE]?.takeIf { it.isNotBlank() },
+                expectDisconnect = env.isEnabled(EXPECT_DISCONNECT),
                 readinessTimeoutMillis = env[READINESS_TIMEOUT]?.toLongStrict(READINESS_TIMEOUT) ?: 120_000,
                 shutdownTimeoutMillis = env[SHUTDOWN_TIMEOUT]?.toLongStrict(SHUTDOWN_TIMEOUT) ?: 10_000,
                 minHeap = env[MIN_HEAP]?.takeIf { it.isNotBlank() } ?: "512M",
@@ -206,6 +225,52 @@ private fun runConfiguredActionCommand(
     val exitCode = process.exitValue()
     check(exitCode == 0) { "minecraft smoke action command exited with $exitCode; log=$log" }
     return LocalMinecraftSmokeCommandResult(log = log, exitCode = exitCode)
+}
+
+private fun LocalServerLayout.assertExpectedEvidence(
+    config: LocalMinecraftServerSmokeConfig,
+): LocalMinecraftSmokeEvidenceSummary {
+    val evidence = readEvidence()
+    val playerJoined = config.expectedPlayer?.let { player ->
+        evidence.any { it.type == LocalServerEvidenceType.PLAYER_JOINED && it.player == player }
+    } ?: false
+    val chatObserved = config.expectedChatMessage?.let { message ->
+        evidence.any {
+            it.type == LocalServerEvidenceType.CHAT &&
+                (config.expectedPlayer == null || it.player == config.expectedPlayer) &&
+                it.message == message
+        }
+    } ?: false
+    val playerDisconnected = if (config.expectDisconnect) {
+        evidence.any {
+            it.type == LocalServerEvidenceType.PLAYER_DISCONNECTED &&
+                (config.expectedPlayer == null || it.player == config.expectedPlayer)
+        }
+    } else {
+        false
+    }
+
+    if (config.expectedPlayer != null) {
+        check(playerJoined) {
+            "expected player join evidence for ${config.expectedPlayer}; evidenceLog=$evidenceLog"
+        }
+    }
+    if (config.expectedChatMessage != null) {
+        check(chatObserved) {
+            "expected chat evidence ${config.expectedChatMessage}; evidenceLog=$evidenceLog"
+        }
+    }
+    if (config.expectDisconnect) {
+        check(playerDisconnected) {
+            "expected player disconnect evidence for ${config.expectedPlayer ?: "any player"}; evidenceLog=$evidenceLog"
+        }
+    }
+
+    return LocalMinecraftSmokeEvidenceSummary(
+        playerJoined = playerJoined,
+        chatObserved = chatObserved,
+        playerDisconnected = playerDisconnected,
+    )
 }
 
 private fun LocalServerLayout.writeSmokeActionOutput(output: List<String>): Path {

@@ -37,7 +37,8 @@ Craftless currently has:
   lifecycle and a bounded client command, defaulting to
   `mise exec -- gradle :driver-fabric:runClient`, whose in-client Fabric smoke
   controller connects to the smoke server and invokes generated `player.chat`
-  through the Fabric driver backend;
+  through the Fabric driver backend, with expected chat and disconnect evidence
+  checked against server artifacts;
 - repo-local Kotlin/JVM agent skills scoped to this codebase.
 
 ## Completion Definition
@@ -64,9 +65,8 @@ Goal: prove that Craftless can automate a real Minecraft Java client through
 the durable Fabric direction.
 
 - Run the opt-in Fabric smoke command against a real client and commit the
-  resulting confidence into tests/docs by asserting join, generated
-  `player.chat`, and disconnect evidence from the provisioned Minecraft
-  `1.21.6` server.
+  resulting confidence into tests/docs by preserving the generated server
+  evidence artifacts from the provisioned Minecraft `1.21.6` server.
 - Wire the Fabric smoke task to collect daemon/client artifacts automatically
   after the Fabric client joins the provisioned Minecraft `1.21.6` server.
 - Invoke generated `player.chat` through the daemon action API and assert that

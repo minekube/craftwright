@@ -5,6 +5,7 @@ import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -29,6 +30,9 @@ class LocalMinecraftServerSmokeTest {
                 "CRAFTLESS_SMOKE_JAVA_EXECUTABLE" to "/tmp/craftless-java",
                 "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON" to """["/tmp/craftless-action","--target","server"]""",
                 "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS" to "45000",
+                "CRAFTLESS_SMOKE_EXPECT_PLAYER" to "Alice",
+                "CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE" to "hello from configured smoke command",
+                "CRAFTLESS_SMOKE_EXPECT_DISCONNECT" to "1",
                 "CRAFTLESS_SMOKE_READINESS_TIMEOUT_MS" to "90000",
                 "CRAFTLESS_SMOKE_SHUTDOWN_TIMEOUT_MS" to "15000",
                 "CRAFTLESS_SMOKE_MIN_HEAP" to "256M",
@@ -43,6 +47,9 @@ class LocalMinecraftServerSmokeTest {
         assertEquals(Path.of("/tmp/craftless-java"), config.javaExecutable)
         assertEquals(listOf("/tmp/craftless-action", "--target", "server"), config.actionCommand)
         assertEquals(45_000, config.actionTimeoutMillis)
+        assertEquals("Alice", config.expectedPlayer)
+        assertEquals("hello from configured smoke command", config.expectedChatMessage)
+        assertTrue(config.expectDisconnect)
         assertEquals(90_000, config.readinessTimeoutMillis)
         assertEquals(15_000, config.shutdownTimeoutMillis)
         assertEquals("256M", config.minHeap)
@@ -152,6 +159,9 @@ class LocalMinecraftServerSmokeTest {
             javaExecutable = fakeJava,
             actionCommand = listOf(actionCommand.toString(), "--client", "fabric"),
             actionTimeoutMillis = 5_000,
+            expectedPlayer = "Alice",
+            expectedChatMessage = "hello from configured smoke command",
+            expectDisconnect = true,
             readinessTimeoutMillis = 5_000,
             shutdownTimeoutMillis = 5_000,
         )
@@ -170,6 +180,53 @@ class LocalMinecraftServerSmokeTest {
         assertEquals(listOf("--client", "fabric"), Files.readAllLines(root.resolve("action-arguments.txt")))
         assertEquals("stop\n", Files.readString(root.resolve("minecraft-server-stdin.txt")))
         assertTrue(Files.readString(requireNotNull(result.actionLog)).contains("configured smoke action ran"))
+        assertEquals(
+            LocalMinecraftSmokeEvidenceSummary(
+                playerJoined = true,
+                chatObserved = true,
+                playerDisconnected = true,
+            ),
+            result.evidenceSummary,
+        )
+    }
+
+    @Test
+    fun `local server smoke fails when expected chat evidence is missing`() {
+        val root = createTempDirectory("craftless-local-server-smoke-missing-evidence")
+        val fakeJava = root.resolve("fake-java")
+        val fakeServerJar = root.resolve("server.jar")
+        Files.writeString(fakeServerJar, "fake")
+        Files.writeString(
+            fakeJava,
+            """
+            #!/bin/sh
+            echo '[12:00:00] [Server thread/INFO]: Done (1.000s)! For help, type "help"'
+            read command
+            printf '%s\n' "${'$'}command" > minecraft-server-stdin.txt
+            echo '[12:00:01] [Server thread/INFO]: Alice joined the game'
+            echo '[12:00:02] [Server thread/INFO]: Alice left the game'
+            """.trimIndent() + "\n"
+        )
+        assertTrue(fakeJava.toFile().setExecutable(true))
+        val config = LocalMinecraftServerSmokeConfig(
+            enabled = true,
+            root = root,
+            javaExecutable = fakeJava,
+            expectedPlayer = "Alice",
+            expectedChatMessage = "hello missing",
+            readinessTimeoutMillis = 5_000,
+            shutdownTimeoutMillis = 5_000,
+        )
+
+        val error = assertFailsWith<IllegalStateException> {
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ -> fakeServerJar },
+            )
+        }
+
+        assertTrue(error.message?.contains("expected chat evidence") == true)
+        assertEquals("stop\n", Files.readString(root.resolve("minecraft-server-stdin.txt")))
     }
 }
 
