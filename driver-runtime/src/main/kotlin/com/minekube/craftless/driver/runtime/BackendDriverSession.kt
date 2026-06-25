@@ -51,13 +51,7 @@ class BackendDriverSession(
     override fun invoke(invocation: DriverActionInvocation): DriverActionResult {
         require(invocation.action.isNotBlank()) { "action is required" }
         val result = backend.invoke(clientId, invocation)
-        if (result.action == "player.chat" && result.status == DriverActionStatus.ACCEPTED && result.message != null) {
-            events += DriverEvent(
-                type = DriverEventType.CHAT,
-                client = clientId,
-                message = result.message,
-            )
-        }
+        result.toDriverEvent(clientId)?.let { events += it }
         return result
     }
 
@@ -103,4 +97,22 @@ data class DriverBackendResult(
 enum class DriverBackendAction {
     CONNECT,
     STOP,
+}
+
+private fun DriverActionResult.toDriverEvent(clientId: String): DriverEvent? {
+    if (status != DriverActionStatus.ACCEPTED || message == null) {
+        return null
+    }
+
+    val eventType = when (action) {
+        "player.chat" -> DriverEventType.CHAT
+        "player.move" -> DriverEventType.MOVEMENT
+        else -> return null
+    }
+
+    return DriverEvent(
+        type = eventType,
+        client = clientId,
+        message = message,
+    )
 }

@@ -60,6 +60,10 @@ class BackendDriverSessionTest {
         assertEquals("player.move", result.action)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
         assertEquals("action alice player.move forward=true ticks=20", backend.calls.single())
+        assertTrue(session.events().any {
+            it.type == DriverEventType.MOVEMENT &&
+                it.message == "action alice player.move forward=true ticks=20"
+        })
 
         val chat = session.invoke(
             DriverActionInvocation(
@@ -129,8 +133,11 @@ private class RecordingDriverBackend : DriverBackend {
         )
 
     override fun invoke(clientId: String, invocation: DriverActionInvocation): DriverActionResult {
-        calls += "action $clientId ${invocation.action} ${invocation.arguments.entries.joinToString(" ") { "${it.key}=${it.value.jsonPrimitive.content}" }}"
-        return DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED)
+        val message = "action $clientId ${invocation.action} ${
+            invocation.arguments.entries.joinToString(" ") { "${it.key}=${it.value.jsonPrimitive.content}" }
+        }"
+        calls += message
+        return DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED, message)
     }
 }
 
