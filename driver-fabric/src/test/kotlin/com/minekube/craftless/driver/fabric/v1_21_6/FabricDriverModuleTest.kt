@@ -65,9 +65,9 @@ class FabricDriverModuleTest {
 
         assertEquals("CRAFTLESS_FABRIC_CLIENT_SMOKE", plan.environmentGate)
         assertEquals("1.21.6", plan.minecraftVersion)
-        assertTrue(plan.gradleTasks.contains(":testkit:localMinecraftServerSmoke"))
-        assertTrue(plan.gradleTasks.contains(":driver-fabric:runClient"))
+        assertEquals(listOf(":driver-fabric:fabricClientSmoke"), plan.gradleTasks)
         assertTrue(plan.steps.any { it.kind == FabricSmokeStepKind.START_LOCAL_SERVER })
+        assertTrue(plan.steps.any { it.description.contains("kept running", ignoreCase = true) })
         assertTrue(plan.steps.any { it.kind == FabricSmokeStepKind.LAUNCH_FABRIC_CLIENT })
         assertTrue(plan.steps.any { it.kind == FabricSmokeStepKind.INVOKE_GENERATED_CHAT_ACTION })
         assertTrue(plan.steps.any { it.kind == FabricSmokeStepKind.ASSERT_SERVER_EVIDENCE })

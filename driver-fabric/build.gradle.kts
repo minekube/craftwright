@@ -21,18 +21,18 @@ tasks.processResources {
 
 tasks.register("fabricClientSmoke") {
     group = "verification"
-    description = "Opt-in Fabric real-client smoke. Set CRAFTLESS_FABRIC_CLIENT_SMOKE=1 to run the local server smoke and Loom runClient."
+    description = "Opt-in Fabric real-client smoke entrypoint. Set CRAFTLESS_FABRIC_CLIENT_SMOKE=1 " +
+        "after the command wrapper is wired to testkit runWithServer."
 
     val enabled = System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE") == "1" ||
         System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE").equals("true", ignoreCase = true)
 
-    if (enabled) {
-        dependsOn(":testkit:localMinecraftServerSmoke", "runClient")
-    }
-
     doLast {
         if (enabled) {
-            println("Fabric client smoke requested through CRAFTLESS_FABRIC_CLIENT_SMOKE")
+            println(
+                "Fabric client smoke requested; wire runClient through testkit " +
+                    "LocalMinecraftServerSmoke.runWithServer before treating this as evidence"
+            )
         } else {
             println("set CRAFTLESS_FABRIC_CLIENT_SMOKE=1 to run the Fabric client smoke")
         }

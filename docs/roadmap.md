@@ -29,11 +29,12 @@ Craftless currently has:
   version manifest and downloads a requested Minecraft server jar into the
   fixture artifacts directory;
 - an opt-in `:testkit:localMinecraftServerSmoke` task that provisions and starts
-  a local Minecraft server, waits for startup, sends `stop`, and records server
-  log/evidence artifacts without running during default tests;
-- an opt-in `:driver-fabric:fabricClientSmoke` task that composes the local
-  server smoke with Fabric Loom's `runClient` path behind
-  `CRAFTLESS_FABRIC_CLIENT_SMOKE`;
+  a local Minecraft server, waits for startup, can keep it running around a
+  caller-supplied smoke action, sends `stop`, and records server log/evidence
+  artifacts without running during default tests;
+- an opt-in `:driver-fabric:fabricClientSmoke` entrypoint and smoke plan behind
+  `CRAFTLESS_FABRIC_CLIENT_SMOKE`; the executable client launch/join/action
+  wrapper still needs to be wired through the testkit server lifecycle API;
 - repo-local Kotlin/JVM agent skills scoped to this codebase.
 
 ## Completion Definition

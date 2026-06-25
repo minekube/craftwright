@@ -1,6 +1,8 @@
 package com.minekube.craftless.testkit
 
+import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -24,6 +26,7 @@ class LocalMinecraftServerSmokeTest {
                 "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT" to "/tmp/craftless-smoke",
                 "CRAFTLESS_SMOKE_MINECRAFT_VERSION" to "1.21.6",
                 "CRAFTLESS_SMOKE_SERVER_PORT" to "25567",
+                "CRAFTLESS_SMOKE_JAVA_EXECUTABLE" to "/tmp/craftless-java",
                 "CRAFTLESS_SMOKE_READINESS_TIMEOUT_MS" to "90000",
                 "CRAFTLESS_SMOKE_SHUTDOWN_TIMEOUT_MS" to "15000",
                 "CRAFTLESS_SMOKE_MIN_HEAP" to "256M",
@@ -35,6 +38,7 @@ class LocalMinecraftServerSmokeTest {
         assertEquals(Path.of("/tmp/craftless-smoke"), config.root)
         assertEquals("1.21.6", config.minecraftVersion)
         assertEquals(25567, config.port)
+        assertEquals(Path.of("/tmp/craftless-java"), config.javaExecutable)
         assertEquals(90_000, config.readinessTimeoutMillis)
         assertEquals(15_000, config.shutdownTimeoutMillis)
         assertEquals("256M", config.minHeap)
@@ -59,4 +63,60 @@ class LocalMinecraftServerSmokeTest {
         assertEquals(LocalMinecraftServerSmokeStatus.SKIPPED, result.status)
         assertEquals("set CRAFTLESS_LOCAL_SERVER_SMOKE=1 to run the local server smoke", result.message)
     }
+
+    @Test
+    fun `local server smoke keeps server running while caller action executes`() {
+        val root = createTempDirectory("craftless-local-server-smoke-action")
+        val fakeJava = root.resolve("fake-java")
+        val fakeServerJar = root.resolve("server.jar")
+        Files.writeString(fakeServerJar, "fake")
+        Files.writeString(
+            fakeJava,
+            """
+            #!/bin/sh
+            echo '[12:00:00] [Server thread/INFO]: Done (1.000s)! For help, type "help"'
+            touch server-is-ready
+            read command
+            printf '%s\n' "${'$'}command" > minecraft-server-stdin.txt
+            echo '[12:00:01] [Server thread/INFO]: Alice joined the game'
+            echo '[12:00:02] [Server thread/INFO]: <Alice> hello while smoke action ran'
+            echo '[12:00:03] [Server thread/INFO]: Alice left the game'
+            """.trimIndent() + "\n"
+        )
+        assertTrue(fakeJava.toFile().setExecutable(true))
+        val config = LocalMinecraftServerSmokeConfig(
+            enabled = true,
+            root = root,
+            javaExecutable = fakeJava,
+            readinessTimeoutMillis = 5_000,
+            shutdownTimeoutMillis = 5_000,
+        )
+        var actionObservedRunningServer = false
+
+        val result = LocalMinecraftServerSmoke.runWithServer(
+            config = config,
+            provisionServerJar = { _, _ -> fakeServerJar },
+        ) { layout, handle ->
+            actionObservedRunningServer = handle.isRunning()
+            assertTrue(waitUntilExists(root.resolve("server-is-ready")))
+            assertFalse(Files.exists(root.resolve("minecraft-server-stdin.txt")))
+            assertTrue(Files.exists(layout.serverProperties))
+        }
+
+        assertTrue(actionObservedRunningServer)
+        assertEquals(LocalMinecraftServerSmokeStatus.RAN, result.status)
+        assertEquals(3, result.evidenceCount)
+        assertEquals("stop\n", Files.readString(root.resolve("minecraft-server-stdin.txt")))
+    }
+}
+
+private fun waitUntilExists(path: Path, timeoutMillis: Long = 1_000): Boolean {
+    val deadline = System.nanoTime() + timeoutMillis * 1_000_000
+    while (System.nanoTime() < deadline) {
+        if (Files.exists(path)) {
+            return true
+        }
+        Thread.sleep(10)
+    }
+    return Files.exists(path)
 }

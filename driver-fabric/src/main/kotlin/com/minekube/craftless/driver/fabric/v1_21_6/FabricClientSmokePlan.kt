@@ -13,13 +13,12 @@ data class FabricClientSmokePlan(
                 environmentGate = "CRAFTLESS_FABRIC_CLIENT_SMOKE",
                 minecraftVersion = "1.21.6",
                 gradleTasks = listOf(
-                    ":testkit:localMinecraftServerSmoke",
-                    ":driver-fabric:runClient",
+                    ":driver-fabric:fabricClientSmoke",
                 ),
                 steps = listOf(
                     FabricSmokeStep(
                         FabricSmokeStepKind.START_LOCAL_SERVER,
-                        "Start the opt-in local server smoke fixture",
+                        "Start the opt-in local server fixture, kept running through client actions",
                     ),
                     FabricSmokeStep(
                         FabricSmokeStepKind.LAUNCH_FABRIC_CLIENT,
