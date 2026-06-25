@@ -583,6 +583,34 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `clients run rejects missing required runtime action args`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = CraftlessCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "run",
+                    "player.chat",
+                    "--api",
+                    server.url,
+                ),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
+
+            assertEquals(2, exit)
+        }
+
+        assertEquals("", output.toString())
+        assertTrue(errors.toString().contains("action player.chat requires argument message"))
+    }
+
+    @Test
     fun `generated client action alias dispatches from runtime action metadata`() {
         val output = StringBuilder()
 
@@ -639,6 +667,34 @@ class CraftlessCliTest {
         assertEquals("player.chat", response["action"]?.jsonPrimitive?.content)
         assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
         assertEquals("hello from positional alias", response["message"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `generated client action alias rejects missing required runtime action args`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit = CraftlessCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "player",
+                    "chat",
+                    "--api",
+                    server.url,
+                ),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
+
+            assertEquals(2, exit)
+        }
+
+        assertEquals("", output.toString())
+        assertTrue(errors.toString().contains("action player.chat requires argument message"))
     }
 
     @Test

@@ -517,6 +517,7 @@ object CraftlessCli {
             values[name] = positional.single().toJsonArgument(action.arguments[name]?.type)
         }
 
+        requireRequiredActionArguments(action, values)
         return values
     }
 
@@ -532,7 +533,22 @@ object CraftlessCli {
                 "action $actionId does not declare argument $name"
             }
             name to parts[1].toJsonArgument(descriptor.type)
+        }.also { values ->
+            requireRequiredActionArguments(action, values)
         }
+
+    private fun requireRequiredActionArguments(
+        action: OpenApiAction,
+        values: Map<String, JsonElement>,
+    ) {
+        val missing = action.arguments
+            .filterValues { it.required }
+            .keys
+            .filterNot { it in values }
+        require(missing.isEmpty()) {
+            "action ${action.id} requires argument ${missing.first()}"
+        }
+    }
 
     private fun OpenApiAction.generatedAliasHelp(
         clientId: String,
