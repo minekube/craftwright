@@ -104,6 +104,23 @@ class ClientSessionServiceTest {
         val actionOperation = document.paths["/clients/alice:run"]?.post
         assertNotNull(actionOperation)
         assertEquals("action", actionOperation.extensions["x-craftwright-source"])
+        val actionResponseSchema = actionOperation.responses["200"]
+            ?.content
+            ?.get("application/json")
+            ?.schema
+        assertNotNull(actionResponseSchema)
+        assertEquals(listOf("action", "status"), actionResponseSchema.required)
+        assertEquals("string", actionResponseSchema.properties["action"]?.type)
+        assertEquals("string", actionResponseSchema.properties["status"]?.type)
+        val chatResponseSchema = document.paths["/clients/alice/player:chat"]?.post
+            ?.responses
+            ?.get("200")
+            ?.content
+            ?.get("application/json")
+            ?.schema
+        assertNotNull(chatResponseSchema)
+        assertEquals(listOf("action", "status"), chatResponseSchema.required)
+        assertEquals("string", chatResponseSchema.properties["message"]?.type)
         assertEquals("1", document.actions.single { it.id == "player.move" }.schemaVersion)
         assertEquals("1", document.actions.single { it.id == "player.chat" }.schemaVersion)
     }

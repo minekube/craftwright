@@ -1,29 +1,38 @@
 # Craftwright
 
-Craftwright is a DevTools-style automation framework for real Minecraft Java
-clients, headless or visible.
+Craftwright is an automation framework for real Minecraft Java clients,
+headless or visible.
 
-It launches or attaches to real clients and exposes generated local APIs for
-agents, tools, tests, and CI. Think Chrome DevTools Protocol for Minecraft:
-external programs get a machine-readable way to inspect and control a running
-client while Craftwright hides loader, version, mapping, mod, and driver
-internals behind stable Craftwright-owned contracts.
+It launches or attaches to real clients and exposes generated local APIs so
+agents, tools, tests, and CI can inspect and control Minecraft through the same
+client runtime players use. Run clients headlessly for unattended automation,
+or keep the game window visible so humans can watch and debug what the
+automation is doing.
 
-Craftwright is not Mineflayer and is not a protocol-only bot. It automates the
-real Minecraft client runtime players use, so the same framework can drive
-unattended headless clients in CI or visible clients that humans can watch
-during debugging and demos.
+Craftwright is not Mineflayer and is not a protocol-only bot. It controls the
+real Minecraft client process while hiding loader, version, mapping, mod, and
+driver internals behind stable Craftwright-owned contracts.
+
+If you know browser automation, Craftwright fills a similar role for Minecraft:
+external programs get a machine-readable control surface for a running client,
+with live API discovery instead of a static list of hard-coded actions.
 
 ## Example
 
-Each client exposes its own live OpenAPI document because available actions can
-depend on the running Minecraft version, loader, mods, registries, server
-features, permissions, and driver runtime.
+Start with the `mcw` CLI, then use the generated local API it exposes. Each
+client has its own live OpenAPI document because available actions can depend
+on the running Minecraft version, loader, mods, registries, server features,
+permissions, and driver runtime.
+
+```sh
+# Start the local Craftwright supervisor API.
+mcw clients api --port 8080
+```
 
 ```sh
 CRAFTWRIGHT=http://127.0.0.1:8080
 
-# Create a real client session through the local supervisor API.
+# Create a real client session.
 curl -sS "$CRAFTWRIGHT/clients" \
   -H 'content-type: application/json' \
   -d '{
@@ -36,7 +45,7 @@ curl -sS "$CRAFTWRIGHT/clients" \
 # Discover the generated API for that exact client.
 curl -sS "$CRAFTWRIGHT/clients/alice/openapi.json"
 
-# Run actions through the generic action endpoint.
+# Run actions through the generic action endpoint described by that API.
 curl -sS "$CRAFTWRIGHT/clients/alice:run" \
   -H 'content-type: application/json' \
   -d '{"action":"player.chat","args":{"message":"hello from Craftwright"}}'

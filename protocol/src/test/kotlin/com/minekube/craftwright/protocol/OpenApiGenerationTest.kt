@@ -23,5 +23,15 @@ class OpenApiGenerationTest {
         assertEquals(listOf("action"), schema.required)
         assertEquals("string", schema.properties["action"]?.type)
         assertEquals("object", schema.properties["args"]?.type)
+        val responseSchema = operation.responses["200"]
+            ?.content
+            ?.get("application/json")
+            ?.schema
+        assertNotNull(responseSchema)
+        assertEquals("object", responseSchema.type)
+        assertEquals(listOf("action", "status"), responseSchema.required)
+        assertEquals("string", responseSchema.properties["action"]?.type)
+        assertEquals("string", responseSchema.properties["status"]?.type)
+        assertEquals("string", responseSchema.properties["message"]?.type)
     }
 }

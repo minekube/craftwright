@@ -50,7 +50,7 @@ data class OpenApiPath(
 data class OpenApiOperation(
     val operationId: String,
     val tags: List<String>,
-    val responses: Map<String, OpenApiResponse> = mapOf("200" to OpenApiResponse()),
+    val responses: Map<String, OpenApiResponse>,
     val requestBody: OpenApiRequestBody? = null,
     @SerialName("x-craftwright")
     val extensions: Map<String, String>,
@@ -59,6 +59,7 @@ data class OpenApiOperation(
 @Serializable
 data class OpenApiResponse(
     val description: String = "OK",
+    val content: Map<String, OpenApiMediaType> = emptyMap(),
 )
 
 @Serializable
@@ -99,6 +100,7 @@ private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenA
     return OpenApiOperation(
         operationId = operationId,
         tags = listOf(tag),
+        responses = route.responses(),
         requestBody = route.requestBody(actionsById),
         extensions = buildMap {
             put("x-craftwright-java-class", route.javaClass)
@@ -111,6 +113,9 @@ private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenA
     )
 }
 
+private fun ApiRoute.responses(): Map<String, OpenApiResponse> =
+    mapOf("200" to if (source == "action" && method == "POST") actionInvocationResponse() else OpenApiResponse())
+
 private fun ApiRoute.requestBody(actionsById: Map<String, OpenApiAction>): OpenApiRequestBody? =
     when {
         method != "POST" -> null
@@ -121,29 +126,43 @@ private fun ApiRoute.requestBody(actionsById: Map<String, OpenApiAction>): OpenA
 
 private fun Map<String, OpenApiActionArgument>.toRequestBody(): OpenApiRequestBody =
     OpenApiRequestBody(
-        content = mapOf(
-            "application/json" to OpenApiMediaType(
-                schema = OpenApiSchema(
-                    type = "object",
-                    properties = mapValues { (_, argument) -> OpenApiSchema(type = argument.type) },
-                    required = filterValues { it.required }.keys.toList(),
-                )
+        content = jsonContent(
+            OpenApiSchema(
+                type = "object",
+                properties = mapValues { (_, argument) -> OpenApiSchema(type = argument.type) },
+                required = filterValues { it.required }.keys.toList(),
+            )
+        )
+    )
+
+private fun actionInvocationResponse(): OpenApiResponse =
+    OpenApiResponse(
+        content = jsonContent(
+            OpenApiSchema(
+                type = "object",
+                properties = mapOf(
+                    "action" to OpenApiSchema(type = "string"),
+                    "status" to OpenApiSchema(type = "string"),
+                    "message" to OpenApiSchema(type = "string"),
+                ),
+                required = listOf("action", "status"),
             )
         )
     )
 
 private fun genericActionRequestBody(): OpenApiRequestBody =
     OpenApiRequestBody(
-        content = mapOf(
-            "application/json" to OpenApiMediaType(
-                schema = OpenApiSchema(
-                    type = "object",
-                    properties = mapOf(
-                        "action" to OpenApiSchema(type = "string"),
-                        "args" to OpenApiSchema(type = "object", additionalProperties = true),
-                    ),
-                    required = listOf("action"),
-                )
+        content = jsonContent(
+            OpenApiSchema(
+                type = "object",
+                properties = mapOf(
+                    "action" to OpenApiSchema(type = "string"),
+                    "args" to OpenApiSchema(type = "object", additionalProperties = true),
+                ),
+                required = listOf("action"),
             )
         )
     )
+
+private fun jsonContent(schema: OpenApiSchema): Map<String, OpenApiMediaType> =
+    mapOf("application/json" to OpenApiMediaType(schema))
