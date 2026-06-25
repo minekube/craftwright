@@ -29,10 +29,7 @@ func newDaemonCommand(deps Dependencies, opts *GlobalOptions) *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&stdio, "stdio", false, "serve JSON-RPC over stdin/stdout")
 	cmd.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
-		if stdio {
-			return daemonStdioUsageError("%v", err)
-		}
-		return err
+		return daemonStdioUsageError("%v", err)
 	})
 	return cmd
 }

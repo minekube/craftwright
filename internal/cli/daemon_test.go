@@ -137,6 +137,12 @@ func TestDaemonStdioGlobalOutputConflictDoesNotWriteCLIJSONToStdout(t *testing.T
 }
 
 func TestDaemonStdioUnknownFlagDoesNotWriteCLIJSONToStdout(t *testing.T) {
+	assertDaemonStdioFlagErrorKeepsStdoutEmpty(t, []string{"--json", "daemon", "--stdio", "--bogus"})
+	assertDaemonStdioFlagErrorKeepsStdoutEmpty(t, []string{"--json", "daemon", "--bogus", "--stdio"})
+}
+
+func assertDaemonStdioFlagErrorKeepsStdoutEmpty(t *testing.T, args []string) {
+	t.Helper()
 	var out bytes.Buffer
 	var err bytes.Buffer
 	root := cli.NewRoot(cli.Dependencies{
@@ -146,7 +152,7 @@ func TestDaemonStdioUnknownFlagDoesNotWriteCLIJSONToStdout(t *testing.T) {
 		Stderr:  &err,
 		Version: "test",
 	})
-	root.SetArgs([]string{"--json", "daemon", "--stdio", "--bogus"})
+	root.SetArgs(args)
 
 	code := cli.Execute(root)
 	if code != 2 {
