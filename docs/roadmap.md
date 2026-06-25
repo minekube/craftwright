@@ -39,7 +39,8 @@ Craftless currently has:
   controller starts a local daemon API backed by the Fabric driver, fetches
   per-client OpenAPI/action metadata, connects to the smoke server, invokes
   generated `player.chat` through `POST /clients/{id}:run` after connection,
-  and writes client artifacts next to server artifacts;
+  writes client artifacts next to server artifacts, and verifies server-side
+  join, chat, and disconnect evidence;
 - repo-local Kotlin/JVM agent skills scoped to this codebase.
 
 ## Completion Definition
@@ -65,16 +66,11 @@ Craftless is not complete until the repository can prove all of the following:
 Goal: prove that Craftless can automate a real Minecraft Java client through
 the durable Fabric direction.
 
-- Run the opt-in Fabric smoke command against a real client and commit the
-  resulting confidence into tests/docs by preserving the generated server
-  evidence artifacts from the provisioned Minecraft `1.21.6` server.
-- Debug the remaining real-client join failure: the 2026-06-25 smoke attempt
-  launched `:driver-fabric:runClient`, started the in-client daemon API, and
-  wrote `client-openapi.json`, `client-actions.json`, `client-events.jsonl`,
-  and `runtime-metadata.json`, but the Minecraft client did not join the local
-  server before timeout.
-- After join evidence exists, invoke generated `player.chat` through the daemon
-  action API and assert that the local server sees the chat event.
+- Keep the opt-in Fabric smoke green: the 2026-06-25 run launched
+  `:driver-fabric:runClient`, joined the provisioned Minecraft `1.21.6`
+  server, fetched generated OpenAPI/actions through the in-client daemon API,
+  invoked generated `player.chat` through `POST /clients/{id}:run`, and
+  captured server-side join, chat, and disconnect evidence.
 - Invoke generated `player.move` and assert movement evidence from server-side
   position deltas or in-client driver telemetry.
 - Keep bridge evidence tests separate from Fabric smoke tests so the bridge

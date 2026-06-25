@@ -4,7 +4,6 @@ import com.minekube.craftless.driver.api.ConnectionTarget
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.screen.TitleScreen
 import net.minecraft.client.gui.screen.multiplayer.ConnectScreen
-import net.minecraft.client.network.CookieStorage
 import net.minecraft.client.network.ServerAddress
 import net.minecraft.client.network.ServerInfo
 
@@ -48,7 +47,7 @@ class MinecraftFabricClientGateway(
             address,
             serverInfo,
             false,
-            CookieStorage(emptyMap()),
+            null,
         )
     }
 

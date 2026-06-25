@@ -81,8 +81,8 @@ Legend: 🟢 yes, 🟡 partial or limited, 🔵 planned, 🔴 no.
 
 | Area | Craftless | [Mineflayer](https://github.com/PrismarineJS/mineflayer) | [Baritone](https://github.com/cabaletta/baritone) |
 | --- | --- | --- | --- |
-| Real Minecraft Java client | 🟡 Fabric driver hooks, smoke planned | 🔴 protocol bot | 🟢 |
-| Headless and visible operation | 🟡 supervisor API now; real-client smoke planned | 🔴 | 🟡 visible client |
+| Real Minecraft Java client | 🟢 Fabric smoke proven for join/chat | 🔴 protocol bot | 🟢 |
+| Headless and visible operation | 🟡 supervisor API now; visible Fabric smoke proven | 🔴 | 🟡 visible client |
 | Live per-client OpenAPI/action schema | 🟢 | 🔴 | 🔴 |
 | Runtime discovery from version, mods, server features, and permissions | 🟢 | 🟡 protocol data | 🟡 in-client state |
 | Stable automation surface for agents and generated clients | 🟢 | 🟡 library API | 🟡 Java API |
@@ -121,13 +121,11 @@ Implemented now:
   provisioning a Minecraft server jar, accepting the EULA, starting the server,
   keeping it running around a caller-supplied smoke action, and collecting
   server log evidence.
-- An opt-in `:driver-fabric:fabricClientSmoke` entrypoint that runs the testkit
-  server lifecycle and can execute a bounded client command while the server is
-  alive. By default, the enabled Fabric smoke command is
-  `mise exec -- gradle :driver-fabric:runClient`, whose in-client smoke
-  controller connects to the test server and invokes generated `player.chat`
-  through the Fabric driver backend. The task is evidence-gated by expected
-  server-side chat and disconnect artifacts.
+- An opt-in `:driver-fabric:fabricClientSmoke` entrypoint that launches a real
+  Minecraft `1.21.6` Fabric client, keeps a local testkit Minecraft server
+  alive, starts the in-client daemon API, fetches per-client OpenAPI/action
+  metadata, invokes generated `player.chat` through `POST /clients/{id}:run`,
+  and verifies server-side join, chat, and disconnect evidence artifacts.
 
 Still roadmap:
 

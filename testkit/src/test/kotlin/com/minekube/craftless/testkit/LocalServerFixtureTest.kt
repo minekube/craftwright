@@ -19,9 +19,24 @@ class LocalServerFixtureTest {
         assertEquals(root.resolve("logs"), layout.logsDir)
         assertEquals(root.resolve("artifacts"), layout.artifactsDir)
         assertTrue(Files.readString(layout.serverProperties).contains("online-mode=false"))
+        assertTrue(Files.readString(layout.serverProperties).contains("enforce-secure-profile=false"))
         assertTrue(Files.readString(layout.serverProperties).contains("server-port=25567"))
         assertTrue(Files.isDirectory(layout.logsDir))
         assertTrue(Files.isDirectory(layout.artifactsDir))
+    }
+
+    @Test
+    fun `fixture clears stale server logs and evidence on prepare`() {
+        val root = Files.createTempDirectory("craftless-server-stale-evidence")
+        val firstLayout = LocalServerFixture(root = root, port = 25567).prepare()
+        Files.writeString(firstLayout.serverLog, "stale server log\n")
+        firstLayout.recordEvidence(LocalServerEvidence.playerJoined("Alice"))
+
+        val nextLayout = LocalServerFixture(root = root, port = 25567).prepare()
+
+        assertFalse(Files.exists(nextLayout.serverLog))
+        assertFalse(Files.exists(nextLayout.evidenceLog))
+        assertTrue(Files.isDirectory(nextLayout.artifactsDir))
     }
 
     @Test
@@ -72,6 +87,7 @@ class LocalServerFixtureTest {
 
         assertTrue(layout.recordEvidenceFromLogLine("[12:00:00] [Server thread/INFO]: Alice joined the game"))
         assertTrue(layout.recordEvidenceFromLogLine("[12:00:01] [Server thread/INFO]: <Alice> hello from server log"))
+        assertTrue(layout.recordEvidenceFromLogLine("[12:00:01] [Server thread/INFO]: [Not Secure] <Alice> hello unsigned"))
         assertTrue(
             layout.recordEvidenceFromLogLine(
                 "[12:00:02] [Server thread/INFO]: [Craftless] Alice moved from 0.0 64.0 0.0 to 0.0 64.0 1.25"
@@ -87,6 +103,11 @@ class LocalServerFixtureTest {
                     type = LocalServerEvidenceType.CHAT,
                     player = "Alice",
                     message = "hello from server log",
+                ),
+                LocalServerEvidence(
+                    type = LocalServerEvidenceType.CHAT,
+                    player = "Alice",
+                    message = "hello unsigned",
                 ),
                 LocalServerEvidence(
                     type = LocalServerEvidenceType.MOVEMENT,

@@ -238,12 +238,12 @@ Evidence:
   command while the server is alive.
 - [x] Opt-in Fabric smoke launches or attaches to a real Minecraft Java client
   successfully.
-- [ ] Smoke client joins the local Minecraft server.
+- [x] Smoke client joins the local Minecraft server.
 - [x] Smoke flow fetches per-client OpenAPI.
-- [ ] Smoke flow invokes at least one generated action through the daemon API.
-- [ ] Server-side or driver-side evidence proves the action effect.
-- [ ] Evidence artifacts are collected and documented.
-- [ ] Bridge/HMC evidence remains separate and cannot count as Fabric
+- [x] Smoke flow invokes at least one generated action through the daemon API.
+- [x] Server-side or driver-side evidence proves the action effect.
+- [x] Evidence artifacts are collected and documented.
+- [x] Bridge/HMC evidence remains separate and cannot count as Fabric
   completion.
 
 Evidence:
@@ -260,22 +260,29 @@ Evidence:
     configured client command so the Fabric client process can write
     `client-openapi.json`, `client-actions.json`, `client-events.jsonl`, and
     `runtime-metadata.json` next to server evidence.
-  - Real smoke attempt on 2026-06-25:
+  - Successful real smoke on 2026-06-25:
     `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
     launched Minecraft `1.21.6` through `:driver-fabric:runClient`, started
-    the in-client daemon API, fetched per-client OpenAPI/actions, and wrote
-    client artifacts under
+    the in-client daemon API, fetched per-client OpenAPI/actions, joined the
+    local Minecraft server, invoked generated `player.chat` through
+    `/clients/{id}:run`, and wrote client/server artifacts under
     `driver-fabric/build/craftless-local-server-smoke/artifacts/`.
-  - That real smoke attempt still failed the completion gate because the
-    Minecraft client did not join the local server before timeout; no
-    `server-evidence.jsonl` was produced and no server-side chat evidence was
-    observed.
+  - Clean server evidence from that run:
+    `server-evidence.jsonl` contains `PLAYER_JOINED`, `CHAT` with
+    `hello from Craftless Fabric smoke`, and `PLAYER_DISCONNECTED` for the
+    same real client player.
+  - Client artifacts from that run:
+    `client-openapi.json`, `client-actions.json`, `client-events.jsonl`,
+    `runtime-metadata.json`, `server-evidence.jsonl`, and `server.log`.
+  - Root-cause evidence: direct local connections must pass `null`
+    `CookieStorage`; passing an empty non-null cookie store put Minecraft on
+    the transfer connection path. The offline local smoke server also disables
+    secure-profile enforcement and clears stale evidence before each run.
 - Tests to rerun before final completion:
   - `mise exec -- gradle :driver-fabric:test :testkit:test`
   - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
-- Next action: debug the real Fabric client connection until the local server
-  records join evidence, then invoke generated `player.chat` through
-  `/clients/{id}:run` and preserve server-side action evidence.
+- Next action: extend the real smoke to generated `player.move` and assert
+  movement evidence from server-side position deltas or in-client telemetry.
 
 ## 8. Testkit And Local Server Evidence
 
@@ -303,6 +310,7 @@ Evidence:
 - Verification:
   - `mise exec -- gradle :testkit:test`
   - `CRAFTLESS_LOCAL_SERVER_SMOKE=1 mise exec -- gradle :testkit:localMinecraftServerSmoke`
+  - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
 
 ## 9. Client File Management
 
@@ -356,36 +364,58 @@ Evidence:
 
 ## 11. CI And Verification
 
-- [ ] `mise run ci` passes.
-- [ ] `mise exec -- gradle test` passes.
-- [ ] `mise exec -- bun test playwright` passes.
+- [x] `mise run ci` passes.
+- [x] `mise exec -- gradle test` passes.
+- [x] `mise exec -- bun test playwright` passes.
 - [ ] Protocol policy tests cover naming, HTTP bans, and SDK boundaries.
 - [ ] Driver contract tests cover stale method bans and action model.
 - [ ] Daemon tests cover OpenAPI/action routes.
 - [ ] CLI tests cover adaptive dispatch/help.
-- [ ] Fabric module tests cover metadata, action gateway, and smoke plan.
-- [ ] Opt-in real-client smoke has a documented successful run.
+- [x] Fabric module tests cover metadata, action gateway, and smoke plan.
+- [x] Opt-in real-client smoke has a documented successful run.
 
 Evidence:
 
-- Next action: rerun narrow tests after resolving the current `testkit/` dirty
-  work, then run `mise run ci`.
+- Current verification:
+  - `mise exec -- gradle :testkit:test :driver-fabric:test`
+  - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
+  - `git diff --check`
+  - `mise run ci`
+  - `mise run ci` executed `mise exec -- gradle test` and
+    `mise exec -- bun test playwright`.
+- Remaining verification work: audit and mark the protocol, driver, daemon,
+  and CLI coverage bullets only after confirming each named test covers the
+  stated gate.
 
 ## Final Completion Gate
 
 Craftless is complete for this milestone only when all are true:
 
-- [ ] Real Fabric client smoke passed.
-- [ ] Generated action invocation through daemon API is proven.
-- [ ] Server-side or driver-side evidence artifacts exist.
-- [ ] README and roadmap reflect that exact state.
-- [ ] `mise run ci` passes.
+- [x] Real Fabric client smoke passed.
+- [x] Generated action invocation through daemon API is proven.
+- [x] Server-side or driver-side evidence artifacts exist.
+- [x] README and roadmap reflect that exact state.
+- [x] `mise run ci` passes.
 - [ ] No `AGENTS.md` violations remain.
 - [ ] `main` contains the completed work.
 
 Final evidence:
 
-- Commit:
+- Commit: working-tree note, current real Fabric smoke fix pending commit.
 - Commands:
+  - `mise exec -- gradle :testkit:test :driver-fabric:test`
+  - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
+  - `git diff --check`
+  - `mise run ci`
 - Artifact paths:
+  - `driver-fabric/build/craftless-local-server-smoke/logs/server.log`
+  - `driver-fabric/build/craftless-local-server-smoke/artifacts/server-evidence.jsonl`
+  - `driver-fabric/build/craftless-local-server-smoke/artifacts/client-openapi.json`
+  - `driver-fabric/build/craftless-local-server-smoke/artifacts/client-actions.json`
+  - `driver-fabric/build/craftless-local-server-smoke/artifacts/client-events.jsonl`
+  - `driver-fabric/build/craftless-local-server-smoke/artifacts/runtime-metadata.json`
 - Remaining known gaps:
+  - Generated `player.move` is not yet proven by real-client smoke movement
+    evidence.
+  - The remaining checklist items in sections 1, 3, 4, and 11 still need
+    requirement-specific audits before the overall goal can be marked complete.

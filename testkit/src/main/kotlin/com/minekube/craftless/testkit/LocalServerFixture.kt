@@ -24,11 +24,16 @@ data class LocalServerFixture(
         val artifactsDir = root.resolve("artifacts")
         Files.createDirectories(logsDir)
         Files.createDirectories(artifactsDir)
+        val serverLog = logsDir.resolve("server.log")
+        val evidenceLog = artifactsDir.resolve("server-evidence.jsonl")
+        Files.deleteIfExists(serverLog)
+        Files.deleteIfExists(evidenceLog)
 
         val serverProperties = root.resolve("server.properties")
         serverProperties.writeText(
             """
             online-mode=false
+            enforce-secure-profile=false
             server-port=$port
             enable-command-block=true
             spawn-protection=0
@@ -41,8 +46,8 @@ data class LocalServerFixture(
             eulaFile = root.resolve("eula.txt"),
             logsDir = logsDir,
             artifactsDir = artifactsDir,
-            serverLog = logsDir.resolve("server.log"),
-            evidenceLog = artifactsDir.resolve("server-evidence.jsonl"),
+            serverLog = serverLog,
+            evidenceLog = evidenceLog,
         )
     }
 }
@@ -374,7 +379,7 @@ private val playerNamePattern = "([A-Za-z0-9_]{1,16})"
 private val coordinatePattern = "(-?\\d+(?:\\.\\d+)?)"
 private val joinedGameRegex = Regex("$playerNamePattern joined the game")
 private val leftGameRegex = Regex("$playerNamePattern left the game")
-private val chatRegex = Regex("<$playerNamePattern> (.+)")
+private val chatRegex = Regex("(?:\\[Not Secure] )?<$playerNamePattern> (.+)")
 private val movementRegex = Regex(
     "\\[Craftless] $playerNamePattern moved from " +
         "$coordinatePattern $coordinatePattern $coordinatePattern to " +
