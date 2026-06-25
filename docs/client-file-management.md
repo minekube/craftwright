@@ -36,7 +36,7 @@ surface to a desktop launcher's storage model.
 
 Prism Launcher checkout inspected:
 
-- Path: `/tmp/prismlauncher`
+- Path: `/tmp/prismlauncher-source`
 - Commit: `9c2c6415310a0f36f9a9c48f3ee4901ba20bb139`
 
 Relevant source areas:

@@ -38,9 +38,10 @@ Craftless currently has:
   `mise exec -- gradle :driver-fabric:runClient`, whose in-client Fabric smoke
   controller starts a local daemon API backed by the Fabric driver, fetches
   per-client OpenAPI/action metadata, connects to the smoke server, invokes
-  generated `player.chat` through `POST /clients/{id}:run` after connection,
-  writes client artifacts next to server artifacts, and verifies server-side
-  join, chat, and disconnect evidence;
+  generated `player.chat` and `player.move` through
+  `POST /clients/{id}:run` after connection, writes client artifacts next to
+  server artifacts, and verifies server-side join/chat/disconnect evidence
+  plus driver-side movement event telemetry;
 - repo-local Kotlin/JVM agent skills scoped to this codebase.
 
 ## Completion Definition
@@ -69,10 +70,11 @@ the durable Fabric direction.
 - Keep the opt-in Fabric smoke green: the 2026-06-25 run launched
   `:driver-fabric:runClient`, joined the provisioned Minecraft `1.21.6`
   server, fetched generated OpenAPI/actions through the in-client daemon API,
-  invoked generated `player.chat` through `POST /clients/{id}:run`, and
-  captured server-side join, chat, and disconnect evidence.
-- Invoke generated `player.move` and assert movement evidence from server-side
-  position deltas or in-client driver telemetry.
+  invoked generated `player.chat` and `player.move` through
+  `POST /clients/{id}:run`, captured server-side join/chat/disconnect evidence,
+  and recorded driver-side movement event telemetry.
+- Strengthen generated `player.move` proof from accepted driver telemetry to
+  measured server-side position deltas or in-client position telemetry.
 - Keep bridge evidence tests separate from Fabric smoke tests so the bridge
   cannot accidentally become the product path.
 

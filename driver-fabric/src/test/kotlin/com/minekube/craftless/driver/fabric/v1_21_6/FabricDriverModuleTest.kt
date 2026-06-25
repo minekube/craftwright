@@ -207,7 +207,7 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric smoke controller invokes generated chat through daemon api and writes artifacts`() {
+    fun `fabric smoke controller invokes generated chat and movement through daemon api and writes artifacts`() {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)
         val artifactsDir = Files.createTempDirectory("craftless-fabric-smoke-artifacts")
@@ -226,10 +226,11 @@ class FabricDriverModuleTest {
         assertEquals(0.milliseconds, controller.startupSettleDelay)
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
-        gateway.awaitActions(3)
+        gateway.awaitActions(4)
         assertEquals(
             listOf(
                 "connect localhost:25567",
+                "client-action",
                 "client-action",
                 "stop",
             ),
@@ -238,8 +239,10 @@ class FabricDriverModuleTest {
         assertTrue(Files.readString(artifactsDir.resolve("client-openapi.json")).contains("/clients/fabric-smoke:run"))
         assertTrue(Files.readString(artifactsDir.resolve("client-openapi.json")).contains("craftless-driver-fabric"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions.json")).contains("player.chat"))
+        assertTrue(Files.readString(artifactsDir.resolve("client-actions.json")).contains("player.move"))
         assertTrue(Files.readString(artifactsDir.resolve("runtime-metadata.json")).contains("craftless-driver-fabric"))
         assertTrue(Files.readString(artifactsDir.resolve("client-events.jsonl")).contains("hello from fabric smoke"))
+        assertTrue(Files.readString(artifactsDir.resolve("client-events.jsonl")).contains("player.move"))
     }
 
     @Test
@@ -262,10 +265,11 @@ class FabricDriverModuleTest {
         assertEquals(emptyList(), gateway.actions)
 
         gateway.ready = true
-        gateway.awaitActions(3)
+        gateway.awaitActions(4)
         assertEquals(
             listOf(
                 "connect 127.0.0.1:25567",
+                "client-action",
                 "client-action",
                 "stop",
             ),

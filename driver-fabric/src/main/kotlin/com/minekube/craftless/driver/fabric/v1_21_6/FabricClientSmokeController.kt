@@ -104,6 +104,16 @@ data class FabricClientSmokeController(
                             args = mapOf("message" to JsonPrimitive(chatMessage)),
                         ),
                     )
+                    http.postJson(
+                        api.url("/clients/$SMOKE_CLIENT_ID:run"),
+                        ActionInvocationRequest(
+                            action = "player.move",
+                            args = mapOf(
+                                "forward" to JsonPrimitive(true),
+                                "ticks" to JsonPrimitive(20),
+                            ),
+                        ),
+                    )
                 }
                 val events = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/events"))
                 writeJsonArrayLinesArtifact("client-events.jsonl", events)

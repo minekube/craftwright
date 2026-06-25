@@ -223,9 +223,8 @@ Evidence:
 
 - [x] Fabric driver module exists and builds in the JVM project.
 - [x] Fabric driver exposes Craftless-owned runtime metadata.
-- [~] Fabric driver has gateway-backed runtime hooks for current action
-  evidence, but the gateway still exposes action-specific chat/move methods and
-  must be narrowed before the action surface expands.
+- [x] Fabric driver has gateway-backed runtime hooks for current action
+  evidence without exposing action-specific chat/move gateway methods.
 - [x] Fabric driver supports generated `player.chat`.
 - [x] Fabric driver supports generated `player.move`.
 - [x] Opt-in Fabric smoke task exists behind `CRAFTLESS_FABRIC_CLIENT_SMOKE`.
@@ -241,6 +240,7 @@ Evidence:
 - [x] Smoke client joins the local Minecraft server.
 - [x] Smoke flow fetches per-client OpenAPI.
 - [x] Smoke flow invokes at least one generated action through the daemon API.
+- [x] Smoke flow invokes generated `player.move` through the daemon API.
 - [x] Server-side or driver-side evidence proves the action effect.
 - [x] Evidence artifacts are collected and documented.
 - [x] Bridge/HMC evidence remains separate and cannot count as Fabric
@@ -264,8 +264,8 @@ Evidence:
     `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
     launched Minecraft `1.21.6` through `:driver-fabric:runClient`, started
     the in-client daemon API, fetched per-client OpenAPI/actions, joined the
-    local Minecraft server, invoked generated `player.chat` through
-    `/clients/{id}:run`, and wrote client/server artifacts under
+    local Minecraft server, invoked generated `player.chat` and `player.move`
+    through `/clients/{id}:run`, and wrote client/server artifacts under
     `driver-fabric/build/craftless-local-server-smoke/artifacts/`.
   - Clean server evidence from that run:
     `server-evidence.jsonl` contains `PLAYER_JOINED`, `CHAT` with
@@ -274,6 +274,8 @@ Evidence:
   - Client artifacts from that run:
     `client-openapi.json`, `client-actions.json`, `client-events.jsonl`,
     `runtime-metadata.json`, `server-evidence.jsonl`, and `server.log`.
+    `client-events.jsonl` contains a `movement` event for generated
+    `player.move` with the real Fabric driver.
   - Root-cause evidence: direct local connections must pass `null`
     `CookieStorage`; passing an empty non-null cookie store put Minecraft on
     the transfer connection path. The offline local smoke server also disables
@@ -281,8 +283,8 @@ Evidence:
 - Tests to rerun before final completion:
   - `mise exec -- gradle :driver-fabric:test :testkit:test`
   - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
-- Next action: extend the real smoke to generated `player.move` and assert
-  movement evidence from server-side position deltas or in-client telemetry.
+- Next action: strengthen movement proof from accepted driver telemetry to
+  server-side position deltas or measured in-client position telemetry.
 
 ## 8. Testkit And Local Server Evidence
 
@@ -327,7 +329,7 @@ Evidence:
   - `mise exec -- gradle :protocol:test :daemon:test`
 - Current Prism-informed file-management evidence:
   - `docs/client-file-management.md` records findings from
-    `/tmp/prismlauncher` at commit
+    `/tmp/prismlauncher-source` at commit
     `9c2c6415310a0f36f9a9c48f3ee4901ba20bb139`.
   - `InstanceFiles` keeps a Craftless-owned layout with `root`, `gameRoot`,
     `mods`, `config`, `saves`, `resourcePacks`, and `shaderPacks`.
@@ -401,7 +403,8 @@ Craftless is complete for this milestone only when all are true:
 
 Final evidence:
 
-- Commit: `a66d96e` (`driver-fabric: prove real smoke chat action`).
+- Commit: `a66d96e` (`driver-fabric: prove real smoke chat action`) plus
+  current working-tree movement smoke updates pending commit.
 - Commands:
   - `mise exec -- gradle :testkit:test :driver-fabric:test`
   - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
@@ -415,7 +418,7 @@ Final evidence:
   - `driver-fabric/build/craftless-local-server-smoke/artifacts/client-events.jsonl`
   - `driver-fabric/build/craftless-local-server-smoke/artifacts/runtime-metadata.json`
 - Remaining known gaps:
-  - Generated `player.move` is not yet proven by real-client smoke movement
-    evidence.
+  - Generated `player.move` has real-client driver-side event telemetry; the
+    stronger position-delta proof is still roadmap.
   - The remaining checklist items in sections 1, 3, 4, and 11 still need
     requirement-specific audits before the overall goal can be marked complete.

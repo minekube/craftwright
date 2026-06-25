@@ -10,8 +10,10 @@ import com.minekube.craftless.driver.api.booleanArgument
 import com.minekube.craftless.driver.api.intArgument
 import com.minekube.craftless.driver.api.requireChatMessage
 import com.minekube.craftless.driver.api.stringArgument
+import net.minecraft.client.input.Input
 import net.minecraft.client.MinecraftClient
 import net.minecraft.util.PlayerInput
+import net.minecraft.util.math.Vec2f
 
 internal interface FabricActionBinding {
     val descriptor: DriverActionDescriptor
@@ -105,20 +107,22 @@ private object FabricPlayerMoveActionBinding : FabricActionBinding {
         require(intent.ticks > 0) { "movement ticks must be positive" }
         context.executeOnClient {
             val player = requireNotNull(player) { "client is not connected to a server" }
-            player.input.playerInput = PlayerInput(
-                intent.forward,
-                intent.backward,
-                intent.left,
-                intent.right,
-                intent.jump,
-                intent.sneak,
-                intent.sprint,
+            val originalInput = player.input
+            player.input = CraftlessMovementInput(
+                delegate = originalInput,
+                movementInput = intent.toPlayerInput(),
+                ticks = intent.ticks,
+                restore = {
+                    if (player.input is CraftlessMovementInput) {
+                        player.input = originalInput
+                    }
+                },
             )
         }
         return DriverActionResult(
             action = invocation.action,
             status = DriverActionStatus.ACCEPTED,
-            message = "fabric ${context.modeId} action ${invocation.action} accepted",
+            message = "fabric ${context.modeId} action ${invocation.action} accepted for ${intent.ticks} tick(s)",
             eventType = DriverEventType.MOVEMENT,
         )
     }
@@ -133,4 +137,41 @@ private data class FabricMovementIntent(
     val sneak: Boolean = false,
     val sprint: Boolean = false,
     val ticks: Int = 1,
-)
+) {
+    fun toPlayerInput(): PlayerInput =
+        PlayerInput(forward, backward, left, right, jump, sneak, sprint)
+}
+
+private class CraftlessMovementInput(
+    private val delegate: Input,
+    private val movementInput: PlayerInput,
+    private var ticks: Int,
+    private val restore: () -> Unit,
+) : Input() {
+    override fun tick() {
+        if (ticks <= 0) {
+            restore()
+            delegate.tick()
+            playerInput = delegate.playerInput
+            movementVector = delegate.getMovementInput()
+            return
+        }
+
+        playerInput = movementInput
+        movementVector = movementInput.toMovementVector()
+        ticks -= 1
+    }
+}
+
+private fun PlayerInput.toMovementVector(): Vec2f =
+    Vec2f(
+        movementMultiplier(left, right),
+        movementMultiplier(forward, backward),
+    ).normalize()
+
+private fun movementMultiplier(positive: Boolean, negative: Boolean): Float =
+    when {
+        positive == negative -> 0f
+        positive -> 1f
+        else -> -1f
+    }

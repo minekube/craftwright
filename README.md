@@ -81,7 +81,7 @@ Legend: 🟢 yes, 🟡 partial or limited, 🔵 planned, 🔴 no.
 
 | Area | Craftless | [Mineflayer](https://github.com/PrismarineJS/mineflayer) | [Baritone](https://github.com/cabaletta/baritone) |
 | --- | --- | --- | --- |
-| Real Minecraft Java client | 🟢 Fabric smoke proven for join/chat | 🔴 protocol bot | 🟢 |
+| Real Minecraft Java client | 🟢 Fabric smoke proven for join/chat plus driver-side movement event | 🔴 protocol bot | 🟢 |
 | Headless and visible operation | 🟡 supervisor API now; visible Fabric smoke proven | 🔴 | 🟡 visible client |
 | Live per-client OpenAPI/action schema | 🟢 | 🔴 | 🔴 |
 | Runtime discovery from version, mods, server features, and permissions | 🟢 | 🟡 protocol data | 🟡 in-client state |
@@ -124,13 +124,14 @@ Implemented now:
 - An opt-in `:driver-fabric:fabricClientSmoke` entrypoint that launches a real
   Minecraft `1.21.6` Fabric client, keeps a local testkit Minecraft server
   alive, starts the in-client daemon API, fetches per-client OpenAPI/action
-  metadata, invokes generated `player.chat` through `POST /clients/{id}:run`,
-  and verifies server-side join, chat, and disconnect evidence artifacts.
+  metadata, invokes generated `player.chat` and `player.move` through
+  `POST /clients/{id}:run`, and verifies server-side join, chat, and
+  disconnect evidence plus driver-side movement event artifacts.
 
 Still roadmap:
 
-- real-client Fabric smoke test that launches a client, joins a server, invokes
-  actions, and verifies server-side effects;
+- stronger real-client movement proof using server-side position deltas or
+  measured in-client position telemetry;
 - broader generated action families for look, raycast, inventory, world/entity
   queries, screen interaction, and events;
 - consolidated Fabric driver support across more Minecraft versions;
@@ -186,6 +187,5 @@ Fabric smoke controller reads `CRAFTLESS_SMOKE_SERVER_HOST`,
 with `CRAFTLESS_SMOKE_EXPECT_PLAYER`, `CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE`,
 and `CRAFTLESS_SMOKE_EXPECT_DISCONNECT`.
 
-That task is not yet recorded proof of a full real-client run in CI. Completion
-still requires running the opt-in smoke against a real Minecraft client and
-verifying the server-side evidence artifacts.
+That task is opt-in and not part of default CI because it launches real
+Minecraft processes and may download server/client artifacts.
