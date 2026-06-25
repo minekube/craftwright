@@ -28,6 +28,15 @@ class DriverSessionContractTest {
         assertEquals(ClientState.CONNECTED, player.state)
         assertEquals(PlayerPosition(0.0, 0.0, 0.0), player.position)
 
+        val capability = session.invoke(
+            DriverCapabilityInvocation(
+                capability = "player.move",
+                arguments = mapOf("forward" to "true", "ticks" to "20"),
+            )
+        )
+        assertEquals("player.move", capability.capability)
+        assertEquals(DriverCapabilityStatus.ACCEPTED, capability.status)
+
         val stopped = session.stop()
         assertEquals(ClientState.STOPPED, stopped.state)
         assertTrue(session.events().any { it.type == DriverEventType.CLIENT_STOPPED })

@@ -284,19 +284,14 @@ client. The implementation is still only a bridge because it sends
 HMC-Specifics console commands underneath. This is acceptable evidence for the
 launcher/supervisor loop, but it should not become the product driver.
 
-The product driver should implement these actions directly inside a Fabric mod:
+The product driver should implement these actions directly inside a Fabric mod
+and expose them through the generated per-client OpenAPI surface:
 
-- `POST /player/chat`;
-- `POST /player/move`;
-- `POST /player/jump`;
-- `POST /player/look`;
-- `GET /player/position`;
-- `GET /player/raycast`;
-- `GET /world/blocks/nearby`;
-- `GET /entities/nearby`;
-- `GET /inventory`;
-- `GET /screen`;
-- `POST /screen/click`.
+- stable roots such as `/player`, `/world`, `/screen`, and `/events`;
+- discovered capability routes and schemas for movement, jump, look, raycast,
+  inventory, world/entity queries, and screen interaction;
+- Craftwright-owned metadata for capability versioning, runtime fingerprints,
+  mappings, registries, mods, permissions, and server feature inputs.
 
 The bridge PoC found that simulated keys are fragile because first-run screens,
 title screens, focus, and client state can swallow input. Direct in-client APIs

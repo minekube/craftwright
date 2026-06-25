@@ -41,6 +41,7 @@ class ApiRouteCatalog private constructor(
                 route("POST", "/clients/{id}/player/sendChat", "clientPlayerSendChat", "clients", "dev.minekube.craftwright.daemon.clients", "sendChat", "method"),
                 route("GET", "/clients/{id}/player", "getClientPlayer", "clients", "dev.minekube.craftwright.daemon.clients", "player", "root", "value"),
                 route("GET", "/clients/{id}/player/position", "getClientPlayerPosition", "clients", "dev.minekube.craftwright.daemon.clients", "position", "getter"),
+                route("POST", "/clients/{id}/capabilities/{capability}", "invokeClientCapability", "clients", "dev.minekube.craftwright.daemon.clients", "capability", "capability"),
                 route("POST", "/clients/{id}/stop", "stopClient", "clients", "dev.minekube.craftwright.daemon.clients", "stop", "method"),
                 route("GET", "/clients/{id}/events", "getClientEvents", "clients", "dev.minekube.craftwright.daemon.clients", "events", "route"),
                 route("GET", "/o/{handle}", "getObjectHandle", "objects", "java.lang.Object", "handle", "handle", "handle"),

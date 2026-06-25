@@ -2,6 +2,9 @@ package dev.minekube.craftwright.driver.runtime
 
 import dev.minekube.craftwright.driver.api.ChatCommand
 import dev.minekube.craftwright.driver.api.ConnectionTarget
+import dev.minekube.craftwright.driver.api.DriverCapabilityInvocation
+import dev.minekube.craftwright.driver.api.DriverCapabilityResult
+import dev.minekube.craftwright.driver.api.DriverCapabilityStatus
 import dev.minekube.craftwright.driver.api.DriverClientSnapshot
 import dev.minekube.craftwright.driver.api.DriverEvent
 import dev.minekube.craftwright.driver.api.DriverEventType
@@ -69,6 +72,11 @@ class BackendDriverSession(
             position = PlayerPosition(0.0, 0.0, 0.0),
         )
 
+    override fun invoke(invocation: DriverCapabilityInvocation): DriverCapabilityResult {
+        require(invocation.capability.isNotBlank()) { "capability is required" }
+        return backend.invoke(clientId, invocation)
+    }
+
     override fun stop(): DriverClientSnapshot {
         val result = backend.stop(clientId)
         require(result.action == DriverBackendAction.STOP) { "backend returned ${result.action} for stop" }
@@ -91,6 +99,13 @@ interface DriverBackend {
     fun sendChat(clientId: String, command: ChatCommand): DriverBackendResult
 
     fun player(clientId: String): DriverBackendPlayer? = null
+
+    fun invoke(clientId: String, invocation: DriverCapabilityInvocation): DriverCapabilityResult =
+        DriverCapabilityResult(
+            capability = invocation.capability,
+            status = DriverCapabilityStatus.UNSUPPORTED,
+            message = "unsupported capability ${invocation.capability}",
+        )
 
     fun stop(clientId: String): DriverBackendResult
 }

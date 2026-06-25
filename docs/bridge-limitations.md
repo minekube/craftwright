@@ -26,5 +26,7 @@ Known limitations:
 
 The Fabric backend now has a client-thread gateway for connection, chat,
 command, stop, player name/connection-state observation, and player position.
-The next durable milestone is adding direct movement intent, look direction,
-raycasts, and perception inside the client.
+It also accepts `player.move` through the generic capability route and maps it
+to client movement intent. The next durable milestone is proving movement in a
+real-client smoke and adding look direction, raycasts, and perception inside
+the client.

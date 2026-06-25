@@ -127,6 +127,16 @@ class LocalSessionApiServerTest {
                 assertTrue(body.contains("\"z\":0.0"))
             }
 
+            http.post(server.url("/clients/alice/capabilities/player.move")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"arguments":{"forward":"true","ticks":"20"}}""")
+            }.let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertTrue(body.contains("\"capability\":\"player.move\""))
+                assertTrue(body.contains("\"status\":\"ACCEPTED\""))
+            }
+
             http.post(server.url("/clients/alice/stop")) {
                 contentType(ContentType.Application.Json)
                 setBody("{}")

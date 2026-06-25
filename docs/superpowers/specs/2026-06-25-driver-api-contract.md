@@ -56,8 +56,9 @@ the same public contract before the Fabric module lands.
 state and events in Craftwright-owned types while delegating automation actions
 to a `DriverBackend`. The current HMC bridge adapter is temporary. The Fabric
 module now routes connect, chat, command, stop, and player name/connection-state
-observation plus player position through a client-thread gateway. It must still
-add movement, perception, and structured event observation.
+observation plus player position through a client-thread gateway. It also
+accepts generic capability invocation for `player.move`. It must still add
+real-client movement smoke proof, perception, and structured event observation.
 
 ## Fabric Handoff
 
@@ -69,6 +70,8 @@ backend/session boundary for real client state:
   behavior;
 - keep Minecraft calls scheduled on the client thread;
 - make `player()` return real player state and position from the Fabric gateway;
+- route generated/discovered capabilities such as `player.move` through generic
+  capability invocation instead of adding one method per player action;
 - emit `DriverEvent` values for ready, connect, chat, movement, stop, and
   error lifecycle events;
 - keep low-level Mixins/accessors in Java when bytecode shape matters.
@@ -78,6 +81,8 @@ The public daemon routes remain:
 - `POST /clients/{id}/connection/connect`
 - `POST /clients/{id}/player/sendChat`
 - `GET /clients/{id}/player`
+- `GET /clients/{id}/player/position`
+- `POST /clients/{id}/capabilities/{capability}`
 - `POST /clients/{id}/stop`
 - `GET /clients/{id}/events`
 

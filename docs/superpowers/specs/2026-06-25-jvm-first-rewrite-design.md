@@ -185,8 +185,9 @@ Responsibilities:
 - Connect and disconnect through real Minecraft APIs.
 - Send chat and slash commands through real `LocalPlayer`/connection APIs.
 - Expose GUI and input actions through stable Craftwright abstractions.
-- Set player movement intent directly on the client tick: forward, backward,
-  strafe, jump, sneak, and sprint.
+- Set player movement intent through generated/discovered capabilities. The
+  current `player.move` capability reaches the Fabric gateway and writes
+  movement intent to `ClientPlayerEntity.input`.
 - Set look direction directly through yaw and pitch.
 - Expose player position, velocity, health, game mode, selected hotbar slot, and
   connection state as structured data.

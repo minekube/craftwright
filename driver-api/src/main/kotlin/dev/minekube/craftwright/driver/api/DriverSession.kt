@@ -15,6 +15,8 @@ interface DriverSession {
 
     fun player(): PlayerSnapshot
 
+    fun invoke(invocation: DriverCapabilityInvocation): DriverCapabilityResult
+
     fun stop(): DriverClientSnapshot
 
     fun events(): List<DriverEvent>
@@ -36,6 +38,26 @@ data class ConnectionTarget(
 data class ChatCommand(
     val message: String,
 )
+
+@Serializable
+data class DriverCapabilityInvocation(
+    val capability: String,
+    val arguments: Map<String, String> = emptyMap(),
+)
+
+@Serializable
+data class DriverCapabilityResult(
+    val capability: String,
+    val status: DriverCapabilityStatus,
+    val message: String? = null,
+)
+
+@Serializable
+enum class DriverCapabilityStatus {
+    ACCEPTED,
+    UNSUPPORTED,
+    FAILED,
+}
 
 @Serializable
 data class PlayerPosition(
@@ -114,6 +136,15 @@ class FakeDriverSession(
             state = state,
             position = PlayerPosition(0.0, 0.0, 0.0),
         )
+
+    override fun invoke(invocation: DriverCapabilityInvocation): DriverCapabilityResult {
+        require(invocation.capability.isNotBlank()) { "capability is required" }
+        return DriverCapabilityResult(
+            capability = invocation.capability,
+            status = DriverCapabilityStatus.ACCEPTED,
+            message = "accepted ${invocation.capability} for $clientId",
+        )
+    }
 
     override fun stop(): DriverClientSnapshot {
         state = ClientState.STOPPED

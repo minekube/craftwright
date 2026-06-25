@@ -2,6 +2,7 @@ package dev.minekube.craftwright.daemon
 
 import dev.minekube.craftwright.driver.api.ChatCommand
 import dev.minekube.craftwright.driver.api.ConnectionTarget
+import dev.minekube.craftwright.driver.api.DriverCapabilityInvocation
 import dev.minekube.craftwright.driver.api.PlayerPosition
 import dev.minekube.craftwright.protocol.ApiRouteCatalog
 import dev.minekube.craftwright.protocol.Client
@@ -147,6 +148,22 @@ class LocalSessionApiServer private constructor(
                     call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
                 }
             }
+            post("/clients/{id}/capabilities/{capability}") {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                val capability = requireNotNull(call.parameters["capability"]) { "capability is required" }
+                runCatching {
+                    val request = json.decodeFromString<CapabilityInvocationRequest>(call.receiveText())
+                    val result = service.driverFor(clientId).invoke(
+                        DriverCapabilityInvocation(
+                            capability = capability,
+                            arguments = request.arguments,
+                        )
+                    )
+                    call.respondJson(HttpStatusCode.OK, result)
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                }
+            }
             post("/clients/{id}/stop") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
@@ -236,6 +253,11 @@ data class ConnectRequest(
 @Serializable
 data class SendChatRequest(
     val message: String,
+)
+
+@Serializable
+data class CapabilityInvocationRequest(
+    val arguments: Map<String, String> = emptyMap(),
 )
 
 @Serializable

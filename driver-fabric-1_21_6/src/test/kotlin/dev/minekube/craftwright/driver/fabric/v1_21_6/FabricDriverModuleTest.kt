@@ -2,6 +2,8 @@ package dev.minekube.craftwright.driver.fabric.v1_21_6
 
 import dev.minekube.craftwright.driver.api.ChatCommand
 import dev.minekube.craftwright.driver.api.ConnectionTarget
+import dev.minekube.craftwright.driver.api.DriverCapabilityInvocation
+import dev.minekube.craftwright.driver.api.DriverCapabilityStatus
 import dev.minekube.craftwright.driver.api.PlayerPosition
 import dev.minekube.craftwright.driver.runtime.DriverBackendAction
 import dev.minekube.craftwright.protocol.ClientState
@@ -93,6 +95,29 @@ class FabricDriverModuleTest {
         assertEquals(listOf("player"), gateway.actions)
     }
 
+    @Test
+    fun `fabric backend maps player move capability to movement intent`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = FabricDriverBackend.real(gateway)
+
+        val result = backend.invoke(
+            "alice",
+            DriverCapabilityInvocation(
+                capability = "player.move",
+                arguments = mapOf(
+                    "forward" to "true",
+                    "jump" to "true",
+                    "ticks" to "20",
+                ),
+            )
+        )
+
+        assertEquals("player.move", result.capability)
+        assertEquals(DriverCapabilityStatus.ACCEPTED, result.status)
+        assertEquals(listOf("move forward jump ticks=20"), gateway.actions)
+        assertEquals(1, gateway.scheduled)
+    }
+
     private fun resourceJson(path: String) =
         json.parseToJsonElement(
             requireNotNull(javaClass.classLoader.getResource(path)) { "missing resource $path" }.readText()
@@ -125,6 +150,20 @@ private class RecordingFabricClientGateway(
     override fun player(): FabricClientPlayer? {
         actions += "player"
         return observedPlayer
+    }
+
+    override fun move(intent: FabricMovementIntent) {
+        actions += buildString {
+            append("move")
+            if (intent.forward) append(" forward")
+            if (intent.backward) append(" backward")
+            if (intent.left) append(" left")
+            if (intent.right) append(" right")
+            if (intent.jump) append(" jump")
+            if (intent.sneak) append(" sneak")
+            if (intent.sprint) append(" sprint")
+            append(" ticks=${intent.ticks}")
+        }
     }
 
     override fun stop() {

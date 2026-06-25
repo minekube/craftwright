@@ -2,6 +2,9 @@ package dev.minekube.craftwright.driver.fabric.v1_21_6
 
 import dev.minekube.craftwright.driver.api.ChatCommand
 import dev.minekube.craftwright.driver.api.ConnectionTarget
+import dev.minekube.craftwright.driver.api.DriverCapabilityInvocation
+import dev.minekube.craftwright.driver.api.DriverCapabilityResult
+import dev.minekube.craftwright.driver.api.DriverCapabilityStatus
 import dev.minekube.craftwright.driver.runtime.DriverBackend
 import dev.minekube.craftwright.driver.runtime.DriverBackendAction
 import dev.minekube.craftwright.driver.runtime.DriverBackendPlayer
@@ -45,6 +48,35 @@ class FabricDriverBackend private constructor(
                 position = player.position,
             )
         }
+
+    override fun invoke(clientId: String, invocation: DriverCapabilityInvocation): DriverCapabilityResult {
+        require(invocation.capability.isNotBlank()) { "capability is required" }
+        if (invocation.capability != "player.move") {
+            return DriverCapabilityResult(
+                capability = invocation.capability,
+                status = DriverCapabilityStatus.UNSUPPORTED,
+                message = "unsupported Fabric capability ${invocation.capability}",
+            )
+        }
+        val intent = FabricMovementIntent(
+            forward = invocation.arguments["forward"]?.toBooleanStrictOrNull() == true,
+            backward = invocation.arguments["backward"]?.toBooleanStrictOrNull() == true,
+            left = invocation.arguments["left"]?.toBooleanStrictOrNull() == true,
+            right = invocation.arguments["right"]?.toBooleanStrictOrNull() == true,
+            jump = invocation.arguments["jump"]?.toBooleanStrictOrNull() == true,
+            sneak = invocation.arguments["sneak"]?.toBooleanStrictOrNull() == true,
+            sprint = invocation.arguments["sprint"]?.toBooleanStrictOrNull() == true,
+            ticks = invocation.arguments["ticks"]?.toIntOrNull() ?: 1,
+        )
+        gateway?.execute {
+            gateway.move(intent)
+        }
+        return DriverCapabilityResult(
+            capability = invocation.capability,
+            status = DriverCapabilityStatus.ACCEPTED,
+            message = "fabric ${mode.id} capability ${invocation.capability} accepted",
+        )
+    }
 
     override fun stop(clientId: String): DriverBackendResult {
         record("stop $clientId")

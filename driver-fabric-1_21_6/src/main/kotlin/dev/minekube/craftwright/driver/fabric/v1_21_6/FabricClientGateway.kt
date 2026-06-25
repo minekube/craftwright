@@ -9,6 +9,7 @@ import net.minecraft.client.gui.screen.multiplayer.ConnectScreen
 import net.minecraft.client.network.CookieStorage
 import net.minecraft.client.network.ServerAddress
 import net.minecraft.client.network.ServerInfo
+import net.minecraft.util.PlayerInput
 
 interface FabricClientGateway {
     fun execute(action: () -> Unit)
@@ -21,6 +22,8 @@ interface FabricClientGateway {
 
     fun player(): FabricClientPlayer?
 
+    fun move(intent: FabricMovementIntent)
+
     fun stop()
 }
 
@@ -28,6 +31,17 @@ data class FabricClientPlayer(
     val name: String,
     val state: ClientState,
     val position: PlayerPosition,
+)
+
+data class FabricMovementIntent(
+    val forward: Boolean = false,
+    val backward: Boolean = false,
+    val left: Boolean = false,
+    val right: Boolean = false,
+    val jump: Boolean = false,
+    val sneak: Boolean = false,
+    val sprint: Boolean = false,
+    val ticks: Int = 1,
 )
 
 class MinecraftFabricClientGateway(
@@ -84,6 +98,20 @@ class MinecraftFabricClientGateway(
                     z = it.z,
                 )
             } ?: PlayerPosition(0.0, 0.0, 0.0),
+        )
+    }
+
+    override fun move(intent: FabricMovementIntent) {
+        require(intent.ticks > 0) { "movement ticks must be positive" }
+        val player = requireNotNull(client.player) { "client is not connected to a server" }
+        player.input.playerInput = PlayerInput(
+            intent.forward,
+            intent.backward,
+            intent.left,
+            intent.right,
+            intent.jump,
+            intent.sneak,
+            intent.sprint,
         )
     }
 

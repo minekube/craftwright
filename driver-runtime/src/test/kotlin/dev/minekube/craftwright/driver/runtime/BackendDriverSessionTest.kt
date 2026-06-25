@@ -2,6 +2,9 @@ package dev.minekube.craftwright.driver.runtime
 
 import dev.minekube.craftwright.driver.api.ChatCommand
 import dev.minekube.craftwright.driver.api.ConnectionTarget
+import dev.minekube.craftwright.driver.api.DriverCapabilityInvocation
+import dev.minekube.craftwright.driver.api.DriverCapabilityResult
+import dev.minekube.craftwright.driver.api.DriverCapabilityStatus
 import dev.minekube.craftwright.driver.api.DriverEventType
 import dev.minekube.craftwright.driver.api.PlayerPosition
 import dev.minekube.craftwright.bridge.hmc.HmcBridgeBackend
@@ -64,6 +67,27 @@ class BackendDriverSessionTest {
     }
 
     @Test
+    fun `runtime driver session invokes generic backend capabilities`() {
+        val backend = RecordingDriverBackend()
+        val session = BackendDriverSession(
+            clientId = "alice",
+            profileName = "Alice",
+            backend = backend,
+        )
+
+        val result = session.invoke(
+            DriverCapabilityInvocation(
+                capability = "player.move",
+                arguments = mapOf("forward" to "true", "ticks" to "20"),
+            )
+        )
+
+        assertEquals("player.move", result.capability)
+        assertEquals(DriverCapabilityStatus.ACCEPTED, result.status)
+        assertEquals("capability alice player.move forward=true ticks=20", backend.calls.single())
+    }
+
+    @Test
     fun `hmc bridge backend adapts the temporary bridge to runtime backend actions`() {
         val backend = HmcBridgeDriverBackend(HmcBridgeBackend.dryRun())
 
@@ -102,5 +126,10 @@ private class RecordingDriverBackend(
     override fun player(clientId: String): DriverBackendPlayer? {
         calls += "player $clientId"
         return observedPlayer
+    }
+
+    override fun invoke(clientId: String, invocation: DriverCapabilityInvocation): DriverCapabilityResult {
+        calls += "capability $clientId ${invocation.capability} ${invocation.arguments.entries.joinToString(" ") { "${it.key}=${it.value}" }}"
+        return DriverCapabilityResult(invocation.capability, DriverCapabilityStatus.ACCEPTED)
     }
 }
