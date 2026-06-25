@@ -3,6 +3,8 @@ package config_test
 import (
 	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -40,6 +42,56 @@ func TestDefaultsMatchMilestoneOne(t *testing.T) {
 	}
 }
 
+func TestDefaultIncludesHeadlessMCBackend(t *testing.T) {
+	cfg := config.Default()
+	if cfg.Backend.Type != "memory" {
+		t.Fatalf("backend type = %q, want memory", cfg.Backend.Type)
+	}
+	if cfg.Backend.HeadlessMCVersion != "2.9.0" {
+		t.Fatalf("headlessmc version = %q", cfg.Backend.HeadlessMCVersion)
+	}
+	if cfg.Backend.SpecificsVersion != "2.4.0" {
+		t.Fatalf("specifics version = %q", cfg.Backend.SpecificsVersion)
+	}
+	if cfg.Backend.Java != "java" {
+		t.Fatalf("java = %q, want java", cfg.Backend.Java)
+	}
+	if len(cfg.Backend.JVMArgs) != 2 {
+		t.Fatalf("jvm args = %#v", cfg.Backend.JVMArgs)
+	}
+}
+
+func TestLoadBackendConfig(t *testing.T) {
+	path := writeConfig(t, `version: 1
+defaults:
+  minecraft: "1.21.6"
+  loader: fabric
+  offline: true
+  timeout: 2m
+backend:
+  type: headlessmc
+  headlessmcVersion: "2.9.0"
+  specificsVersion: "2.4.0"
+  java: "/usr/bin/java"
+  jvmArgs:
+    - "-Djava.awt.headless=true"
+    - "-Xmx1G"
+paths:
+  artifacts: .craftwright/artifacts
+  cache: .craftwright/cache
+`)
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Backend.Type != "headlessmc" || cfg.Backend.Java != "/usr/bin/java" {
+		t.Fatalf("backend = %#v", cfg.Backend)
+	}
+	if got := strings.Join(cfg.Backend.JVMArgs, " "); got != "-Djava.awt.headless=true -Xmx1G" {
+		t.Fatalf("jvm args = %q", got)
+	}
+}
+
 func TestLoadProjectConfigOverridesDefaults(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "craftwright.yaml")
@@ -68,6 +120,18 @@ func TestLoadProjectConfigOverridesDefaults(t *testing.T) {
 	}
 	if cfg.Paths.Cache != ".cache/mcw" {
 		t.Fatalf("cache = %q", cfg.Paths.Cache)
+	}
+	if cfg.Backend.Type != "memory" {
+		t.Fatalf("backend type = %q, want memory", cfg.Backend.Type)
+	}
+	if cfg.Backend.HeadlessMCVersion != "2.9.0" {
+		t.Fatalf("backend headlessmc version = %q", cfg.Backend.HeadlessMCVersion)
+	}
+	if cfg.Backend.SpecificsVersion != "2.4.0" {
+		t.Fatalf("backend specifics version = %q", cfg.Backend.SpecificsVersion)
+	}
+	if cfg.Backend.Java != "java" {
+		t.Fatalf("backend java = %q", cfg.Backend.Java)
 	}
 }
 
@@ -99,7 +163,7 @@ func TestLoadMissingFileReturnsZeroConfigWithError(t *testing.T) {
 	if err == nil {
 		t.Fatal("err = nil")
 	}
-	if cfg != (config.Config{}) {
+	if !reflect.DeepEqual(cfg, config.Config{}) {
 		t.Fatalf("cfg = %#v, want zero config", cfg)
 	}
 }
@@ -115,7 +179,7 @@ func TestLoadUnknownDefaultFieldReturnsZeroConfigWithError(t *testing.T) {
 	if err == nil {
 		t.Fatal("err = nil")
 	}
-	if cfg != (config.Config{}) {
+	if !reflect.DeepEqual(cfg, config.Config{}) {
 		t.Fatalf("cfg = %#v, want zero config", cfg)
 	}
 }
@@ -131,7 +195,7 @@ func TestLoadUnknownPathFieldReturnsZeroConfigWithError(t *testing.T) {
 	if err == nil {
 		t.Fatal("err = nil")
 	}
-	if cfg != (config.Config{}) {
+	if !reflect.DeepEqual(cfg, config.Config{}) {
 		t.Fatalf("cfg = %#v, want zero config", cfg)
 	}
 }
@@ -147,7 +211,7 @@ func TestLoadMultipleYAMLDocumentsReturnsZeroConfigWithError(t *testing.T) {
 	if err == nil {
 		t.Fatal("err = nil")
 	}
-	if cfg != (config.Config{}) {
+	if !reflect.DeepEqual(cfg, config.Config{}) {
 		t.Fatalf("cfg = %#v, want zero config", cfg)
 	}
 }
@@ -163,7 +227,17 @@ func TestLoadInvalidYAMLReturnsZeroConfigWithError(t *testing.T) {
 	if err == nil {
 		t.Fatal("err = nil")
 	}
-	if cfg != (config.Config{}) {
+	if !reflect.DeepEqual(cfg, config.Config{}) {
 		t.Fatalf("cfg = %#v, want zero config", cfg)
 	}
+}
+
+func writeConfig(t *testing.T, data string) string {
+	t.Helper()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "craftwright.yaml")
+	if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return path
 }

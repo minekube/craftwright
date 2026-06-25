@@ -35,6 +35,7 @@ type Config struct {
 	Version  int      `yaml:"version"`
 	Defaults Defaults `yaml:"defaults"`
 	Paths    Paths    `yaml:"paths"`
+	Backend  Backend  `yaml:"backend"`
 }
 
 type Defaults struct {
@@ -50,6 +51,14 @@ type Paths struct {
 	Cache     string `yaml:"cache"`
 }
 
+type Backend struct {
+	Type              string   `yaml:"type"`
+	HeadlessMCVersion string   `yaml:"headlessmcVersion"`
+	SpecificsVersion  string   `yaml:"specificsVersion"`
+	Java              string   `yaml:"java"`
+	JVMArgs           []string `yaml:"jvmArgs"`
+}
+
 func Default() Config {
 	return Config{
 		Version: 1,
@@ -63,6 +72,16 @@ func Default() Config {
 		Paths: Paths{
 			Artifacts: ".craftwright/artifacts",
 			Cache:     ".craftwright/cache",
+		},
+		Backend: Backend{
+			Type:              "memory",
+			HeadlessMCVersion: "2.9.0",
+			SpecificsVersion:  "2.4.0",
+			Java:              "java",
+			JVMArgs: []string{
+				"-Djava.awt.headless=true",
+				"-Xmx2G",
+			},
 		},
 	}
 }

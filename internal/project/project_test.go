@@ -24,6 +24,27 @@ func TestInitCreatesConfigCacheAndArtifacts(t *testing.T) {
 	}
 }
 
+func TestInitWritesBackendDefaults(t *testing.T) {
+	dir := t.TempDir()
+	if err := project.Init(project.Layout{Root: dir}, false); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "craftwright.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"backend:",
+		"type: memory",
+		"headlessmcVersion: \"2.9.0\"",
+		"specificsVersion: \"2.4.0\"",
+	} {
+		if !bytes.Contains(data, []byte(want)) {
+			t.Fatalf("config missing %q:\n%s", want, data)
+		}
+	}
+}
+
 func TestPrepareCacheWritesMetadata(t *testing.T) {
 	dir := t.TempDir()
 	layout := project.Layout{Root: dir}

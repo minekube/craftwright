@@ -40,6 +40,14 @@ defaults:
 paths:
   artifacts: .craftwright/artifacts
   cache: .craftwright/cache
+backend:
+  type: memory
+  headlessmcVersion: "2.9.0"
+  specificsVersion: "2.4.0"
+  java: java
+  jvmArgs:
+    - "-Djava.awt.headless=true"
+    - "-Xmx2G"
 `
 
 func Init(layout Layout, force bool) error {
