@@ -294,7 +294,7 @@ Expected: PASS.
 
 - [ ] **Step 1: Write failing CLI help and dynamic dispatch tests**
 
-Test `craftless --help`, `craftless daemon start`, `craftless clients create`, `craftless clients list`,
+Test `craftless --help`, `craftless server start`, `craftless clients create`, `craftless clients list`,
 `craftless clients NAME get`, `craftless clients NAME connect`, `craftless clients NAME stop`,
 `craftless clients NAME openapi`, `craftless clients NAME actions`, and the stable generic
 runner `craftless clients NAME run player.move --arg forward=true --arg ticks=20`.

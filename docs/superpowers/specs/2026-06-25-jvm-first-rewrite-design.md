@@ -227,7 +227,7 @@ the running Minecraft client, generated action/resource routes below
 The same protocol powers:
 
 - `craftless` CLI.
-- `craftless daemon`.
+- `craftless server`.
 - Playwright fixtures.
 - future MCP/agent tools.
 
@@ -315,7 +315,7 @@ invocation, and output modes. Per-client action aliases and generated alias
 ```text
 craftless init
 craftless cache prepare --mc VERSION --loader fabric
-craftless daemon start
+craftless server start
 craftless clients create --mc VERSION --offline --name NAME
 craftless clients list
 craftless clients NAME openapi
