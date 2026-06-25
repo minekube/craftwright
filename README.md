@@ -1,6 +1,6 @@
-# Craftwright
+# Craftless
 
-Craftwright is automation infrastructure for real Minecraft Java clients,
+Craftless is automation infrastructure for real Minecraft Java clients,
 headless or visible.
 
 It launches or attaches to real clients and gives agents, tools, tests, and CI
@@ -9,32 +9,79 @@ client runtime players use. Run clients headlessly for unattended automation,
 or keep the game window visible so humans can watch and debug what is
 happening.
 
-Craftwright is not Mineflayer and is not a protocol-only bot. It controls the
+Craftless is not Mineflayer and is not a protocol-only bot. It controls the
 real Minecraft client process while hiding loader, version, mapping, mod, and
-driver internals behind stable Craftwright-owned contracts.
+driver internals behind stable Craftless-owned contracts.
 
-If you know Browserless, Craftwright fills a similar role for Minecraft:
+If you know Browserless, Craftless fills a similar role for Minecraft:
 Browserless turns real browsers into programmable automation infrastructure;
-Craftwright does that for real Minecraft Java clients, with live API discovery
+Craftless does that for real Minecraft Java clients, with live API discovery
 instead of a static list of hard-coded actions.
+
+## How It Fits Together
+
+Minecraft already provides the client runtime. Craftless adds a thin driver,
+runtime, and protocol layer around that real client.
+
+```mermaid
+flowchart TB
+  User["Agents / tools / tests / CI / humans"]
+
+  subgraph DeveloperAPI["Developer interfaces"]
+    CLI["CLI\ncurrently mcw"]
+    HTTP["HTTP API\nOpenAPI"]
+    Clients["Generated clients\nroadmap"]
+  end
+
+  subgraph Runtime["Craftless runtime"]
+    Daemon["Local daemon"]
+    Sessions["Client sessions"]
+    Files["Files / logs / profiles"]
+    OpenAPI["Per-client OpenAPI"]
+    Actions["Generated actions"]
+    Docker["Docker / CI image"]
+  end
+
+  subgraph Client["Real Minecraft Java client"]
+    MC["Minecraft client"]
+    Driver["Craftless driver\nFabric mod / runtime bridge"]
+    State["Player / world / screen / inventory"]
+  end
+
+  User --> CLI
+  User --> HTTP
+  User --> Clients
+  CLI --> Daemon
+  Clients --> HTTP
+  HTTP --> Daemon
+  Docker --> Daemon
+  Daemon --> Sessions
+  Daemon --> Files
+  Daemon --> OpenAPI
+  Daemon --> Actions
+  Daemon <--> Driver
+  Driver <--> MC
+  Driver <--> State
+```
 
 ## Example
 
-Start with the `mcw` CLI, then use the generated local API it exposes. Each
+Start with the current `mcw` CLI, then use the generated local API it exposes.
+The target product and CLI name is Craftless. Each
 client has its own live OpenAPI document because available actions can depend
 on the running Minecraft version, loader, mods, registries, server features,
 permissions, and driver runtime.
 
 ```sh
-# Start the local Craftwright supervisor API.
+# Start the local Craftless supervisor API.
 mcw clients api --port 8080
 ```
 
 ```sh
-CRAFTWRIGHT=http://127.0.0.1:8080
+CRAFTLESS=http://127.0.0.1:8080
 
 # Create a real client session.
-curl -sS "$CRAFTWRIGHT/clients" \
+curl -sS "$CRAFTLESS/clients" \
   -H 'content-type: application/json' \
   -d '{
     "id": "alice",
@@ -44,30 +91,30 @@ curl -sS "$CRAFTWRIGHT/clients" \
   }'
 
 # List or fetch stable lifecycle state from the kernel API.
-curl -sS "$CRAFTWRIGHT/clients"
-curl -sS "$CRAFTWRIGHT/clients/alice"
+curl -sS "$CRAFTLESS/clients"
+curl -sS "$CRAFTLESS/clients/alice"
 
 # Connect the client through the lifecycle API.
-curl -sS "$CRAFTWRIGHT/clients/alice/connection/connect" \
+curl -sS "$CRAFTLESS/clients/alice/connection/connect" \
   -H 'content-type: application/json' \
   -d '{"host":"localhost","port":25565}'
 
 # Discover the generated API for that exact client.
-curl -sS "$CRAFTWRIGHT/clients/alice/openapi.json"
+curl -sS "$CRAFTLESS/clients/alice/openapi.json"
 
 # Run actions through the generic action endpoint described by that API.
-curl -sS "$CRAFTWRIGHT/clients/alice:run" \
+curl -sS "$CRAFTLESS/clients/alice:run" \
   -H 'content-type: application/json' \
-  -d '{"action":"player.chat","args":{"message":"hello from Craftwright"}}'
+  -d '{"action":"player.chat","args":{"message":"hello from Craftless"}}'
 
-curl -sS "$CRAFTWRIGHT/clients/alice:run" \
+curl -sS "$CRAFTLESS/clients/alice:run" \
   -H 'content-type: application/json' \
   -d '{"action":"player.move","args":{"forward":true,"ticks":20}}'
 ```
 
 ## Status
 
-Craftwright is a Kotlin/JVM-first project with one implementation direction:
+Craftless is a Kotlin/JVM-first project with one implementation direction:
 
 - a short scriptable CLI, currently `mcw` unless renamed separately, with a
   small static core and adaptive per-client commands/help loaded from OpenAPI
@@ -180,6 +227,7 @@ Current docs:
 - `docs/superpowers/specs/2026-06-25-generated-client-api-design.md`
 - `docs/superpowers/specs/2026-06-25-driver-api-contract.md`
 - `docs/superpowers/plans/2026-06-25-jvm-generated-api-foundation.md`
+- `docs/product-positioning.md`
 - `docs/bridge-limitations.md`
 - `docs/agent-skills.md`
 
