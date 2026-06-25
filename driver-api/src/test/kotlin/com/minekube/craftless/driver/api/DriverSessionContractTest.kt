@@ -70,6 +70,14 @@ class DriverSessionContractTest {
             it.type.name == "MOVEMENT" &&
                 it.message == "accepted player.move for alice"
         })
+        assertFailsWith<IllegalArgumentException> {
+            session.invoke(
+                DriverActionInvocation(
+                    action = "player.move",
+                    arguments = mapOf("forward" to JsonPrimitive(true), "ticks" to JsonPrimitive(0)),
+                )
+            )
+        }
 
         val unknown = session.invoke(
             DriverActionInvocation(

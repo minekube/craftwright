@@ -255,6 +255,26 @@ class LocalSessionApiServerTest {
 
             http.post(server.url("/clients/alice:run")) {
                 contentType(ContentType.Application.Json)
+                setBody("""{"action":"player.move","args":{"forward":true,"ticks":0}}""")
+            }.let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.BadRequest, response.status)
+                assertTrue(body.contains("\"code\":\"BAD_REQUEST\""))
+                assertTrue(body.contains("movement ticks must be positive"))
+            }
+
+            http.post(server.url("/clients/alice/player:move")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"forward":true,"ticks":0}""")
+            }.let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.BadRequest, response.status)
+                assertTrue(body.contains("\"code\":\"BAD_REQUEST\""))
+                assertTrue(body.contains("movement ticks must be positive"))
+            }
+
+            http.post(server.url("/clients/alice:run")) {
+                contentType(ContentType.Application.Json)
                 setBody("""{"action":"player.fly","args":{}}""")
             }.let { response ->
                 val body = response.bodyAsText()

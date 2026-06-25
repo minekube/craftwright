@@ -215,6 +215,8 @@ class FakeDriverSession(
             }
 
             "player.move" -> {
+                val ticks = invocation.arguments.intArgument("ticks") ?: 1
+                require(ticks > 0) { "movement ticks must be positive" }
                 val event = recordMovement("accepted ${invocation.action} for $clientId")
                 DriverActionResult(
                     action = invocation.action,
