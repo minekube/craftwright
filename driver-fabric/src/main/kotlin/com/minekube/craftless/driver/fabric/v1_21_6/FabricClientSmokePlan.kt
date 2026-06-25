@@ -12,51 +12,54 @@ data class FabricClientSmokePlan(
             FabricClientSmokePlan(
                 environmentGate = "CRAFTLESS_FABRIC_CLIENT_SMOKE",
                 minecraftVersion = "1.21.6",
-                gradleTasks = listOf(
-                    ":driver-fabric:fabricClientSmoke",
-                ),
-                steps = listOf(
-                    FabricSmokeStep(
-                        FabricSmokeStepKind.START_LOCAL_SERVER,
-                        "Start the opt-in local server fixture, kept running through client actions",
+                gradleTasks =
+                    listOf(
+                        ":driver-fabric:fabricClientSmoke",
                     ),
-                    FabricSmokeStep(
-                        FabricSmokeStepKind.LAUNCH_FABRIC_CLIENT,
-                        "Launch the Craftless Fabric driver client for Minecraft 1.21.6",
+                steps =
+                    listOf(
+                        FabricSmokeStep(
+                            FabricSmokeStepKind.START_LOCAL_SERVER,
+                            "Start the opt-in local server fixture, kept running through client actions",
+                        ),
+                        FabricSmokeStep(
+                            FabricSmokeStepKind.LAUNCH_FABRIC_CLIENT,
+                            "Launch the Craftless Fabric driver client for Minecraft 1.21.6",
+                        ),
+                        FabricSmokeStep(
+                            FabricSmokeStepKind.START_DAEMON_API,
+                            "Start the Craftless daemon API against the Fabric driver backend",
+                        ),
+                        FabricSmokeStep(
+                            FabricSmokeStepKind.CONNECT_CLIENT,
+                            "Connect the Fabric client through the Craftless lifecycle API",
+                        ),
+                        FabricSmokeStep(
+                            FabricSmokeStepKind.INVOKE_GENERATED_CHAT_ACTION,
+                            "Invoke generated player.chat through the per-client action API",
+                        ),
+                        FabricSmokeStep(
+                            FabricSmokeStepKind.INVOKE_GENERATED_MOVE_ACTION,
+                            "Invoke generated player.move through the per-client action API",
+                        ),
+                        FabricSmokeStep(
+                            FabricSmokeStepKind.ASSERT_SERVER_EVIDENCE,
+                            "Assert server-side join, chat, movement, and disconnect evidence",
+                        ),
+                        FabricSmokeStep(
+                            FabricSmokeStepKind.COLLECT_ARTIFACTS,
+                            "Collect server logs, client OpenAPI, action metadata, events, and runtime metadata",
+                        ),
                     ),
-                    FabricSmokeStep(
-                        FabricSmokeStepKind.START_DAEMON_API,
-                        "Start the Craftless daemon API against the Fabric driver backend",
+                artifacts =
+                    listOf(
+                        "server.log",
+                        "server-evidence.jsonl",
+                        "client-openapi.json",
+                        "client-actions.json",
+                        "client-events.jsonl",
+                        "runtime-metadata.json",
                     ),
-                    FabricSmokeStep(
-                        FabricSmokeStepKind.CONNECT_CLIENT,
-                        "Connect the Fabric client through the Craftless lifecycle API",
-                    ),
-                    FabricSmokeStep(
-                        FabricSmokeStepKind.INVOKE_GENERATED_CHAT_ACTION,
-                        "Invoke generated player.chat through the per-client action API",
-                    ),
-                    FabricSmokeStep(
-                        FabricSmokeStepKind.INVOKE_GENERATED_MOVE_ACTION,
-                        "Invoke generated player.move through the per-client action API",
-                    ),
-                    FabricSmokeStep(
-                        FabricSmokeStepKind.ASSERT_SERVER_EVIDENCE,
-                        "Assert server-side join, chat, movement, and disconnect evidence",
-                    ),
-                    FabricSmokeStep(
-                        FabricSmokeStepKind.COLLECT_ARTIFACTS,
-                        "Collect server logs, client OpenAPI, action metadata, events, and runtime metadata",
-                    ),
-                ),
-                artifacts = listOf(
-                    "server.log",
-                    "server-evidence.jsonl",
-                    "client-openapi.json",
-                    "client-actions.json",
-                    "client-events.jsonl",
-                    "runtime-metadata.json",
-                ),
             )
     }
 }

@@ -6,8 +6,8 @@ import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
-import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.DriverEventType
+import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.runtime.BackendDriverSession
 import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
@@ -22,8 +22,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -31,14 +31,15 @@ class ClientSessionServiceTest {
     @Test
     fun `offline session creates running client with generated api route`() {
         val service = ClientSessionService.inMemory()
-        val client = service.createClient(
-            CreateClientRequest(
-                id = "alice",
-                version = "1.21.4",
-                loader = Loader.FABRIC,
-                profile = Profile.offline("Alice"),
+        val client =
+            service.createClient(
+                CreateClientRequest(
+                    id = "alice",
+                    version = "1.21.4",
+                    loader = Loader.FABRIC,
+                    profile = Profile.offline("Alice"),
+                ),
             )
-        )
 
         assertEquals("alice", client.id)
         assertEquals(ClientState.RUNNING, client.state)
@@ -67,7 +68,7 @@ class ClientSessionServiceTest {
                 version = "1.21.4",
                 loader = Loader.FABRIC,
                 profile = Profile.offline("Alice"),
-            )
+            ),
         )
         service.createClient(
             CreateClientRequest(
@@ -75,7 +76,7 @@ class ClientSessionServiceTest {
                 version = "1.21.4",
                 loader = Loader.FABRIC,
                 profile = Profile.offline("Bob"),
-            )
+            ),
         )
 
         assertEquals(listOf("alice", "bob"), service.listClients().map { it.id })
@@ -100,7 +101,7 @@ class ClientSessionServiceTest {
                         version = "1.21.4",
                         loader = Loader.FABRIC,
                         profile = Profile.offline("Alice"),
-                    )
+                    ),
                 )
             }
         }
@@ -115,7 +116,7 @@ class ClientSessionServiceTest {
                 version = "1.21.4",
                 loader = Loader.FABRIC,
                 profile = Profile.offline("Alice"),
-            )
+            ),
         )
 
         val document: OpenApiDocument = service.openApiFor("alice")
@@ -155,28 +156,36 @@ class ClientSessionServiceTest {
         assertFalse(document.paths.containsKey("/clients/alice/stop"))
         assertFalse(document.paths.containsKey("/clients/alice/player"))
         assertFalse(document.paths.containsKey("/clients/alice/player/position"))
-        val clientSchema = document.paths["/clients/alice"]?.get
-            ?.responses
-            ?.get("200")
-            ?.content
-            ?.get("application/json")
-            ?.schema
+        val clientSchema =
+            document.paths["/clients/alice"]
+                ?.get
+                ?.responses
+                ?.get("200")
+                ?.content
+                ?.get("application/json")
+                ?.schema
         assertNotNull(clientSchema)
         assertEquals(listOf("id", "instance", "profile", "state"), clientSchema.required)
         assertEquals("runPlayerChat", document.paths["/clients/alice/player:chat"]?.post?.operationId)
-        val chatSchema = document.paths["/clients/alice/player:chat"]?.post?.requestBody
-            ?.content
-            ?.get("application/json")
-            ?.schema
+        val chatSchema =
+            document.paths["/clients/alice/player:chat"]
+                ?.post
+                ?.requestBody
+                ?.content
+                ?.get("application/json")
+                ?.schema
         assertNotNull(chatSchema)
         assertEquals("object", chatSchema.type)
         assertEquals(false, chatSchema.additionalProperties)
         assertEquals(listOf("message"), chatSchema.required)
         assertEquals("string", chatSchema.properties["message"]?.type)
-        val moveSchema = document.paths["/clients/alice/player:move"]?.post?.requestBody
-            ?.content
-            ?.get("application/json")
-            ?.schema
+        val moveSchema =
+            document.paths["/clients/alice/player:move"]
+                ?.post
+                ?.requestBody
+                ?.content
+                ?.get("application/json")
+                ?.schema
         assertNotNull(moveSchema)
         assertEquals(false, moveSchema.additionalProperties)
         assertEquals("boolean", moveSchema.properties["forward"]?.type)
@@ -186,26 +195,50 @@ class ClientSessionServiceTest {
         val actionOperation = document.paths["/clients/alice:run"]?.post
         assertNotNull(actionOperation)
         assertEquals("action", actionOperation.extensions["x-craftless-source"])
-        val actionResponseSchema = actionOperation.responses["200"]
-            ?.content
-            ?.get("application/json")
-            ?.schema
+        val actionResponseSchema =
+            actionOperation.responses["200"]
+                ?.content
+                ?.get("application/json")
+                ?.schema
         assertNotNull(actionResponseSchema)
         assertEquals(listOf("action", "status"), actionResponseSchema.required)
         assertEquals("string", actionResponseSchema.properties["action"]?.type)
         assertEquals("string", actionResponseSchema.properties["status"]?.type)
-        val chatResponseSchema = document.paths["/clients/alice/player:chat"]?.post
-            ?.responses
-            ?.get("200")
-            ?.content
-            ?.get("application/json")
-            ?.schema
+        val chatResponseSchema =
+            document.paths["/clients/alice/player:chat"]
+                ?.post
+                ?.responses
+                ?.get("200")
+                ?.content
+                ?.get("application/json")
+                ?.schema
         assertNotNull(chatResponseSchema)
         assertEquals(listOf("action", "status"), chatResponseSchema.required)
         assertEquals("string", chatResponseSchema.properties["message"]?.type)
-        assertErrorSchema(requireNotNull(document.paths["/clients/alice/player:chat"]?.post?.responses?.get("400")))
-        assertErrorSchema(requireNotNull(document.paths["/clients/alice/player:chat"]?.post?.responses?.get("404")))
-        assertErrorSchema(requireNotNull(document.paths["/clients/alice/player:chat"]?.post?.responses?.get("409")))
+        assertErrorSchema(
+            requireNotNull(
+                document.paths["/clients/alice/player:chat"]
+                    ?.post
+                    ?.responses
+                    ?.get("400"),
+            ),
+        )
+        assertErrorSchema(
+            requireNotNull(
+                document.paths["/clients/alice/player:chat"]
+                    ?.post
+                    ?.responses
+                    ?.get("404"),
+            ),
+        )
+        assertErrorSchema(
+            requireNotNull(
+                document.paths["/clients/alice/player:chat"]
+                    ?.post
+                    ?.responses
+                    ?.get("409"),
+            ),
+        )
         assertEquals("1", document.actions.single { it.id == "player.move" }.schemaVersion)
         assertEquals("1", document.actions.single { it.id == "player.chat" }.schemaVersion)
     }
@@ -214,16 +247,17 @@ class ClientSessionServiceTest {
     fun `minecraft usernames longer than sixteen characters are rejected`() {
         val service = ClientSessionService.inMemory()
 
-        val result = runCatching {
-            service.createClient(
-                CreateClientRequest(
-                    id = "too-long",
-                    version = "1.21.4",
-                    loader = Loader.FABRIC,
-                    profile = Profile.offline("CraftlessApiBotTooLong"),
+        val result =
+            runCatching {
+                service.createClient(
+                    CreateClientRequest(
+                        id = "too-long",
+                        version = "1.21.4",
+                        loader = Loader.FABRIC,
+                        profile = Profile.offline("CraftlessApiBotTooLong"),
+                    ),
                 )
-            )
-        }
+            }
 
         assertTrue(result.isFailure)
         assertEquals("offline profile name must be 16 characters or fewer", result.exceptionOrNull()?.message)
@@ -238,18 +272,19 @@ class ClientSessionServiceTest {
                 version = "1.21.4",
                 loader = Loader.FABRIC,
                 profile = Profile.offline("Alice"),
-            )
+            ),
         )
 
         val driver = service.driverFor("alice")
         assertEquals(ClientState.RUNNING, driver.snapshot().state)
         assertEquals(ClientState.CONNECTED, driver.connect(ConnectionTarget("localhost", 25565)).state)
-        val chat = driver.invoke(
-            DriverActionInvocation(
-                action = "player.chat",
-                arguments = mapOf("message" to JsonPrimitive("from driver")),
+        val chat =
+            driver.invoke(
+                DriverActionInvocation(
+                    action = "player.chat",
+                    arguments = mapOf("message" to JsonPrimitive("from driver")),
+                ),
             )
-        )
         assertEquals(DriverActionStatus.ACCEPTED, chat.status)
         assertTrue(driver.events().any { it.type == DriverEventType.CHAT })
     }
@@ -257,12 +292,13 @@ class ClientSessionServiceTest {
     @Test
     fun `session service can create clients with an injected runtime driver factory`() {
         val backend = RecordingDriverBackend()
-        val service = ClientSessionService.inMemory { request ->
-            BackendDriverSession(
-                clientId = request.id,
-                backend = backend,
-            )
-        }
+        val service =
+            ClientSessionService.inMemory { request ->
+                BackendDriverSession(
+                    clientId = request.id,
+                    backend = backend,
+                )
+            }
 
         service.createClient(
             CreateClientRequest(
@@ -270,7 +306,7 @@ class ClientSessionServiceTest {
                 version = "1.21.4",
                 loader = Loader.FABRIC,
                 profile = Profile.offline("Alice"),
-            )
+            ),
         )
 
         service.connectClient("alice", ConnectionTarget("localhost", 25565))
@@ -278,7 +314,7 @@ class ClientSessionServiceTest {
             DriverActionInvocation(
                 action = "player.chat",
                 arguments = mapOf("message" to JsonPrimitive("runtime route")),
-            )
+            ),
         )
 
         assertEquals(
@@ -289,31 +325,34 @@ class ClientSessionServiceTest {
 
     @Test
     fun `client specific openapi uses runtime metadata from injected driver`() {
-        val backend = RecordingDriverBackend(
-            metadata = DriverRuntimeMetadata(
-                loaderVersion = "0.16.14",
-                driver = "craftless-driver-fabric",
-                driverVersion = "0.2.0-test",
-                mappings = "mappings-fingerprint-test",
-                installedModsFingerprint = "mods-test",
-                registryFingerprint = "registries-test",
-                serverFeatureFingerprint = "server-features-test",
-                permissionsFingerprint = "permissions-test",
+        val backend =
+            RecordingDriverBackend(
+                metadata =
+                    DriverRuntimeMetadata(
+                        loaderVersion = "0.16.14",
+                        driver = "craftless-driver-fabric",
+                        driverVersion = "0.2.0-test",
+                        mappings = "mappings-fingerprint-test",
+                        installedModsFingerprint = "mods-test",
+                        registryFingerprint = "registries-test",
+                        serverFeatureFingerprint = "server-features-test",
+                        permissionsFingerprint = "permissions-test",
+                    ),
             )
-        )
-        val service = ClientSessionService.inMemory { request ->
-            BackendDriverSession(
-                clientId = request.id,
-                backend = backend,
-            )
-        }
+        val service =
+            ClientSessionService.inMemory { request ->
+                BackendDriverSession(
+                    clientId = request.id,
+                    backend = backend,
+                )
+            }
         service.createClient(
             CreateClientRequest(
                 id = "alice",
                 version = "1.21.4",
                 loader = Loader.FABRIC,
                 profile = Profile.offline("Alice"),
-            )
+            ),
         )
 
         val extensions = service.openApiFor("alice").extensions
@@ -335,24 +374,27 @@ class ClientSessionServiceTest {
 
     @Test
     fun `client specific openapi action metadata is deterministic by action id`() {
-        val service = ClientSessionService.inMemory { request ->
-            BackendDriverSession(
-                clientId = request.id,
-                backend = RecordingDriverBackend(
-                    actions = listOf(
-                        testPlayerMoveActionDescriptor(),
-                        testPlayerChatActionDescriptor(),
-                    )
-                ),
-            )
-        }
+        val service =
+            ClientSessionService.inMemory { request ->
+                BackendDriverSession(
+                    clientId = request.id,
+                    backend =
+                        RecordingDriverBackend(
+                            actions =
+                                listOf(
+                                    testPlayerMoveActionDescriptor(),
+                                    testPlayerChatActionDescriptor(),
+                                ),
+                        ),
+                )
+            }
         service.createClient(
             CreateClientRequest(
                 id = "alice",
                 version = "1.21.4",
                 loader = Loader.FABRIC,
                 profile = Profile.offline("Alice"),
-            )
+            ),
         )
 
         val document = service.openApiFor("alice")
@@ -370,53 +412,60 @@ class ClientSessionServiceTest {
 
     @Test
     fun `client specific openapi rejects duplicate action ids`() {
-        val service = ClientSessionService.inMemory { request ->
-            BackendDriverSession(
-                clientId = request.id,
-                backend = RecordingDriverBackend(
-                    actions = listOf(
-                        testPlayerChatActionDescriptor(),
-                        testPlayerChatActionDescriptor().copy(schemaVersion = "2"),
-                    )
-                ),
-            )
-        }
+        val service =
+            ClientSessionService.inMemory { request ->
+                BackendDriverSession(
+                    clientId = request.id,
+                    backend =
+                        RecordingDriverBackend(
+                            actions =
+                                listOf(
+                                    testPlayerChatActionDescriptor(),
+                                    testPlayerChatActionDescriptor().copy(schemaVersion = "2"),
+                                ),
+                        ),
+                )
+            }
         service.createClient(
             CreateClientRequest(
                 id = "alice",
                 version = "1.21.4",
                 loader = Loader.FABRIC,
                 profile = Profile.offline("Alice"),
-            )
+            ),
         )
 
-        val error = assertFailsWith<IllegalArgumentException> {
-            service.openApiFor("alice")
-        }
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                service.openApiFor("alice")
+            }
 
         assertEquals("duplicate action id player.chat", error.message)
     }
 
     @Test
     fun `client specific openapi reports all action schema versions`() {
-        val service = ClientSessionService.inMemory { request ->
-            BackendDriverSession(
-                clientId = request.id,
-                backend = RecordingDriverBackend(
-                    actions = listOf(
-                        testPlayerChatActionDescriptor(),
-                        testPlayerMoveActionDescriptor().copy(schemaVersion = "2"),
-                    )
-                ),
-            )
-        }
+        val service =
+            ClientSessionService.inMemory { request ->
+                BackendDriverSession(
+                    clientId = request.id,
+                    backend =
+                        RecordingDriverBackend(
+                            actions =
+                                listOf(
+                                    testPlayerChatActionDescriptor(),
+                                    testPlayerMoveActionDescriptor().copy(schemaVersion = "2"),
+                                ),
+                        ),
+                )
+            }
         service.createClient(
             CreateClientRequest(
                 id = "alice",
                 version = "1.21.4",
                 loader = Loader.FABRIC,
                 profile = Profile.offline("Alice"),
-            )
+            ),
         )
 
         val extensions = service.openApiFor("alice").extensions
@@ -428,14 +477,18 @@ class ClientSessionServiceTest {
 
 private class RecordingDriverBackend(
     private val metadata: DriverRuntimeMetadata = DriverRuntimeMetadata.fake(),
-    private val actions: List<DriverActionDescriptor> = listOf(
-        testPlayerMoveActionDescriptor(),
-        testPlayerChatActionDescriptor(),
-    ),
+    private val actions: List<DriverActionDescriptor> =
+        listOf(
+            testPlayerMoveActionDescriptor(),
+            testPlayerChatActionDescriptor(),
+        ),
 ) : DriverBackend {
     val calls = mutableListOf<String>()
 
-    override fun connect(clientId: String, target: ConnectionTarget): DriverBackendResult {
+    override fun connect(
+        clientId: String,
+        target: ConnectionTarget,
+    ): DriverBackendResult {
         calls += "connect $clientId ${target.host}:${target.port}"
         return DriverBackendResult(DriverBackendAction.CONNECT)
     }
@@ -445,13 +498,14 @@ private class RecordingDriverBackend(
         return DriverBackendResult(DriverBackendAction.STOP)
     }
 
-    override fun actions(clientId: String): List<DriverActionDescriptor> =
-        actions
+    override fun actions(clientId: String): List<DriverActionDescriptor> = actions
 
-    override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
-        metadata
+    override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = metadata
 
-    override fun invoke(clientId: String, invocation: DriverActionInvocation): DriverActionResult {
+    override fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+    ): DriverActionResult {
         val message = invocation.arguments["message"]?.jsonPrimitive?.content
         calls += "chat $clientId $message"
         return DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED, message)
@@ -462,25 +516,27 @@ private fun testPlayerMoveActionDescriptor(): DriverActionDescriptor =
     DriverActionDescriptor(
         id = "player.move",
         schemaVersion = "1",
-        arguments = mapOf(
-            "forward" to DriverActionArgument("boolean"),
-            "backward" to DriverActionArgument("boolean"),
-            "left" to DriverActionArgument("boolean"),
-            "right" to DriverActionArgument("boolean"),
-            "jump" to DriverActionArgument("boolean"),
-            "sneak" to DriverActionArgument("boolean"),
-            "sprint" to DriverActionArgument("boolean"),
-            "ticks" to DriverActionArgument("integer"),
-        ),
+        arguments =
+            mapOf(
+                "forward" to DriverActionArgument("boolean"),
+                "backward" to DriverActionArgument("boolean"),
+                "left" to DriverActionArgument("boolean"),
+                "right" to DriverActionArgument("boolean"),
+                "jump" to DriverActionArgument("boolean"),
+                "sneak" to DriverActionArgument("boolean"),
+                "sprint" to DriverActionArgument("boolean"),
+                "ticks" to DriverActionArgument("integer"),
+            ),
     )
 
 private fun testPlayerChatActionDescriptor(): DriverActionDescriptor =
     DriverActionDescriptor(
         id = "player.chat",
         schemaVersion = "1",
-        arguments = mapOf(
-            "message" to DriverActionArgument("string", required = true),
-        ),
+        arguments =
+            mapOf(
+                "message" to DriverActionArgument("string", required = true),
+            ),
     )
 
 private fun assertErrorSchema(response: OpenApiResponse) {

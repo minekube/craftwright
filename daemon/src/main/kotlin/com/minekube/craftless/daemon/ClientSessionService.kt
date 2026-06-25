@@ -29,32 +29,34 @@ class ClientSessionService private constructor(
         require(request.profile.name.length <= 16) { "offline profile name must be 16 characters or fewer" }
         require(!clients.containsKey(request.id)) { "client ${request.id} already exists" }
 
-        val instance = Instance(
-            id = "${request.id}-${request.version}-${request.loader.name.lowercase()}",
-            version = MinecraftVersion(request.version),
-            loader = request.loader,
-        )
-        val client = Client(
-            id = request.id,
-            instance = instance,
-            profile = request.profile,
-            state = ClientState.RUNNING,
-        )
+        val instance =
+            Instance(
+                id = "${request.id}-${request.version}-${request.loader.name.lowercase()}",
+                version = MinecraftVersion(request.version),
+                loader = request.loader,
+            )
+        val client =
+            Client(
+                id = request.id,
+                instance = instance,
+                profile = request.profile,
+                state = ClientState.RUNNING,
+            )
         clients[request.id] = client
         drivers[request.id] = driverFactory.create(request)
         return client
     }
 
-    fun listClients(): List<Client> =
-        clients.values.toList()
+    fun listClients(): List<Client> = clients.values.toList()
 
-    fun client(clientId: String): Client =
-        clients[clientId] ?: error("client $clientId not found")
+    fun client(clientId: String): Client = clients[clientId] ?: error("client $clientId not found")
 
-    fun driverFor(clientId: String): DriverSession =
-        drivers[clientId] ?: error("client $clientId not found")
+    fun driverFor(clientId: String): DriverSession = drivers[clientId] ?: error("client $clientId not found")
 
-    fun connectClient(clientId: String, target: ConnectionTarget): Client {
+    fun connectClient(
+        clientId: String,
+        target: ConnectionTarget,
+    ): Client {
         val snapshot = driverFor(clientId).connect(target)
         return updateState(clientId, snapshot.state)
     }
@@ -82,40 +84,47 @@ class ClientSessionService private constructor(
         val client = client(clientId)
         val driver = driverFor(clientId)
         val actions = driver.sortedActions()
-        val runtimeMetadata = RuntimeOpenApiMetadata.forClient(
-            client = client,
-            actions = actions,
-            metadata = driver.runtimeMetadata(),
-        )
+        val runtimeMetadata =
+            RuntimeOpenApiMetadata.forClient(
+                client = client,
+                actions = actions,
+                metadata = driver.runtimeMetadata(),
+            )
         return OpenApiDocument.from(
             catalog = ApiRouteCatalog(routesFor(clientId)),
             extensions = runtimeMetadata.extensions,
-            actions = actions.map { action ->
-                OpenApiAction(
-                    id = action.id,
-                    schemaVersion = action.schemaVersion,
-                    arguments = action.arguments.mapValues { (_, argument) ->
-                        OpenApiActionArgument(
-                            type = argument.type,
-                            required = argument.required,
-                        )
-                    },
-                )
-            },
+            actions =
+                actions.map { action ->
+                    OpenApiAction(
+                        id = action.id,
+                        schemaVersion = action.schemaVersion,
+                        arguments =
+                            action.arguments.mapValues { (_, argument) ->
+                                OpenApiActionArgument(
+                                    type = argument.type,
+                                    required = argument.required,
+                                )
+                            },
+                    )
+                },
         )
     }
 
     companion object {
         fun inMemory(
-            driverFactory: DriverSessionFactory = DriverSessionFactory { request ->
-                FakeDriverSession(
-                    clientId = request.id,
-                )
-            },
+            driverFactory: DriverSessionFactory =
+                DriverSessionFactory { request ->
+                    FakeDriverSession(
+                        clientId = request.id,
+                    )
+                },
         ): ClientSessionService = ClientSessionService(driverFactory)
     }
 
-    private fun updateState(clientId: String, state: ClientState): Client {
+    private fun updateState(
+        clientId: String,
+        state: ClientState,
+    ): Client {
         val updated = client(clientId).copy(state = state)
         clients[clientId] = updated
         return updated
@@ -124,10 +133,11 @@ class ClientSessionService private constructor(
 
 private fun DriverSession.sortedActions(): List<DriverActionDescriptor> {
     val actions = actions()
-    val duplicateAction = actions
-        .groupBy { it.id }
-        .entries
-        .firstOrNull { (_, matches) -> matches.size > 1 }
+    val duplicateAction =
+        actions
+            .groupBy { it.id }
+            .entries
+            .firstOrNull { (_, matches) -> matches.size > 1 }
     if (duplicateAction != null) {
         throw IllegalArgumentException("duplicate action id ${duplicateAction.key}")
     }
@@ -148,27 +158,29 @@ private data class RuntimeOpenApiMetadata(
             metadata: DriverRuntimeMetadata,
         ): RuntimeOpenApiMetadata {
             val actionFingerprint = actions.joinToString(",") { it.fingerprintPart() }
-            val actionSchemaVersions = actions
-                .map { it.schemaVersion }
-                .distinct()
-                .sorted()
-                .ifEmpty { listOf("none") }
-                .joinToString(",")
-            val extensions = linkedMapOf(
-                "x-craftless-client-id" to client.id,
-                "x-craftless-minecraft-version" to client.instance.version.id,
-                "x-craftless-loader" to client.instance.loader.name,
-                "x-craftless-loader-version" to metadata.loaderVersion,
-                "x-craftless-driver" to metadata.driver,
-                "x-craftless-driver-version" to metadata.driverVersion,
-                "x-craftless-mappings-fingerprint" to metadata.mappings,
-                "x-craftless-installed-mods-fingerprint" to metadata.installedModsFingerprint,
-                "x-craftless-registry-fingerprint" to metadata.registryFingerprint,
-                "x-craftless-server-feature-fingerprint" to metadata.serverFeatureFingerprint,
-                "x-craftless-permissions-fingerprint" to metadata.permissionsFingerprint,
-                "x-craftless-action-schema-versions" to actionSchemaVersions,
-                "x-craftless-action-fingerprint" to actionFingerprint,
-            )
+            val actionSchemaVersions =
+                actions
+                    .map { it.schemaVersion }
+                    .distinct()
+                    .sorted()
+                    .ifEmpty { listOf("none") }
+                    .joinToString(",")
+            val extensions =
+                linkedMapOf(
+                    "x-craftless-client-id" to client.id,
+                    "x-craftless-minecraft-version" to client.instance.version.id,
+                    "x-craftless-loader" to client.instance.loader.name,
+                    "x-craftless-loader-version" to metadata.loaderVersion,
+                    "x-craftless-driver" to metadata.driver,
+                    "x-craftless-driver-version" to metadata.driverVersion,
+                    "x-craftless-mappings-fingerprint" to metadata.mappings,
+                    "x-craftless-installed-mods-fingerprint" to metadata.installedModsFingerprint,
+                    "x-craftless-registry-fingerprint" to metadata.registryFingerprint,
+                    "x-craftless-server-feature-fingerprint" to metadata.serverFeatureFingerprint,
+                    "x-craftless-permissions-fingerprint" to metadata.permissionsFingerprint,
+                    "x-craftless-action-schema-versions" to actionSchemaVersions,
+                    "x-craftless-action-fingerprint" to actionFingerprint,
+                )
             extensions["x-craftless-runtime-fingerprint"] = runtimeFingerprint(client, metadata, actionFingerprint)
             return RuntimeOpenApiMetadata(extensions)
         }
@@ -177,29 +189,31 @@ private data class RuntimeOpenApiMetadata(
             client: Client,
             metadata: DriverRuntimeMetadata,
             actionFingerprint: String,
-        ): String = listOf(
-            "minecraft=${client.instance.version.id}",
-            "loader=${client.instance.loader.name}",
-            "loaderVersion=${metadata.loaderVersion}",
-            "driver=${metadata.driver}",
-            "driverVersion=${metadata.driverVersion}",
-            "mappings=${metadata.mappings}",
-            "mods=${metadata.installedModsFingerprint}",
-            "registries=${metadata.registryFingerprint}",
-            "serverFeatures=${metadata.serverFeatureFingerprint}",
-            "permissions=${metadata.permissionsFingerprint}",
-            "actions=$actionFingerprint",
-        ).joinToString(";")
+        ): String =
+            listOf(
+                "minecraft=${client.instance.version.id}",
+                "loader=${client.instance.loader.name}",
+                "loaderVersion=${metadata.loaderVersion}",
+                "driver=${metadata.driver}",
+                "driverVersion=${metadata.driverVersion}",
+                "mappings=${metadata.mappings}",
+                "mods=${metadata.installedModsFingerprint}",
+                "registries=${metadata.registryFingerprint}",
+                "serverFeatures=${metadata.serverFeatureFingerprint}",
+                "permissions=${metadata.permissionsFingerprint}",
+                "actions=$actionFingerprint",
+            ).joinToString(";")
     }
 }
 
 private fun DriverActionDescriptor.fingerprintPart(): String {
-    val argumentFingerprint = arguments.entries
-        .sortedBy { it.key }
-        .joinToString(",") { (name, argument) ->
-            val required = if (argument.required) "!" else ""
-            "$name:${argument.type}$required"
-        }
+    val argumentFingerprint =
+        arguments.entries
+            .sortedBy { it.key }
+            .joinToString(",") { (name, argument) ->
+                val required = if (argument.required) "!" else ""
+                "$name:${argument.type}$required"
+            }
     return "$id:$schemaVersion($argumentFingerprint)"
 }
 
@@ -212,18 +226,19 @@ private fun route(
     source: String,
     returnKind: String = "value",
     actionId: String? = null,
-): ApiRoute = ApiRoute(
-    method = method,
-    path = path,
-    operationId = operationId,
-    tag = tag,
-    owner = "clients",
-    member = member,
-    target = if (source == "action") "client" else "supervisor",
-    source = source,
-    returnKind = returnKind,
-    actionId = actionId,
-)
+): ApiRoute =
+    ApiRoute(
+        method = method,
+        path = path,
+        operationId = operationId,
+        tag = tag,
+        owner = "clients",
+        member = member,
+        target = if (source == "action") "client" else "supervisor",
+        source = source,
+        returnKind = returnKind,
+        actionId = actionId,
+    )
 
 private fun DriverActionDescriptor.toActionAliasRoute(clientId: String): ApiRoute? {
     val parts = id.split(".")

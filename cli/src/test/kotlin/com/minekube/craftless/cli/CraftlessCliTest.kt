@@ -16,7 +16,6 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.server.application.call
-import io.ktor.server.cio.CIO as ServerCIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
@@ -31,6 +30,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import io.ktor.server.cio.CIO as ServerCIO
 
 class CraftlessCliTest {
     @Test
@@ -51,15 +51,17 @@ class CraftlessCliTest {
         assertTrue("versions" !in commands)
         assertTrue("profiles" !in commands)
         assertTrue("test run" !in commands)
-        assertFalse(commands.any { path ->
-            path.contains("sendChat") ||
-                path.contains("player chat") ||
-                path.contains("player move") ||
-                path.contains("inventory") ||
-                path.contains("world") ||
-                path.contains("entity") ||
-                path.contains("raycast")
-        })
+        assertFalse(
+            commands.any { path ->
+                path.contains("sendChat") ||
+                    path.contains("player chat") ||
+                    path.contains("player move") ||
+                    path.contains("inventory") ||
+                    path.contains("world") ||
+                    path.contains("entity") ||
+                    path.contains("raycast")
+            },
+        )
     }
 
     @Test
@@ -67,11 +69,12 @@ class CraftlessCliTest {
         val output = StringBuilder()
         val errors = StringBuilder()
 
-        val exit = CraftlessCli.run(
-            listOf("versions"),
-            stdout = { output.appendLine(it) },
-            stderr = { errors.appendLine(it) },
-        )
+        val exit =
+            CraftlessCli.run(
+                listOf("versions"),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
 
         assertEquals(2, exit)
         assertEquals("", output.toString())
@@ -83,11 +86,12 @@ class CraftlessCliTest {
         val output = StringBuilder()
         val errors = StringBuilder()
 
-        val exit = CraftlessCli.run(
-            listOf("clients", "api", "--once"),
-            stdout = { output.appendLine(it) },
-            stderr = { errors.appendLine(it) },
-        )
+        val exit =
+            CraftlessCli.run(
+                listOf("clients", "api", "--once"),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
 
         assertEquals(2, exit)
         assertEquals("", output.toString())
@@ -99,17 +103,18 @@ class CraftlessCliTest {
         val output = StringBuilder()
         var versionStatus = 0
 
-        val exit = CraftlessCli.run(
-            listOf("server", "start", "--once"),
-            stdout = { output.appendLine(it) },
-            afterStart = { metadata ->
-                kotlinx.coroutines.runBlocking {
-                    HttpClient(CIO).use { http ->
-                        versionStatus = http.get("${metadata.url}/version").status.value
+        val exit =
+            CraftlessCli.run(
+                listOf("server", "start", "--once"),
+                stdout = { output.appendLine(it) },
+                afterStart = { metadata ->
+                    kotlinx.coroutines.runBlocking {
+                        HttpClient(CIO).use { http ->
+                            versionStatus = http.get("${metadata.url}/version").status.value
+                        }
                     }
-                }
-            },
-        )
+                },
+            )
 
         assertEquals(0, exit)
         assertEquals(200, versionStatus)
@@ -126,22 +131,23 @@ class CraftlessCliTest {
         val output = StringBuilder()
 
         LocalTestApiServer().use { server ->
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "create",
-                    "alice",
-                    "--api",
-                    server.url,
-                    "--version",
-                    "1.21.4",
-                    "--loader",
-                    "FABRIC",
-                    "--offline-name",
-                    "Alice",
-                ),
-                stdout = { output.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "create",
+                        "alice",
+                        "--api",
+                        server.url,
+                        "--version",
+                        "1.21.4",
+                        "--loader",
+                        "FABRIC",
+                        "--offline-name",
+                        "Alice",
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
 
             assertEquals(0, exit)
         }
@@ -158,15 +164,16 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "list",
-                    "--api",
-                    server.url,
-                ),
-                stdout = { output.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "list",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
 
             assertEquals(0, exit)
         }
@@ -183,24 +190,39 @@ class CraftlessCliTest {
             server.createAlice()
             server.createOfflineClient("bob", "Bob")
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "list",
-                    "--api",
-                    server.url,
-                    "--jsonl",
-                ),
-                stdout = { output.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "list",
+                        "--api",
+                        server.url,
+                        "--jsonl",
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
 
             assertEquals(0, exit)
         }
 
         val lines = output.lineSequence().filter { it.isNotBlank() }.toList()
         assertEquals(2, lines.size)
-        assertEquals("alice", Json.parseToJsonElement(lines[0]).jsonObject["id"]?.jsonPrimitive?.content)
-        assertEquals("bob", Json.parseToJsonElement(lines[1]).jsonObject["id"]?.jsonPrimitive?.content)
+        assertEquals(
+            "alice",
+            Json
+                .parseToJsonElement(lines[0])
+                .jsonObject["id"]
+                ?.jsonPrimitive
+                ?.content,
+        )
+        assertEquals(
+            "bob",
+            Json
+                .parseToJsonElement(lines[1])
+                .jsonObject["id"]
+                ?.jsonPrimitive
+                ?.content,
+        )
     }
 
     @Test
@@ -210,16 +232,17 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "get",
-                    "--api",
-                    server.url,
-                ),
-                stdout = { output.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "get",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
 
             assertEquals(0, exit)
         }
@@ -236,11 +259,12 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf("clients", "list"),
-                stdout = { output.appendLine(it) },
-                env = mapOf("CRAFTLESS" to server.url),
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf("clients", "list"),
+                    stdout = { output.appendLine(it) },
+                    env = mapOf("CRAFTLESS" to server.url),
+                )
 
             assertEquals(0, exit)
         }
@@ -256,13 +280,15 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf("clients", "list", "--api", server.url),
-                stdout = { output.appendLine(it) },
-                env = mapOf(
-                    "CRAFTLESS" to "http://127.0.0.1:1",
-                ),
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf("clients", "list", "--api", server.url),
+                    stdout = { output.appendLine(it) },
+                    env =
+                        mapOf(
+                            "CRAFTLESS" to "http://127.0.0.1:1",
+                        ),
+                )
 
             assertEquals(0, exit)
         }
@@ -278,20 +304,21 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "connect",
-                    "--api",
-                    server.url,
-                    "--host",
-                    "localhost",
-                    "--port",
-                    "25565",
-                ),
-                stdout = { output.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "connect",
+                        "--api",
+                        server.url,
+                        "--host",
+                        "localhost",
+                        "--port",
+                        "25565",
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
 
             assertEquals(0, exit)
         }
@@ -308,16 +335,17 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "stop",
-                    "--api",
-                    server.url,
-                ),
-                stdout = { output.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "stop",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
 
             assertEquals(0, exit)
         }
@@ -334,19 +362,20 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "run",
-                    "player.chat",
-                    "--api",
-                    server.url,
-                    "--arg",
-                    "message=hello from cli",
-                ),
-                stdout = { output.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "run",
+                        "player.chat",
+                        "--api",
+                        server.url,
+                        "--arg",
+                        "message=hello from cli",
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
 
             assertEquals(0, exit)
         }
@@ -365,18 +394,19 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "run",
-                    "player.fly",
-                    "--api",
-                    server.url,
-                ),
-                stdout = { output.appendLine(it) },
-                stderr = { errors.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "run",
+                        "player.fly",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
 
             assertEquals(1, exit)
         }
@@ -391,20 +421,21 @@ class CraftlessCliTest {
         val errors = StringBuilder()
 
         InconsistentOpenApiServer().use { server ->
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "run",
-                    "player.chat",
-                    "--api",
-                    server.url,
-                    "--arg",
-                    "message=hello",
-                ),
-                stdout = { output.appendLine(it) },
-                stderr = { errors.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "run",
+                        "player.chat",
+                        "--api",
+                        server.url,
+                        "--arg",
+                        "message=hello",
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
 
             assertEquals(1, exit)
             assertFalse(server.runCalled)
@@ -420,20 +451,21 @@ class CraftlessCliTest {
         val errors = StringBuilder()
 
         InconsistentAliasOpenApiServer().use { server ->
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "player",
-                    "chat",
-                    "--api",
-                    server.url,
-                    "--message",
-                    "hello",
-                ),
-                stdout = { output.appendLine(it) },
-                stderr = { errors.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "player",
+                        "chat",
+                        "--api",
+                        server.url,
+                        "--message",
+                        "hello",
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
 
             assertEquals(1, exit)
             assertFalse(server.aliasCalled)
@@ -449,20 +481,21 @@ class CraftlessCliTest {
         val errors = StringBuilder()
 
         MismatchedAliasOpenApiServer().use { server ->
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "player",
-                    "chat",
-                    "--api",
-                    server.url,
-                    "--message",
-                    "hello",
-                ),
-                stdout = { output.appendLine(it) },
-                stderr = { errors.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "player",
+                        "chat",
+                        "--api",
+                        server.url,
+                        "--message",
+                        "hello",
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
 
             assertEquals(1, exit)
             assertFalse(server.aliasCalled)
@@ -479,16 +512,17 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "actions",
-                    "--api",
-                    server.url,
-                ),
-                stdout = { output.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "actions",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
 
             assertEquals(0, exit)
         }
@@ -505,16 +539,17 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "openapi",
-                    "--api",
-                    server.url,
-                ),
-                stdout = { output.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "openapi",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
 
             assertEquals(0, exit)
         }
@@ -523,9 +558,11 @@ class CraftlessCliTest {
         val extensions = document["x-craftless"]?.jsonObject
         assertEquals("alice", extensions?.get("x-craftless-client-id")?.jsonPrimitive?.content)
         assertTrue(document["paths"]?.jsonObject?.containsKey("/clients/alice:run") == true)
-        assertTrue(document["x-craftless-actions"]?.jsonArray?.any {
-            it.jsonObject["id"]?.jsonPrimitive?.content == "player.chat"
-        } == true)
+        assertTrue(
+            document["x-craftless-actions"]?.jsonArray?.any {
+                it.jsonObject["id"]?.jsonPrimitive?.content == "player.chat"
+            } == true,
+        )
     }
 
     @Test
@@ -535,21 +572,22 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "run",
-                    "player.move",
-                    "--api",
-                    server.url,
-                    "--arg",
-                    "forward=true",
-                    "--arg",
-                    "ticks=20",
-                ),
-                stdout = { output.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "run",
+                        "player.move",
+                        "--api",
+                        server.url,
+                        "--arg",
+                        "forward=true",
+                        "--arg",
+                        "ticks=20",
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
 
             assertEquals(0, exit)
         }
@@ -567,22 +605,23 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "run",
-                    "player.chat",
-                    "--api",
-                    server.url,
-                    "--arg",
-                    "message=hello",
-                    "--arg",
-                    "surprise=value",
-                ),
-                stdout = { output.appendLine(it) },
-                stderr = { errors.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "run",
+                        "player.chat",
+                        "--api",
+                        server.url,
+                        "--arg",
+                        "message=hello",
+                        "--arg",
+                        "surprise=value",
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
 
             assertEquals(2, exit)
         }
@@ -599,18 +638,19 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "run",
-                    "player.chat",
-                    "--api",
-                    server.url,
-                ),
-                stdout = { output.appendLine(it) },
-                stderr = { errors.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "run",
+                        "player.chat",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
 
             assertEquals(2, exit)
         }
@@ -626,19 +666,20 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "player",
-                    "chat",
-                    "--api",
-                    server.url,
-                    "--message",
-                    "hello from alias cli",
-                ),
-                stdout = { output.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "player",
+                        "chat",
+                        "--api",
+                        server.url,
+                        "--message",
+                        "hello from alias cli",
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
 
             assertEquals(0, exit)
         }
@@ -656,18 +697,19 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "player",
-                    "chat",
-                    "hello from positional alias",
-                    "--api",
-                    server.url,
-                ),
-                stdout = { output.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "player",
+                        "chat",
+                        "hello from positional alias",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
 
             assertEquals(0, exit)
         }
@@ -686,18 +728,19 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "player",
-                    "chat",
-                    "--api",
-                    server.url,
-                ),
-                stdout = { output.appendLine(it) },
-                stderr = { errors.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "player",
+                        "chat",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
 
             assertEquals(2, exit)
         }
@@ -714,22 +757,23 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "player",
-                    "chat",
-                    "--api",
-                    server.url,
-                    "--arg",
-                    "message=hello",
-                    "--arg",
-                    "surprise=value",
-                ),
-                stdout = { output.appendLine(it) },
-                stderr = { errors.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "player",
+                        "chat",
+                        "--api",
+                        server.url,
+                        "--arg",
+                        "message=hello",
+                        "--arg",
+                        "surprise=value",
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
 
             assertEquals(2, exit)
         }
@@ -745,20 +789,21 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "player",
-                    "move",
-                    "--api",
-                    server.url,
-                    "--forward",
-                    "--ticks",
-                    "20",
-                ),
-                stdout = { output.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "player",
+                        "move",
+                        "--api",
+                        server.url,
+                        "--forward",
+                        "--ticks",
+                        "20",
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
 
             assertEquals(0, exit)
         }
@@ -776,19 +821,20 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "player",
-                    "move",
-                    "--help",
-                    "--api",
-                    server.url,
-                ),
-                stdout = { output.appendLine(it) },
-                stderr = { errors.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "player",
+                        "move",
+                        "--help",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
 
             assertEquals(0, exit)
         }
@@ -810,19 +856,20 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "player",
-                    "fly",
-                    "--help",
-                    "--api",
-                    server.url,
-                ),
-                stdout = { output.appendLine(it) },
-                stderr = { errors.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "player",
+                        "fly",
+                        "--help",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
 
             assertEquals(1, exit)
         }
@@ -839,18 +886,19 @@ class CraftlessCliTest {
         LocalTestApiServer().use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "player",
-                    "fly",
-                    "--api",
-                    server.url,
-                ),
-                stdout = { output.appendLine(it) },
-                stderr = { errors.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "player",
+                        "fly",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
 
             assertEquals(1, exit)
         }
@@ -865,20 +913,21 @@ class CraftlessCliTest {
         val errors = StringBuilder()
 
         LocalTestApiServer().use { server ->
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "missing",
-                    "run",
-                    "player.chat",
-                    "--api",
-                    server.url,
-                    "--arg",
-                    "message=hello",
-                ),
-                stdout = { output.appendLine(it) },
-                stderr = { errors.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "missing",
+                        "run",
+                        "player.chat",
+                        "--api",
+                        server.url,
+                        "--arg",
+                        "message=hello",
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
 
             assertEquals(1, exit)
         }
@@ -893,26 +942,28 @@ class CraftlessCliTest {
         val errors = StringBuilder()
 
         LocalTestApiServer(
-            driverFactory = DriverSessionFactory { request ->
-                FailingActionDriver(FakeDriverSession(request.id))
-            },
+            driverFactory =
+                DriverSessionFactory { request ->
+                    FailingActionDriver(FakeDriverSession(request.id))
+                },
         ).use { server ->
             server.createAlice()
 
-            val exit = CraftlessCli.run(
-                listOf(
-                    "clients",
-                    "alice",
-                    "run",
-                    "player.fail",
-                    "--api",
-                    server.url,
-                    "--arg",
-                    "message=boom",
-                ),
-                stdout = { output.appendLine(it) },
-                stderr = { errors.appendLine(it) },
-            )
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "run",
+                        "player.fail",
+                        "--api",
+                        server.url,
+                        "--arg",
+                        "message=boom",
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
 
             assertEquals(1, exit)
         }
@@ -923,13 +974,15 @@ class CraftlessCliTest {
     }
 
     private class LocalTestApiServer(
-        driverFactory: DriverSessionFactory = DriverSessionFactory { request ->
-            FakeDriverSession(request.id)
-        },
+        driverFactory: DriverSessionFactory =
+            DriverSessionFactory { request ->
+                FakeDriverSession(request.id)
+            },
     ) : AutoCloseable {
-        private val server = com.minekube.craftless.daemon.LocalSessionApiServer.inMemory(
-            driverFactory = driverFactory,
-        )
+        private val server =
+            com.minekube.craftless.daemon.LocalSessionApiServer.inMemory(
+                driverFactory = driverFactory,
+            )
         val url: String
 
         init {
@@ -941,7 +994,10 @@ class CraftlessCliTest {
             createOfflineClient("alice", "Alice")
         }
 
-        fun createOfflineClient(id: String, name: String) {
+        fun createOfflineClient(
+            id: String,
+            name: String,
+        ) {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
                     http.post("$url/clients") {
@@ -954,7 +1010,7 @@ class CraftlessCliTest {
                               "loader": "FABRIC",
                               "profile": { "kind": "OFFLINE", "name": "$name" }
                             }
-                            """.trimIndent()
+                            """.trimIndent(),
                         )
                     }
                 }
@@ -970,13 +1026,15 @@ class CraftlessCliTest {
         private val delegate: DriverSession,
     ) : DriverSession by delegate {
         override fun actions(): List<DriverActionDescriptor> =
-            delegate.actions() + DriverActionDescriptor(
-                id = "player.fail",
-                schemaVersion = "1",
-                arguments = mapOf(
-                    "message" to DriverActionArgument("string", required = true),
-                ),
-            )
+            delegate.actions() +
+                DriverActionDescriptor(
+                    id = "player.fail",
+                    schemaVersion = "1",
+                    arguments =
+                        mapOf(
+                            "message" to DriverActionArgument("string", required = true),
+                        ),
+                )
 
         override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
             if (invocation.action == "player.fail") {
@@ -992,45 +1050,46 @@ class CraftlessCliTest {
 
     private class InconsistentOpenApiServer : AutoCloseable {
         private val port = allocateLoopbackPort()
-        private val server = embeddedServer(ServerCIO, host = "127.0.0.1", port = port) {
-            routing {
-                get("/clients/alice/actions") {
-                    call.respondText(
-                        """
-                        [
-                          {
-                            "id": "player.chat",
-                            "schemaVersion": "1",
-                            "args": { "message": { "type": "string", "required": true } }
-                          }
-                        ]
-                        """.trimIndent(),
-                        ContentType.Application.Json,
-                    )
-                }
-                get("/clients/alice/openapi.json") {
-                    call.respondText(
-                        """
-                        {
-                          "openapi": "3.1.0",
-                          "info": { "title": "Inconsistent test API", "version": "1" },
-                          "paths": {},
-                          "x-craftless": {},
-                          "x-craftless-actions": []
-                        }
-                        """.trimIndent(),
-                        ContentType.Application.Json,
-                    )
-                }
-                post("/clients/alice:run") {
-                    runCalled = true
-                    call.respondText(
-                        """{"action":"player.chat","status":"ACCEPTED","message":"should not run"}""",
-                        ContentType.Application.Json,
-                    )
+        private val server =
+            embeddedServer(ServerCIO, host = "127.0.0.1", port = port) {
+                routing {
+                    get("/clients/alice/actions") {
+                        call.respondText(
+                            """
+                            [
+                              {
+                                "id": "player.chat",
+                                "schemaVersion": "1",
+                                "args": { "message": { "type": "string", "required": true } }
+                              }
+                            ]
+                            """.trimIndent(),
+                            ContentType.Application.Json,
+                        )
+                    }
+                    get("/clients/alice/openapi.json") {
+                        call.respondText(
+                            """
+                            {
+                              "openapi": "3.1.0",
+                              "info": { "title": "Inconsistent test API", "version": "1" },
+                              "paths": {},
+                              "x-craftless": {},
+                              "x-craftless-actions": []
+                            }
+                            """.trimIndent(),
+                            ContentType.Application.Json,
+                        )
+                    }
+                    post("/clients/alice:run") {
+                        runCalled = true
+                        call.respondText(
+                            """{"action":"player.chat","status":"ACCEPTED","message":"should not run"}""",
+                            ContentType.Application.Json,
+                        )
+                    }
                 }
             }
-        }
         val url = "http://127.0.0.1:$port"
         var runCalled: Boolean = false
             private set
@@ -1052,61 +1111,62 @@ class CraftlessCliTest {
 
     private class InconsistentAliasOpenApiServer : AutoCloseable {
         private val port = allocateLoopbackPort()
-        private val server = embeddedServer(ServerCIO, host = "127.0.0.1", port = port) {
-            routing {
-                get("/clients/alice/actions") {
-                    call.respondText(
-                        """
-                        [
-                          {
-                            "id": "player.chat",
-                            "schemaVersion": "1",
-                            "args": { "message": { "type": "string", "required": true } }
-                          }
-                        ]
-                        """.trimIndent(),
-                        ContentType.Application.Json,
-                    )
-                }
-                get("/clients/alice/openapi.json") {
-                    call.respondText(
-                        """
-                        {
-                          "openapi": "3.1.0",
-                          "info": { "title": "Inconsistent alias API", "version": "1" },
-                          "paths": {
-                            "/clients/alice/player:chat": {
-                              "post": {
-                                "operationId": "runPlayerChat",
-                                "tags": ["clients"],
-                                "responses": { "200": { "description": "OK" } },
-                                "x-craftless": {
-                                  "x-craftless-owner": "clients",
-                                  "x-craftless-target": "client",
-                                  "x-craftless-return": "value",
-                                  "x-craftless-source": "action",
-                                  "x-craftless-member": "run",
-                                  "x-craftless-action": "player.chat"
-                                }
+        private val server =
+            embeddedServer(ServerCIO, host = "127.0.0.1", port = port) {
+                routing {
+                    get("/clients/alice/actions") {
+                        call.respondText(
+                            """
+                            [
+                              {
+                                "id": "player.chat",
+                                "schemaVersion": "1",
+                                "args": { "message": { "type": "string", "required": true } }
                               }
+                            ]
+                            """.trimIndent(),
+                            ContentType.Application.Json,
+                        )
+                    }
+                    get("/clients/alice/openapi.json") {
+                        call.respondText(
+                            """
+                            {
+                              "openapi": "3.1.0",
+                              "info": { "title": "Inconsistent alias API", "version": "1" },
+                              "paths": {
+                                "/clients/alice/player:chat": {
+                                  "post": {
+                                    "operationId": "runPlayerChat",
+                                    "tags": ["clients"],
+                                    "responses": { "200": { "description": "OK" } },
+                                    "x-craftless": {
+                                      "x-craftless-owner": "clients",
+                                      "x-craftless-target": "client",
+                                      "x-craftless-return": "value",
+                                      "x-craftless-source": "action",
+                                      "x-craftless-member": "run",
+                                      "x-craftless-action": "player.chat"
+                                    }
+                                  }
+                                }
+                              },
+                              "x-craftless": {},
+                              "x-craftless-actions": []
                             }
-                          },
-                          "x-craftless": {},
-                          "x-craftless-actions": []
-                        }
-                        """.trimIndent(),
-                        ContentType.Application.Json,
-                    )
-                }
-                post("/clients/alice/player:chat") {
-                    aliasCalled = true
-                    call.respondText(
-                        """{"action":"player.chat","status":"ACCEPTED","message":"should not run"}""",
-                        ContentType.Application.Json,
-                    )
+                            """.trimIndent(),
+                            ContentType.Application.Json,
+                        )
+                    }
+                    post("/clients/alice/player:chat") {
+                        aliasCalled = true
+                        call.respondText(
+                            """{"action":"player.chat","status":"ACCEPTED","message":"should not run"}""",
+                            ContentType.Application.Json,
+                        )
+                    }
                 }
             }
-        }
         val url = "http://127.0.0.1:$port"
         var aliasCalled: Boolean = false
             private set
@@ -1128,67 +1188,68 @@ class CraftlessCliTest {
 
     private class MismatchedAliasOpenApiServer : AutoCloseable {
         private val port = allocateLoopbackPort()
-        private val server = embeddedServer(ServerCIO, host = "127.0.0.1", port = port) {
-            routing {
-                get("/clients/alice/actions") {
-                    call.respondText(
-                        """
-                        [
-                          {
-                            "id": "player.chat",
-                            "schemaVersion": "1",
-                            "args": { "message": { "type": "string", "required": true } }
-                          }
-                        ]
-                        """.trimIndent(),
-                        ContentType.Application.Json,
-                    )
-                }
-                get("/clients/alice/openapi.json") {
-                    call.respondText(
-                        """
-                        {
-                          "openapi": "3.1.0",
-                          "info": { "title": "Mismatched alias API", "version": "1" },
-                          "paths": {
-                            "/clients/alice/player:chat": {
-                              "post": {
-                                "operationId": "runPlayerChat",
-                                "tags": ["clients"],
-                                "responses": { "200": { "description": "OK" } },
-                                "x-craftless": {
-                                  "x-craftless-owner": "clients",
-                                  "x-craftless-target": "client",
-                                  "x-craftless-return": "value",
-                                  "x-craftless-source": "action",
-                                  "x-craftless-member": "run",
-                                  "x-craftless-action": "player.move"
-                                }
+        private val server =
+            embeddedServer(ServerCIO, host = "127.0.0.1", port = port) {
+                routing {
+                    get("/clients/alice/actions") {
+                        call.respondText(
+                            """
+                            [
+                              {
+                                "id": "player.chat",
+                                "schemaVersion": "1",
+                                "args": { "message": { "type": "string", "required": true } }
                               }
-                            }
-                          },
-                          "x-craftless": {},
-                          "x-craftless-actions": [
+                            ]
+                            """.trimIndent(),
+                            ContentType.Application.Json,
+                        )
+                    }
+                    get("/clients/alice/openapi.json") {
+                        call.respondText(
+                            """
                             {
-                              "id": "player.chat",
-                              "schemaVersion": "1",
-                              "args": { "message": { "type": "string", "required": true } }
+                              "openapi": "3.1.0",
+                              "info": { "title": "Mismatched alias API", "version": "1" },
+                              "paths": {
+                                "/clients/alice/player:chat": {
+                                  "post": {
+                                    "operationId": "runPlayerChat",
+                                    "tags": ["clients"],
+                                    "responses": { "200": { "description": "OK" } },
+                                    "x-craftless": {
+                                      "x-craftless-owner": "clients",
+                                      "x-craftless-target": "client",
+                                      "x-craftless-return": "value",
+                                      "x-craftless-source": "action",
+                                      "x-craftless-member": "run",
+                                      "x-craftless-action": "player.move"
+                                    }
+                                  }
+                                }
+                              },
+                              "x-craftless": {},
+                              "x-craftless-actions": [
+                                {
+                                  "id": "player.chat",
+                                  "schemaVersion": "1",
+                                  "args": { "message": { "type": "string", "required": true } }
+                                }
+                              ]
                             }
-                          ]
-                        }
-                        """.trimIndent(),
-                        ContentType.Application.Json,
-                    )
-                }
-                post("/clients/alice/player:chat") {
-                    aliasCalled = true
-                    call.respondText(
-                        """{"action":"player.chat","status":"ACCEPTED","message":"should not run"}""",
-                        ContentType.Application.Json,
-                    )
+                            """.trimIndent(),
+                            ContentType.Application.Json,
+                        )
+                    }
+                    post("/clients/alice/player:chat") {
+                        aliasCalled = true
+                        call.respondText(
+                            """{"action":"player.chat","status":"ACCEPTED","message":"should not run"}""",
+                            ContentType.Application.Json,
+                        )
+                    }
                 }
             }
-        }
         val url = "http://127.0.0.1:$port"
         var aliasCalled: Boolean = false
             private set

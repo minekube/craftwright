@@ -19,13 +19,13 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
-import java.nio.file.Files
-import java.nio.file.Path
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.concurrent.thread
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -67,71 +67,82 @@ data class FabricClientSmokeController(
         gateway: FabricClientGateway,
         pollInterval: Duration,
     ) {
-        LocalSessionApiServer.inMemory(
-            driverFactory = DriverSessionFactory { request ->
-                BackendDriverSession(clientId = request.id, backend = backend)
-            },
-        ).use { api ->
-            api.start()
-            HttpClient(CIO).use { http ->
-                http.postJson(
-                    api.url("/clients"),
-                    CreateClientRequest(
-                        id = SMOKE_CLIENT_ID,
-                        version = MINECRAFT_VERSION,
-                        loader = Loader.FABRIC,
-                        profile = Profile.offline(SMOKE_PROFILE),
-                    ),
-                )
-                val openApi = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/openapi.json"))
-                val actions = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/actions"))
-                writeArtifact("client-openapi.json", openApi)
-                writeArtifact("client-actions.json", actions)
-                writeArtifact("runtime-metadata.json", smokeJson.encodeToString(backend.runtimeMetadata(SMOKE_CLIENT_ID)))
+        LocalSessionApiServer
+            .inMemory(
+                driverFactory =
+                    DriverSessionFactory { request ->
+                        BackendDriverSession(clientId = request.id, backend = backend)
+                    },
+            ).use { api ->
+                api.start()
+                HttpClient(CIO).use { http ->
+                    http.postJson(
+                        api.url("/clients"),
+                        CreateClientRequest(
+                            id = SMOKE_CLIENT_ID,
+                            version = MINECRAFT_VERSION,
+                            loader = Loader.FABRIC,
+                            profile = Profile.offline(SMOKE_PROFILE),
+                        ),
+                    )
+                    val openApi = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/openapi.json"))
+                    val actions = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/actions"))
+                    writeArtifact("client-openapi.json", openApi)
+                    writeArtifact("client-actions.json", actions)
+                    writeArtifact("runtime-metadata.json", smokeJson.encodeToString(backend.runtimeMetadata(SMOKE_CLIENT_ID)))
 
-                if (gateway.awaitReadyToConnect(connectTimeout, pollInterval)) {
-                    Thread.sleep(startupSettleDelay.inWholeMilliseconds)
-                    http.postJson(
-                        api.url("/clients/$SMOKE_CLIENT_ID:connect"),
-                        ConnectRequest(host = target.host, port = target.port),
-                    )
-                }
-                if (gateway.awaitConnected(connectTimeout, pollInterval)) {
-                    http.postJson(
-                        api.url("/clients/$SMOKE_CLIENT_ID:run"),
-                        ActionInvocationRequest(
-                            action = "player.chat",
-                            args = mapOf("message" to JsonPrimitive(chatMessage)),
-                        ),
-                    )
-                    http.postJson(
-                        api.url("/clients/$SMOKE_CLIENT_ID:run"),
-                        ActionInvocationRequest(
-                            action = "player.move",
-                            args = mapOf(
-                                "forward" to JsonPrimitive(true),
-                                "ticks" to JsonPrimitive(20),
+                    if (gateway.awaitReadyToConnect(connectTimeout, pollInterval)) {
+                        Thread.sleep(startupSettleDelay.inWholeMilliseconds)
+                        http.postJson(
+                            api.url("/clients/$SMOKE_CLIENT_ID:connect"),
+                            ConnectRequest(host = target.host, port = target.port),
+                        )
+                    }
+                    if (gateway.awaitConnected(connectTimeout, pollInterval)) {
+                        http.postJson(
+                            api.url("/clients/$SMOKE_CLIENT_ID:run"),
+                            ActionInvocationRequest(
+                                action = "player.chat",
+                                args = mapOf("message" to JsonPrimitive(chatMessage)),
                             ),
-                        ),
-                    )
+                        )
+                        http.postJson(
+                            api.url("/clients/$SMOKE_CLIENT_ID:run"),
+                            ActionInvocationRequest(
+                                action = "player.move",
+                                args =
+                                    mapOf(
+                                        "forward" to JsonPrimitive(true),
+                                        "ticks" to JsonPrimitive(20),
+                                    ),
+                            ),
+                        )
+                    }
+                    val events = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/events"))
+                    writeJsonArrayLinesArtifact("client-events.jsonl", events)
+                    http.post(api.url("/clients/$SMOKE_CLIENT_ID:stop")).expectSuccess()
                 }
-                val events = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/events"))
-                writeJsonArrayLinesArtifact("client-events.jsonl", events)
-                http.post(api.url("/clients/$SMOKE_CLIENT_ID:stop")).expectSuccess()
             }
-        }
     }
 
-    private fun writeArtifact(name: String, content: String) {
+    private fun writeArtifact(
+        name: String,
+        content: String,
+    ) {
         val dir = artifactsDir ?: return
         Files.createDirectories(dir)
         Files.writeString(dir.resolve(name), content)
     }
 
-    private fun writeJsonArrayLinesArtifact(name: String, content: String) {
-        val lines = smokeJson.parseToJsonElement(content)
-            .jsonArray
-            .joinToString(separator = "\n", postfix = "\n") { it.toString() }
+    private fun writeJsonArrayLinesArtifact(
+        name: String,
+        content: String,
+    ) {
+        val lines =
+            smokeJson
+                .parseToJsonElement(content)
+                .jsonArray
+                .joinToString(separator = "\n", postfix = "\n") { it.toString() }
         writeArtifact(name, lines)
     }
 
@@ -150,25 +161,24 @@ data class FabricClientSmokeController(
         fun fromEnvironment(env: Map<String, String> = System.getenv()): FabricClientSmokeController =
             FabricClientSmokeController(
                 enabled = env.isEnabled(ENABLED),
-                target = ConnectionTarget(
-                    host = env[HOST]?.takeIf { it.isNotBlank() } ?: "127.0.0.1",
-                    port = env[PORT]?.toIntStrict(PORT) ?: 25565,
-                ),
-                chatMessage = env[CHAT_MESSAGE]?.takeIf { it.isNotBlank() }
-                    ?: "hello from Craftless Fabric smoke",
+                target =
+                    ConnectionTarget(
+                        host = env[HOST]?.takeIf { it.isNotBlank() } ?: "127.0.0.1",
+                        port = env[PORT]?.toIntStrict(PORT) ?: 25565,
+                    ),
+                chatMessage =
+                    env[CHAT_MESSAGE]?.takeIf { it.isNotBlank() }
+                        ?: "hello from Craftless Fabric smoke",
                 connectTimeout = (env[CONNECT_TIMEOUT]?.toLongStrict(CONNECT_TIMEOUT) ?: 30_000).milliseconds,
                 startupSettleDelay = (env[STARTUP_SETTLE]?.toLongStrict(STARTUP_SETTLE) ?: 0).milliseconds,
                 artifactsDir = env[ARTIFACTS_DIR]?.takeIf { it.isNotBlank() }?.let(Path::of),
             )
 
-        private fun Map<String, String>.isEnabled(name: String): Boolean =
-            this[name] == "1" || this[name].equals("true", ignoreCase = true)
+        private fun Map<String, String>.isEnabled(name: String): Boolean = this[name] == "1" || this[name].equals("true", ignoreCase = true)
 
-        private fun String.toIntStrict(name: String): Int =
-            toIntOrNull() ?: error("$name must be an integer")
+        private fun String.toIntStrict(name: String): Int = toIntOrNull() ?: error("$name must be an integer")
 
-        private fun String.toLongStrict(name: String): Long =
-            toLongOrNull() ?: error("$name must be a long integer")
+        private fun String.toLongStrict(name: String): Long = toLongOrNull() ?: error("$name must be a long integer")
     }
 }
 
@@ -176,10 +186,11 @@ private suspend inline fun <reified T> HttpClient.postJson(
     url: String,
     value: T,
 ): String {
-    val response = post(url) {
-        header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-        setBody(smokeJson.encodeToString(value))
-    }
+    val response =
+        post(url) {
+            header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            setBody(smokeJson.encodeToString(value))
+        }
     response.expectSuccess()
     return response.bodyAsText()
 }
@@ -196,10 +207,11 @@ private suspend fun HttpResponse.expectSuccess() {
     }
 }
 
-private val smokeJson = Json {
-    encodeDefaults = true
-    ignoreUnknownKeys = true
-}
+private val smokeJson =
+    Json {
+        encodeDefaults = true
+        ignoreUnknownKeys = true
+    }
 
 private fun FabricClientGateway.awaitConnected(
     timeout: Duration,

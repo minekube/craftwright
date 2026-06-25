@@ -157,6 +157,8 @@ Install and run pinned tools through `mise`:
 ```sh
 mise install
 mise run ci
+mise run lint
+mise run lint-fix
 mise exec -- gradle test
 ```
 

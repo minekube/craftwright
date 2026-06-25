@@ -7,11 +7,12 @@ import kotlin.test.assertFailsWith
 class ClientModelsTest {
     @Test
     fun `instance file layout uses craftless owned paths learned from prism structure`() {
-        val instance = Instance(
-            id = "alice-1.21.6-fabric",
-            version = MinecraftVersion("1.21.6"),
-            loader = Loader.FABRIC,
-        )
+        val instance =
+            Instance(
+                id = "alice-1.21.6-fabric",
+                version = MinecraftVersion("1.21.6"),
+                loader = Loader.FABRIC,
+            )
 
         assertEquals("instances/alice-1.21.6-fabric", instance.files.root)
         assertEquals("instances/alice-1.21.6-fabric/minecraft", instance.files.gameRoot)

@@ -21,16 +21,21 @@ class OpenApiGenerationTest {
         assertEquals("client", operation.extensions["x-craftless-target"])
         assertEquals("action", operation.extensions["x-craftless-source"])
         assertEquals("run", operation.extensions["x-craftless-member"])
-        val schema = operation.requestBody?.content?.get("application/json")?.schema
+        val schema =
+            operation.requestBody
+                ?.content
+                ?.get("application/json")
+                ?.schema
         assertNotNull(schema)
         assertEquals("object", schema.type)
         assertEquals(listOf("action"), schema.required)
         assertEquals("string", schema.properties["action"]?.type)
         assertEquals("object", schema.properties["args"]?.type)
-        val responseSchema = operation.responses["200"]
-            ?.content
-            ?.get("application/json")
-            ?.schema
+        val responseSchema =
+            operation.responses["200"]
+                ?.content
+                ?.get("application/json")
+                ?.schema
         assertNotNull(responseSchema)
         assertEquals("object", responseSchema.type)
         assertEquals(listOf("action", "status"), responseSchema.required)
@@ -41,17 +46,19 @@ class OpenApiGenerationTest {
 
     @Test
     fun `openapi document rejects duplicate action ids`() {
-        val action = OpenApiAction(
-            id = "player.chat",
-            schemaVersion = "1",
-        )
-
-        val error = assertFailsWith<IllegalArgumentException> {
-            OpenApiDocument.from(
-                catalog = ApiRouteCatalog.sessionDefaults(),
-                actions = listOf(action, action.copy(schemaVersion = "2")),
+        val action =
+            OpenApiAction(
+                id = "player.chat",
+                schemaVersion = "1",
             )
-        }
+
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                OpenApiDocument.from(
+                    catalog = ApiRouteCatalog.sessionDefaults(),
+                    actions = listOf(action, action.copy(schemaVersion = "2")),
+                )
+            }
 
         assertEquals("duplicate action id player.chat", error.message)
     }
@@ -116,11 +123,13 @@ class OpenApiGenerationTest {
         assertNotNull(versionOperation)
         assertEquals("supervisor", versionOperation.extensions["x-craftless-target"])
 
-        val createSchema = document.paths["/clients"]?.post
-            ?.requestBody
-            ?.content
-            ?.get("application/json")
-            ?.schema
+        val createSchema =
+            document.paths["/clients"]
+                ?.post
+                ?.requestBody
+                ?.content
+                ?.get("application/json")
+                ?.schema
         assertNotNull(createSchema)
         assertEquals("object", createSchema.type)
         assertEquals(listOf("id", "version", "loader", "profile"), createSchema.required)
@@ -134,11 +143,13 @@ class OpenApiGenerationTest {
         assertEquals("string", profileSchema.properties["kind"]?.type)
         assertEquals("string", profileSchema.properties["name"]?.type)
 
-        val connectSchema = document.paths["/clients/{id}:connect"]?.post
-            ?.requestBody
-            ?.content
-            ?.get("application/json")
-            ?.schema
+        val connectSchema =
+            document.paths["/clients/{id}:connect"]
+                ?.post
+                ?.requestBody
+                ?.content
+                ?.get("application/json")
+                ?.schema
         assertNotNull(connectSchema)
         assertEquals("object", connectSchema.type)
         assertEquals(listOf("host", "port"), connectSchema.required)
@@ -220,14 +231,11 @@ class OpenApiGenerationTest {
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:stop"]?.post?.errorSchema("404")))
     }
 
-    private fun OpenApiOperation.okSchema(): OpenApiSchema? =
-        successSchema("200")
+    private fun OpenApiOperation.okSchema(): OpenApiSchema? = successSchema("200")
 
-    private fun OpenApiOperation.successSchema(status: String): OpenApiSchema? =
-        responses[status]?.content?.get("application/json")?.schema
+    private fun OpenApiOperation.successSchema(status: String): OpenApiSchema? = responses[status]?.content?.get("application/json")?.schema
 
-    private fun OpenApiOperation.errorSchema(status: String): OpenApiSchema? =
-        responses[status]?.content?.get("application/json")?.schema
+    private fun OpenApiOperation.errorSchema(status: String): OpenApiSchema? = responses[status]?.content?.get("application/json")?.schema
 
     private fun assertErrorSchema(schema: OpenApiSchema) {
         assertEquals("object", schema.type)

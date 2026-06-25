@@ -11,11 +11,12 @@ import kotlin.test.assertTrue
 class NamespacePolicyTest {
     @Test
     fun `repository policy scanner sees sibling modules`() {
-        val violations = repositoryContentViolations(
-            include = { path -> path.name == "HmcBridgeDriverBackend.kt" },
-        ) { contents ->
-            contents.contains("class HmcBridgeDriverBackend")
-        }
+        val violations =
+            repositoryContentViolations(
+                include = { path -> path.name == "HmcBridgeDriverBackend.kt" },
+            ) { contents ->
+                contents.contains("class HmcBridgeDriverBackend")
+            }
 
         assertTrue(
             violations.contains("driver-runtime/src/main/kotlin/com/minekube/craftless/driver/runtime/HmcBridgeDriverBackend.kt"),
@@ -27,9 +28,10 @@ class NamespacePolicyTest {
     fun `repository uses minekube com namespace`() {
         val previousPackage = "dev" + ".minekube"
         val previousDomain = "minekube" + ".dev"
-        val violations = repositoryContentViolations { contents ->
-            contents.contains(previousPackage) || contents.contains(previousDomain)
-        }
+        val violations =
+            repositoryContentViolations { contents ->
+                contents.contains(previousPackage) || contents.contains(previousDomain)
+            }
 
         assertTrue(
             violations.isEmpty(),
@@ -41,9 +43,10 @@ class NamespacePolicyTest {
     fun `repository uses craftless product naming`() {
         val previousBrand = "Craft" + "wright"
         val previousBrandLower = "craft" + "wright"
-        val violations = repositoryContentViolations { contents ->
-            contents.contains(previousBrand) || contents.contains(previousBrandLower)
-        }
+        val violations =
+            repositoryContentViolations { contents ->
+                contents.contains(previousBrand) || contents.contains(previousBrandLower)
+            }
 
         assertTrue(
             violations.isEmpty(),
@@ -53,23 +56,26 @@ class NamespacePolicyTest {
 
     @Test
     fun `kotlin sources avoid forbidden http implementations`() {
-        val forbiddenImports = listOf(
-            "java.net" + ".http",
-            "com.sun.net" + ".httpserver",
-            "ok" + "http3",
-            "Ok" + "Http",
-        )
-        val forbiddenHttpEnums = listOf(
-            "enum class Http" + "Method",
-            "enum class HTTP" + "Method",
-            "sealed class Http" + "Method",
-            "object Http" + "Method",
-        )
-        val violations = repositoryContentViolations(
-            include = { path -> path.name.endsWith(".kt") || path.name.endsWith(".kts") },
-        ) { contents ->
-            forbiddenImports.any(contents::contains) || forbiddenHttpEnums.any(contents::contains)
-        }
+        val forbiddenImports =
+            listOf(
+                "java.net" + ".http",
+                "com.sun.net" + ".httpserver",
+                "ok" + "http3",
+                "Ok" + "Http",
+            )
+        val forbiddenHttpEnums =
+            listOf(
+                "enum class Http" + "Method",
+                "enum class HTTP" + "Method",
+                "sealed class Http" + "Method",
+                "object Http" + "Method",
+            )
+        val violations =
+            repositoryContentViolations(
+                include = { path -> path.name.endsWith(".kt") || path.name.endsWith(".kts") },
+            ) { contents ->
+                forbiddenImports.any(contents::contains) || forbiddenHttpEnums.any(contents::contains)
+            }
 
         assertTrue(
             violations.isEmpty(),
@@ -80,14 +86,15 @@ class NamespacePolicyTest {
     @Test
     fun `javascript helper sources stay scoped to playwright`() {
         val root = repositoryRoot()
-        val violations = Files.walk(root).use { paths ->
-            paths
-                .filter { path -> path.isJavaScriptHelperFile() }
-                .filter { path -> !root.relativize(path).pathString.startsWith("playwright/") }
-                .map { path -> root.relativize(path).pathString }
-                .sorted()
-                .toList()
-        }
+        val violations =
+            Files.walk(root).use { paths ->
+                paths
+                    .filter { path -> path.isJavaScriptHelperFile() }
+                    .filter { path -> !root.relativize(path).pathString.startsWith("playwright/") }
+                    .map { path -> root.relativize(path).pathString }
+                    .sorted()
+                    .toList()
+            }
 
         assertTrue(
             violations.isEmpty(),
@@ -98,20 +105,22 @@ class NamespacePolicyTest {
 
     @Test
     fun `repository does not include non bun package manager artifacts`() {
-        val forbiddenNames = setOf(
-            "package-lock.json",
-            "npm-shrinkwrap.json",
-            "yarn.lock",
-            "pnpm-lock.yaml",
-        )
+        val forbiddenNames =
+            setOf(
+                "package-lock.json",
+                "npm-shrinkwrap.json",
+                "yarn.lock",
+                "pnpm-lock.yaml",
+            )
         val root = repositoryRoot()
-        val violations = Files.walk(root).use { paths ->
-            paths
-                .filter { path -> path.isScannable() && path.name in forbiddenNames }
-                .map { path -> root.relativize(path).pathString }
-                .sorted()
-                .toList()
-        }
+        val violations =
+            Files.walk(root).use { paths ->
+                paths
+                    .filter { path -> path.isScannable() && path.name in forbiddenNames }
+                    .map { path -> root.relativize(path).pathString }
+                    .sorted()
+                    .toList()
+            }
 
         assertTrue(
             violations.isEmpty(),
@@ -123,14 +132,15 @@ class NamespacePolicyTest {
     fun `driver runtime public errors do not expose bridge internals`() {
         val forbiddenMessage = "bridge" + " returned"
         val root = repositoryRoot()
-        val violations = repositoryContentViolations(
-            include = { path ->
-                val relative = root.relativize(path).pathString
-                relative.startsWith("driver-runtime/src/main/") && path.name.endsWith(".kt")
-            },
-        ) { contents ->
-            contents.contains(forbiddenMessage)
-        }
+        val violations =
+            repositoryContentViolations(
+                include = { path ->
+                    val relative = root.relativize(path).pathString
+                    relative.startsWith("driver-runtime/src/main/") && path.name.endsWith(".kt")
+                },
+            ) { contents ->
+                contents.contains(forbiddenMessage)
+            }
 
         assertTrue(
             violations.isEmpty(),
@@ -140,27 +150,29 @@ class NamespacePolicyTest {
 
     @Test
     fun `public kotlin sources do not expose launcher internals`() {
-        val forbiddenNames = listOf(
-            "Pr" + "ism",
-            "Pr" + "ismLauncher",
-            "Multi" + "MC",
-            "M" + "MC",
-            "instance" + ".cfg",
-            "mmc" + "-pack",
-            "patches" + "/",
-            "Managed" + "Pack",
-        )
+        val forbiddenNames =
+            listOf(
+                "Pr" + "ism",
+                "Pr" + "ismLauncher",
+                "Multi" + "MC",
+                "M" + "MC",
+                "instance" + ".cfg",
+                "mmc" + "-pack",
+                "patches" + "/",
+                "Managed" + "Pack",
+            )
         val root = repositoryRoot()
-        val violations = repositoryContentViolations(
-            include = { path ->
-                val relative = root.relativize(path).pathString
-                path.name.endsWith(".kt") &&
-                    !relative.startsWith("docs/") &&
-                    !relative.contains("/src/test/")
-            },
-        ) { contents ->
-            forbiddenNames.any(contents::contains)
-        }
+        val violations =
+            repositoryContentViolations(
+                include = { path ->
+                    val relative = root.relativize(path).pathString
+                    path.name.endsWith(".kt") &&
+                        !relative.startsWith("docs/") &&
+                        !relative.contains("/src/test/")
+                },
+            ) { contents ->
+                forbiddenNames.any(contents::contains)
+            }
 
         assertTrue(
             violations.isEmpty(),
@@ -196,7 +208,8 @@ class NamespacePolicyTest {
         val ignoredDirectories = setOf("build", ".gradle", ".git", ".kotlin", ".vscode")
         if (iterator().asSequence().any { it.name in ignoredDirectories }) return false
         if (pathString.contains("driver-fabric/run/")) return false
-        if (name.endsWith(".class") || name.endsWith(".jar") || name.endsWith(".png")) return false
+        if (pathString.contains("driver-fabric/logs/")) return false
+        if (name.endsWith(".class") || name.endsWith(".jar") || name.endsWith(".png") || name.endsWith(".gz")) return false
         return true
     }
 

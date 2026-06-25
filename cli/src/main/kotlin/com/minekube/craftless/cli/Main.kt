@@ -17,14 +17,14 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
-import io.ktor.http.isSuccess
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import java.util.concurrent.CountDownLatch
 
@@ -36,33 +36,36 @@ fun main(args: Array<String>) {
 }
 
 object CraftlessCli {
-    private val json = Json {
-        encodeDefaults = true
-        ignoreUnknownKeys = true
-    }
+    private val json =
+        Json {
+            encodeDefaults = true
+            ignoreUnknownKeys = true
+        }
 
-    fun root(): CoreCliktCommand = RootCommand().subcommands(
-        GroupCommand("clients").subcommands(
-            LeafCommand("create"),
-            LeafCommand("list"),
-        ),
-        GroupCommand("server").subcommands(
-            LeafCommand("start"),
-        ),
-    )
+    fun root(): CoreCliktCommand =
+        RootCommand().subcommands(
+            GroupCommand("clients").subcommands(
+                LeafCommand("create"),
+                LeafCommand("list"),
+            ),
+            GroupCommand("server").subcommands(
+                LeafCommand("start"),
+            ),
+        )
 
-    fun registeredCommandPaths(): Set<String> = setOf(
-        "clients create",
-        "clients list",
-        "clients <id> get",
-        "clients <id> connect",
-        "clients <id> stop",
-        "clients <id> openapi",
-        "clients <id> actions",
-        "clients <id> run <action>",
-        "clients <id> <namespace> <action>",
-        "server start",
-    )
+    fun registeredCommandPaths(): Set<String> =
+        setOf(
+            "clients create",
+            "clients list",
+            "clients <id> get",
+            "clients <id> connect",
+            "clients <id> stop",
+            "clients <id> openapi",
+            "clients <id> actions",
+            "clients <id> run <action>",
+            "clients <id> <namespace> <action>",
+            "server start",
+        )
 
     fun run(
         args: List<String>,
@@ -117,29 +120,32 @@ object CraftlessCli {
     ): Int {
         val clientId = args.firstOrNull { !it.startsWith("--") }.orEmpty()
         val version = args.optionValue("--version")
-        val loader = args.optionValue("--loader")?.let { value ->
-            runCatching { Loader.valueOf(value.uppercase()) }.getOrNull()
-        }
+        val loader =
+            args.optionValue("--loader")?.let { value ->
+                runCatching { Loader.valueOf(value.uppercase()) }.getOrNull()
+            }
         val profileName = args.optionValue("--offline-name")
         if (clientId.isBlank() || version.isNullOrBlank() || loader == null || profileName.isNullOrBlank()) {
             stderr("error: usage is clients create <id> --version <version> --loader <loader> --offline-name <name> [--api <url>]")
             return 2
         }
         val api = args.apiBaseUrl(env)
-        val request = CreateClientRequest(
-            id = clientId,
-            version = version,
-            loader = loader,
-            profile = Profile.offline(profileName),
-        )
+        val request =
+            CreateClientRequest(
+                id = clientId,
+                version = version,
+                loader = loader,
+                profile = Profile.offline(profileName),
+            )
 
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
-                    val response = http.post("${api.trimEnd('/')}/clients") {
-                        contentType(ContentType.Application.Json)
-                        setBody(json.encodeToString(request))
-                    }
+                    val response =
+                        http.post("${api.trimEnd('/')}/clients") {
+                            contentType(ContentType.Application.Json)
+                            setBody(json.encodeToString(request))
+                        }
                     response.forwardBody(stdout, stderr)
                 }
             }
@@ -192,10 +198,11 @@ object CraftlessCli {
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
-                    val response = http.post("${api.trimEnd('/')}/clients/$clientId:connect") {
-                        contentType(ContentType.Application.Json)
-                        setBody(json.encodeToString(request))
-                    }
+                    val response =
+                        http.post("${api.trimEnd('/')}/clients/$clientId:connect") {
+                            contentType(ContentType.Application.Json)
+                            setBody(json.encodeToString(request))
+                        }
                     response.forwardBody(stdout, stderr)
                 }
             }
@@ -276,8 +283,10 @@ object CraftlessCli {
                         stderr(actionsBody)
                         return@runBlocking 1
                     }
-                    val descriptor = json.decodeFromString<List<OpenApiAction>>(actionsBody)
-                        .firstOrNull { it.id == action }
+                    val descriptor =
+                        json
+                            .decodeFromString<List<OpenApiAction>>(actionsBody)
+                            .firstOrNull { it.id == action }
                     if (descriptor == null) {
                         stderr("error: action $action is not available for client $clientId")
                         return@runBlocking 1
@@ -294,14 +303,16 @@ object CraftlessCli {
                         stderr("error: action $action is not described by live OpenAPI for client $clientId")
                         return@runBlocking 1
                     }
-                    val payload = ActionRunRequest(
-                        action = action,
-                        args = args.genericActionArguments(action, descriptor),
-                    )
-                    val response = http.post("${api.trimEnd('/')}/clients/$clientId:run") {
-                        contentType(ContentType.Application.Json)
-                        setBody(json.encodeToString(payload))
-                    }
+                    val payload =
+                        ActionRunRequest(
+                            action = action,
+                            args = args.genericActionArguments(action, descriptor),
+                        )
+                    val response =
+                        http.post("${api.trimEnd('/')}/clients/$clientId:run") {
+                            contentType(ContentType.Application.Json)
+                            setBody(json.encodeToString(payload))
+                        }
                     response.forwardActionResultBody(stdout, stderr)
                 }
             }
@@ -336,8 +347,10 @@ object CraftlessCli {
                         stderr(actionsBody)
                         return@runBlocking 1
                     }
-                    val action = json.decodeFromString<List<OpenApiAction>>(actionsBody)
-                        .firstOrNull { it.id == actionId }
+                    val action =
+                        json
+                            .decodeFromString<List<OpenApiAction>>(actionsBody)
+                            .firstOrNull { it.id == actionId }
                     if (action == null) {
                         stderr("error: action $actionId is not available for client $clientId")
                         return@runBlocking 1
@@ -362,10 +375,11 @@ object CraftlessCli {
                         stdout(action.generatedAliasHelp(clientId, namespace, actionName, "POST $aliasPath"))
                         return@runBlocking 0
                     }
-                    val response = http.post("${api.trimEnd('/')}/clients/$clientId/$namespace:$actionName") {
-                        contentType(ContentType.Application.Json)
-                        setBody(json.encodeToString(args.actionAliasArguments(action)))
-                    }
+                    val response =
+                        http.post("${api.trimEnd('/')}/clients/$clientId/$namespace:$actionName") {
+                            contentType(ContentType.Application.Json)
+                            setBody(json.encodeToString(args.actionAliasArguments(action)))
+                        }
                     response.forwardActionResultBody(stdout, stderr)
                 }
             }
@@ -438,12 +452,13 @@ object CraftlessCli {
 
         LocalSessionApiServer.inMemory(port = port).use { server ->
             server.start()
-            val metadata = ApiServerMetadata(
-                ok = true,
-                url = server.url(""),
-                openapi = "/openapi.json",
-                events = "/events",
-            )
+            val metadata =
+                ApiServerMetadata(
+                    ok = true,
+                    url = server.url(""),
+                    openapi = "/openapi.json",
+                    events = "/events",
+                )
             stdout(json.encodeToString(metadata))
             afterStart(metadata)
             if (!once) {
@@ -474,9 +489,10 @@ object CraftlessCli {
             val parts = argument.split("=", limit = 2)
             require(parts.size == 2 && parts[0].isNotBlank()) { "--arg must use key=value syntax" }
             val name = parts[0]
-            val descriptor = requireNotNull(action.arguments[name]) {
-                "action ${action.id} does not declare argument $name"
-            }
+            val descriptor =
+                requireNotNull(action.arguments[name]) {
+                    "action ${action.id} does not declare argument $name"
+                }
             values[name] = parts[1].toJsonArgument(descriptor.type)
         }
 
@@ -489,9 +505,10 @@ object CraftlessCli {
                 token.startsWith("--") -> {
                     val name = token.removePrefix("--")
                     require(name.isNotBlank()) { "action argument flag is required" }
-                    val argument = requireNotNull(action.arguments[name]) {
-                        "action ${action.id} does not declare argument $name"
-                    }
+                    val argument =
+                        requireNotNull(action.arguments[name]) {
+                            "action ${action.id} does not declare argument $name"
+                        }
                     val next = getOrNull(index + 1)
                     if (argument.type == "boolean" && (next == null || next.startsWith("--"))) {
                         values[name] = JsonPrimitive(true)
@@ -510,10 +527,11 @@ object CraftlessCli {
         }
 
         if (positional.isNotEmpty()) {
-            val missingRequired = action.arguments
-                .filterValues { it.required }
-                .keys
-                .filterNot { it in values }
+            val missingRequired =
+                action.arguments
+                    .filterValues { it.required }
+                    .keys
+                    .filterNot { it in values }
             require(positional.size == 1 && missingRequired.size == 1) {
                 "positional action args require exactly one missing required argument"
             }
@@ -529,26 +547,29 @@ object CraftlessCli {
         actionId: String,
         action: OpenApiAction,
     ): Map<String, JsonElement> =
-        optionValues("--arg").associate { argument ->
-            val parts = argument.split("=", limit = 2)
-            require(parts.size == 2 && parts[0].isNotBlank()) { "--arg must use key=value syntax" }
-            val name = parts[0]
-            val descriptor = requireNotNull(action.arguments[name]) {
-                "action $actionId does not declare argument $name"
+        optionValues("--arg")
+            .associate { argument ->
+                val parts = argument.split("=", limit = 2)
+                require(parts.size == 2 && parts[0].isNotBlank()) { "--arg must use key=value syntax" }
+                val name = parts[0]
+                val descriptor =
+                    requireNotNull(action.arguments[name]) {
+                        "action $actionId does not declare argument $name"
+                    }
+                name to parts[1].toJsonArgument(descriptor.type)
+            }.also { values ->
+                requireRequiredActionArguments(action, values)
             }
-            name to parts[1].toJsonArgument(descriptor.type)
-        }.also { values ->
-            requireRequiredActionArguments(action, values)
-        }
 
     private fun requireRequiredActionArguments(
         action: OpenApiAction,
         values: Map<String, JsonElement>,
     ) {
-        val missing = action.arguments
-            .filterValues { it.required }
-            .keys
-            .filterNot { it in values }
+        val missing =
+            action.arguments
+                .filterValues { it.required }
+                .keys
+                .filterNot { it in values }
         require(missing.isEmpty()) {
             "action ${action.id} requires argument ${missing.first()}"
         }
@@ -559,20 +580,21 @@ object CraftlessCli {
         namespace: String,
         actionName: String,
         route: String,
-    ): String = buildString {
-        appendLine("Action: $id")
-        appendLine("Route: $route")
-        appendLine("Usage: craftless clients $clientId $namespace $actionName [--api <url>] [args]")
-        appendLine("Arguments:")
-        if (arguments.isEmpty()) {
-            appendLine("  none")
-        } else {
-            arguments.forEach { (name, argument) ->
-                val required = if (argument.required) " required" else ""
-                appendLine("  --$name ${argument.type}$required")
+    ): String =
+        buildString {
+            appendLine("Action: $id")
+            appendLine("Route: $route")
+            appendLine("Usage: craftless clients $clientId $namespace $actionName [--api <url>] [args]")
+            appendLine("Arguments:")
+            if (arguments.isEmpty()) {
+                appendLine("  none")
+            } else {
+                arguments.forEach { (name, argument) ->
+                    val required = if (argument.required) " required" else ""
+                    appendLine("  --$name ${argument.type}$required")
+                }
             }
-        }
-    }.trimEnd()
+        }.trimEnd()
 
     private fun String.toJsonArgument(): JsonElement =
         when {
@@ -584,13 +606,14 @@ object CraftlessCli {
 
     private fun String.toJsonArgument(type: String?): JsonElement =
         when (type) {
-            "boolean" -> JsonPrimitive(
-                when {
-                    equals("true", ignoreCase = true) -> true
-                    equals("false", ignoreCase = true) -> false
-                    else -> error("boolean argument must be true or false")
-                }
-            )
+            "boolean" ->
+                JsonPrimitive(
+                    when {
+                        equals("true", ignoreCase = true) -> true
+                        equals("false", ignoreCase = true) -> false
+                        else -> error("boolean argument must be true or false")
+                    },
+                )
             "integer" -> JsonPrimitive(requireNotNull(toIntOrNull()) { "integer argument is required" })
             "number" -> JsonPrimitive(requireNotNull(toDoubleOrNull()) { "number argument is required" })
             "string" -> JsonPrimitive(this)
@@ -675,19 +698,23 @@ data class ConnectClientRequest(
     val port: Int,
 )
 
-private class RootCommand : CoreCliktCommand(
-    name = "craftless",
-) {
-    override fun help(context: Context): String =
-        "Automate real Minecraft Java clients for tests, agents, and CI."
+private class RootCommand :
+    CoreCliktCommand(
+        name = "craftless",
+    ) {
+    override fun help(context: Context): String = "Automate real Minecraft Java clients for tests, agents, and CI."
 
     override fun run() = Unit
 }
 
-private class GroupCommand(name: String) : CoreCliktCommand(name = name) {
+private class GroupCommand(
+    name: String,
+) : CoreCliktCommand(name = name) {
     override fun run() = Unit
 }
 
-private class LeafCommand(name: String) : CoreCliktCommand(name = name) {
+private class LeafCommand(
+    name: String,
+) : CoreCliktCommand(name = name) {
     override fun run() = Unit
 }

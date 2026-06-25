@@ -10,8 +10,8 @@ import com.minekube.craftless.driver.api.booleanArgument
 import com.minekube.craftless.driver.api.intArgument
 import com.minekube.craftless.driver.api.requireChatMessage
 import com.minekube.craftless.driver.api.stringArgument
-import net.minecraft.client.input.Input
 import net.minecraft.client.MinecraftClient
+import net.minecraft.client.input.Input
 import net.minecraft.util.PlayerInput
 import net.minecraft.util.math.Vec2f
 
@@ -46,9 +46,10 @@ private object FabricPlayerChatActionBinding : FabricActionBinding {
         DriverActionDescriptor(
             id = "player.chat",
             schemaVersion = "1",
-            arguments = mapOf(
-                "message" to DriverActionArgument("string", required = true),
-            ),
+            arguments =
+                mapOf(
+                    "message" to DriverActionArgument("string", required = true),
+                ),
         )
 
     override fun invoke(
@@ -77,16 +78,17 @@ private object FabricPlayerMoveActionBinding : FabricActionBinding {
         DriverActionDescriptor(
             id = "player.move",
             schemaVersion = "1",
-            arguments = mapOf(
-                "forward" to DriverActionArgument("boolean"),
-                "backward" to DriverActionArgument("boolean"),
-                "left" to DriverActionArgument("boolean"),
-                "right" to DriverActionArgument("boolean"),
-                "jump" to DriverActionArgument("boolean"),
-                "sneak" to DriverActionArgument("boolean"),
-                "sprint" to DriverActionArgument("boolean"),
-                "ticks" to DriverActionArgument("integer"),
-            ),
+            arguments =
+                mapOf(
+                    "forward" to DriverActionArgument("boolean"),
+                    "backward" to DriverActionArgument("boolean"),
+                    "left" to DriverActionArgument("boolean"),
+                    "right" to DriverActionArgument("boolean"),
+                    "jump" to DriverActionArgument("boolean"),
+                    "sneak" to DriverActionArgument("boolean"),
+                    "sprint" to DriverActionArgument("boolean"),
+                    "ticks" to DriverActionArgument("integer"),
+                ),
         )
 
     override fun invoke(
@@ -94,30 +96,32 @@ private object FabricPlayerMoveActionBinding : FabricActionBinding {
         invocation: DriverActionInvocation,
         context: FabricActionContext,
     ): DriverActionResult {
-        val intent = FabricMovementIntent(
-            forward = invocation.arguments.booleanArgument("forward"),
-            backward = invocation.arguments.booleanArgument("backward"),
-            left = invocation.arguments.booleanArgument("left"),
-            right = invocation.arguments.booleanArgument("right"),
-            jump = invocation.arguments.booleanArgument("jump"),
-            sneak = invocation.arguments.booleanArgument("sneak"),
-            sprint = invocation.arguments.booleanArgument("sprint"),
-            ticks = invocation.arguments.intArgument("ticks") ?: 1,
-        )
+        val intent =
+            FabricMovementIntent(
+                forward = invocation.arguments.booleanArgument("forward"),
+                backward = invocation.arguments.booleanArgument("backward"),
+                left = invocation.arguments.booleanArgument("left"),
+                right = invocation.arguments.booleanArgument("right"),
+                jump = invocation.arguments.booleanArgument("jump"),
+                sneak = invocation.arguments.booleanArgument("sneak"),
+                sprint = invocation.arguments.booleanArgument("sprint"),
+                ticks = invocation.arguments.intArgument("ticks") ?: 1,
+            )
         require(intent.ticks > 0) { "movement ticks must be positive" }
         context.executeOnClient {
             val player = requireNotNull(player) { "client is not connected to a server" }
             val originalInput = player.input
-            player.input = CraftlessMovementInput(
-                delegate = originalInput,
-                movementInput = intent.toPlayerInput(),
-                ticks = intent.ticks,
-                restore = {
-                    if (player.input is CraftlessMovementInput) {
-                        player.input = originalInput
-                    }
-                },
-            )
+            player.input =
+                CraftlessMovementInput(
+                    delegate = originalInput,
+                    movementInput = intent.toPlayerInput(),
+                    ticks = intent.ticks,
+                    restore = {
+                        if (player.input is CraftlessMovementInput) {
+                            player.input = originalInput
+                        }
+                    },
+                )
         }
         return DriverActionResult(
             action = invocation.action,
@@ -138,8 +142,7 @@ private data class FabricMovementIntent(
     val sprint: Boolean = false,
     val ticks: Int = 1,
 ) {
-    fun toPlayerInput(): PlayerInput =
-        PlayerInput(forward, backward, left, right, jump, sneak, sprint)
+    fun toPlayerInput(): PlayerInput = PlayerInput(forward, backward, left, right, jump, sneak, sprint)
 }
 
 private class CraftlessMovementInput(
@@ -169,7 +172,10 @@ private fun PlayerInput.toMovementVector(): Vec2f =
         movementMultiplier(forward, backward),
     ).normalize()
 
-private fun movementMultiplier(positive: Boolean, negative: Boolean): Float =
+private fun movementMultiplier(
+    positive: Boolean,
+    negative: Boolean,
+): Float =
     when {
         positive == negative -> 0f
         positive -> 1f

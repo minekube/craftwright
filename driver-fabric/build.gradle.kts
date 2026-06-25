@@ -22,9 +22,10 @@ tasks.processResources {
     }
 }
 
-val testkitSourceSets = project(":testkit")
-    .extensions
-    .getByType<org.gradle.api.tasks.SourceSetContainer>()
+val testkitSourceSets =
+    project(":testkit")
+        .extensions
+        .getByType<org.gradle.api.tasks.SourceSetContainer>()
 
 tasks.register<JavaExec>("fabricClientSmoke") {
     group = "verification"
@@ -34,14 +35,16 @@ tasks.register<JavaExec>("fabricClientSmoke") {
     classpath = testkitSourceSets.named("main").get().runtimeClasspath
     mainClass.set("com.minekube.craftless.testkit.LocalMinecraftServerSmokeKt")
 
-    val fabricSmokeEnabled = System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE") == "1" ||
-        System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE").equals("true", ignoreCase = true)
+    val fabricSmokeEnabled =
+        System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE") == "1" ||
+            System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE").equals("true", ignoreCase = true)
     environment("CRAFTLESS_FABRIC_CLIENT_SMOKE", System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE").orEmpty())
 
     if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_ACTION_COMMAND_JSON").isNullOrBlank()) {
-        val rootProjectPath = rootProject.projectDir.absolutePath
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
+        val rootProjectPath =
+            rootProject.projectDir.absolutePath
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
         environment(
             "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON",
             """["mise","exec","--","gradle","-p","$rootProjectPath",":driver-fabric:runClient"]""",
@@ -65,7 +68,7 @@ tasks.register<JavaExec>("fabricClientSmoke") {
         if (fabricSmokeEnabled) {
             println(
                 "Fabric client smoke requested; server lifecycle is owned by testkit " +
-                    "LocalMinecraftServerSmoke.runWithServer"
+                    "LocalMinecraftServerSmoke.runWithServer",
             )
         }
     }

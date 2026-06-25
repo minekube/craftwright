@@ -17,6 +17,8 @@ Status legend:
 - [x] Tool versions are pinned in `.mise.toml`.
 - [x] JVM work is documented as `mise exec -- gradle ...`.
 - [x] JavaScript helper work is documented as `mise exec -- bun ...`.
+- [x] Kotlin lint/static analysis is documented as `mise run lint`.
+- [x] Kotlin formatting is documented as `mise run lint-fix`.
 - [x] CI entrypoint is documented as `mise run ci`.
 - [x] No npm, npx, yarn, pnpm, or global node workflow remains.
 - [x] No unrelated dirty files are reverted or cleaned.
@@ -31,6 +33,7 @@ Evidence:
   - `sed -n '1,220p' .mise.toml`
   - `find . -path './.git' -prune -o -path './build' -prune -o -path '*/build' -prune -o -path './driver-fabric/run' -prune -o \( -name 'package.json' -o -name 'package-lock.json' -o -name 'npm-shrinkwrap.json' -o -name 'yarn.lock' -o -name 'pnpm-lock.yaml' -o -name '.npmrc' -o -name '.yarnrc' -o -name '.yarnrc.yml' \) -print`
   - `sed -n '1,220p' playwright/package.json`
+  - `mise run lint`
   - `mise run ci`
   - `git diff --check`
   - Commit evidence: `.gitignore` ignores generated Fabric/Loom `run/`
@@ -367,6 +370,7 @@ Evidence:
 ## 11. CI And Verification
 
 - [x] `mise run ci` passes.
+- [x] `mise run lint` passes.
 - [x] `mise exec -- gradle test` passes.
 - [x] `mise exec -- bun test playwright` passes.
 - [ ] Protocol policy tests cover naming, HTTP bans, and SDK boundaries.
@@ -381,10 +385,11 @@ Evidence:
 - Current verification:
   - `mise exec -- gradle :testkit:test :driver-fabric:test`
   - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
+  - `mise run lint`
   - `git diff --check`
   - `mise run ci`
-  - `mise run ci` executed `mise exec -- gradle test` and
-    `mise exec -- bun test playwright`.
+  - `mise run ci` executed `mise exec -- gradle lint`,
+    `mise exec -- gradle test`, and `mise exec -- bun test playwright`.
 - Remaining verification work: audit and mark the protocol, driver, daemon,
   and CLI coverage bullets only after confirming each named test covers the
   stated gate.
@@ -397,6 +402,7 @@ Craftless is complete for this milestone only when all are true:
 - [x] Generated action invocation through daemon API is proven.
 - [x] Server-side or driver-side evidence artifacts exist.
 - [x] README and roadmap reflect that exact state.
+- [x] `mise run lint` passes.
 - [x] `mise run ci` passes.
 - [ ] No `AGENTS.md` violations remain.
 - [ ] `main` contains the completed work.
@@ -407,6 +413,7 @@ Final evidence:
 - Commands:
   - `mise exec -- gradle :testkit:test :driver-fabric:test`
   - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
+  - `mise run lint`
   - `git diff --check`
   - `mise run ci`
 - Artifact paths:

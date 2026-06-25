@@ -54,7 +54,7 @@ class LocalServerFixtureTest {
                 player = "Alice",
                 from = LocalServerPosition(x = 0.0, y = 64.0, z = 0.0),
                 to = LocalServerPosition(x = 0.0, y = 64.0, z = 1.25),
-            )
+            ),
         )
         layout.recordEvidence(LocalServerEvidence.playerDisconnected("Alice"))
 
@@ -90,8 +90,8 @@ class LocalServerFixtureTest {
         assertTrue(layout.recordEvidenceFromLogLine("[12:00:01] [Server thread/INFO]: [Not Secure] <Alice> hello unsigned"))
         assertTrue(
             layout.recordEvidenceFromLogLine(
-                "[12:00:02] [Server thread/INFO]: [Craftless] Alice moved from 0.0 64.0 0.0 to 0.0 64.0 1.25"
-            )
+                "[12:00:02] [Server thread/INFO]: [Craftless] Alice moved from 0.0 64.0 0.0 to 0.0 64.0 1.25",
+            ),
         )
         assertTrue(layout.recordEvidenceFromLogLine("[12:00:03] [Server thread/INFO]: Alice left the game"))
         assertFalse(layout.recordEvidenceFromLogLine("[12:00:04] [Server thread/INFO]: Preparing spawn area: 100%"))
@@ -125,16 +125,22 @@ class LocalServerFixtureTest {
     fun `fixture collects evidence from a server process output`() {
         val root = Files.createTempDirectory("craftless-server-process-evidence")
         val layout = LocalServerFixture(root = root, port = 25567).prepare()
-        val java = Path.of(System.getProperty("java.home")).resolve("bin").resolve("java").toString()
+        val java =
+            Path
+                .of(System.getProperty("java.home"))
+                .resolve("bin")
+                .resolve("java")
+                .toString()
 
-        val result = layout.collectEvidenceFromProcess(
-            listOf(
-                java,
-                "-cp",
-                System.getProperty("java.class.path"),
-                LocalServerLogEmitter::class.java.name,
+        val result =
+            layout.collectEvidenceFromProcess(
+                listOf(
+                    java,
+                    "-cp",
+                    System.getProperty("java.class.path"),
+                    LocalServerLogEmitter::class.java.name,
+                ),
             )
-        )
 
         assertEquals(0, result.exitCode)
         assertEquals(3, result.evidenceCount)
@@ -164,16 +170,17 @@ class LocalServerFixtureTest {
             echo '[12:00:00] [Server thread/INFO]: Alice joined the game'
             echo '[12:00:01] [Server thread/INFO]: <Alice> hello from minecraft server process'
             echo '[12:00:02] [Server thread/INFO]: Alice left the game'
-            """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
         assertTrue(fakeJava.toFile().setExecutable(true))
 
-        val result = layout.collectMinecraftServerEvidence(
-            serverJar = fakeServerJar,
-            javaExecutable = fakeJava,
-            minHeap = "256M",
-            maxHeap = "512M",
-        )
+        val result =
+            layout.collectMinecraftServerEvidence(
+                serverJar = fakeServerJar,
+                javaExecutable = fakeJava,
+                minHeap = "256M",
+                maxHeap = "512M",
+            )
 
         assertEquals(0, result.exitCode)
         assertEquals(3, result.evidenceCount)
@@ -214,18 +221,19 @@ class LocalServerFixtureTest {
             echo '[12:00:01] [Server thread/INFO]: Alice joined the game'
             echo '[12:00:02] [Server thread/INFO]: <Alice> hello after readiness'
             echo '[12:00:03] [Server thread/INFO]: Alice left the game'
-            """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
         assertTrue(fakeJava.toFile().setExecutable(true))
 
-        val result = layout.collectMinecraftServerStartupEvidence(
-            serverJar = fakeServerJar,
-            javaExecutable = fakeJava,
-            minHeap = "256M",
-            maxHeap = "512M",
-            readinessTimeoutMillis = 5_000,
-            shutdownTimeoutMillis = 5_000,
-        )
+        val result =
+            layout.collectMinecraftServerStartupEvidence(
+                serverJar = fakeServerJar,
+                javaExecutable = fakeJava,
+                minHeap = "256M",
+                maxHeap = "512M",
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
+            )
 
         assertEquals(0, result.exitCode)
         assertEquals(3, result.evidenceCount)
@@ -260,16 +268,17 @@ class LocalServerFixtureTest {
             echo '[12:00:00] [Server thread/INFO]: Done (1.000s)! For help, type "help"'
             read command
             printf '%s\n' "${'$'}command" > minecraft-server-stdin.txt
-            """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
         assertTrue(fakeJava.toFile().setExecutable(true))
 
-        val result = layout.collectMinecraftServerStartupEvidence(
-            serverJar = fakeServerJar,
-            javaExecutable = fakeJava,
-            readinessTimeoutMillis = 5_000,
-            shutdownTimeoutMillis = 5_000,
-        )
+        val result =
+            layout.collectMinecraftServerStartupEvidence(
+                serverJar = fakeServerJar,
+                javaExecutable = fakeJava,
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
+            )
 
         val args = Files.readAllLines(root.resolve("minecraft-server-args.txt"))
         assertEquals(0, result.exitCode)
@@ -298,18 +307,19 @@ class LocalServerFixtureTest {
             echo '[12:00:01] [Server thread/INFO]: Alice joined the game'
             echo '[12:00:02] [Server thread/INFO]: <Alice> hello while server stayed running'
             echo '[12:00:03] [Server thread/INFO]: Alice left the game'
-            """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
         assertTrue(fakeJava.toFile().setExecutable(true))
 
-        val handle = layout.startMinecraftServer(
-            serverJar = fakeServerJar,
-            javaExecutable = fakeJava,
-            minHeap = "256M",
-            maxHeap = "512M",
-            readinessTimeoutMillis = 5_000,
-            shutdownTimeoutMillis = 5_000,
-        )
+        val handle =
+            layout.startMinecraftServer(
+                serverJar = fakeServerJar,
+                javaExecutable = fakeJava,
+                minHeap = "256M",
+                maxHeap = "512M",
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
+            )
 
         assertTrue(handle.isRunning())
         assertTrue(waitUntilExists(root.resolve("server-is-ready")))
@@ -337,7 +347,10 @@ class LocalServerFixtureTest {
     }
 }
 
-private fun waitUntilExists(path: Path, timeoutMillis: Long = 1_000): Boolean {
+private fun waitUntilExists(
+    path: Path,
+    timeoutMillis: Long = 1_000,
+): Boolean {
     val deadline = System.nanoTime() + timeoutMillis * 1_000_000
     while (System.nanoTime() < deadline) {
         if (Files.exists(path)) {

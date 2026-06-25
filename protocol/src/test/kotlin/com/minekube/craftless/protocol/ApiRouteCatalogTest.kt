@@ -39,9 +39,10 @@ class ApiRouteCatalogTest {
     fun `catalog rejects path only lookup for ambiguous route paths`() {
         val catalog = ApiRouteCatalog.sessionDefaults()
 
-        val error = assertFailsWith<IllegalStateException> {
-            catalog.route("/clients")
-        }
+        val error =
+            assertFailsWith<IllegalStateException> {
+                catalog.route("/clients")
+            }
 
         assertTrue(error.message!!.contains("ambiguous route path /clients"))
         assertEquals("GET", catalog.route("GET", "/clients").method)
@@ -50,36 +51,39 @@ class ApiRouteCatalogTest {
 
     @Test
     fun `catalog rejects duplicate method and path routes`() {
-        val route = ApiRoute(
-            method = "GET",
-            path = "/clients",
-            operationId = "listClients",
-            tag = "clients",
-            owner = "clients",
-            member = "list",
-            source = "route",
-        )
+        val route =
+            ApiRoute(
+                method = "GET",
+                path = "/clients",
+                operationId = "listClients",
+                tag = "clients",
+                owner = "clients",
+                member = "list",
+                source = "route",
+            )
 
-        val error = assertFailsWith<IllegalArgumentException> {
-            ApiRouteCatalog(listOf(route, route.copy(operationId = "listClientsDuplicate")))
-        }
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                ApiRouteCatalog(listOf(route, route.copy(operationId = "listClientsDuplicate")))
+            }
 
         assertTrue(error.message!!.contains("duplicate route GET /clients"))
     }
 
     @Test
     fun `route metadata rejects invalid protocol fields`() {
-        val route = ApiRoute(
-            method = "GET",
-            path = "/clients/{id}:run",
-            operationId = "runClientAction",
-            tag = "clients",
-            owner = "clients",
-            member = "run",
-            target = "client",
-            source = "action",
-            actionId = "player.move",
-        )
+        val route =
+            ApiRoute(
+                method = "GET",
+                path = "/clients/{id}:run",
+                operationId = "runClientAction",
+                tag = "clients",
+                owner = "clients",
+                member = "run",
+                target = "client",
+                source = "action",
+                actionId = "player.move",
+            )
 
         assertFailsWith<IllegalArgumentException> { route.copy(method = "PUT") }
         assertFailsWith<IllegalArgumentException> { route.copy(method = "get") }

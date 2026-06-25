@@ -87,8 +87,7 @@ data class CreateClientRequest(
     }
 }
 
-fun String.isCraftlessClientId(): Boolean =
-    matches(Regex("[A-Za-z0-9][A-Za-z0-9_-]{0,63}"))
+fun String.isCraftlessClientId(): Boolean = matches(Regex("[A-Za-z0-9][A-Za-z0-9_-]{0,63}"))
 
 fun String.isCraftlessInstanceId(): Boolean =
     matches(Regex("[A-Za-z0-9][A-Za-z0-9_.-]{0,127}")) &&

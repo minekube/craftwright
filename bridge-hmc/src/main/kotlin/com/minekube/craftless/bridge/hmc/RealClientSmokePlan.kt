@@ -6,30 +6,33 @@ data class RealClientSmokePlan(
     val artifacts: List<String>,
 ) {
     companion object {
-        fun default(): RealClientSmokePlan = RealClientSmokePlan(
-            environmentGate = "CRAFTLESS_REAL_CLIENT_SMOKE",
-            steps = listOf(
-                SmokeStep(SmokeStepKind.START_SERVER, "Start local offline Paper server"),
-                SmokeStep(SmokeStepKind.LAUNCH_CLIENT, "Launch one offline real Minecraft Java client"),
-                SmokeStep(SmokeStepKind.START_API, "Start Craftless local API wrapper"),
-                SmokeStep(SmokeStepKind.CONNECT_CLIENT, "Connect client through Craftless API"),
-                SmokeStep(SmokeStepKind.INVOKE_CHAT_ACTION, "Invoke player.chat through Craftless API"),
-                SmokeStep(SmokeStepKind.MOVE_FORWARD, "Move forward through Craftless API"),
-                SmokeStep(SmokeStepKind.ASSERT_SERVER_JOIN, "Assert server saw player join"),
-                SmokeStep(SmokeStepKind.ASSERT_CHAT_LOG, "Assert server saw chat"),
-                SmokeStep(SmokeStepKind.ASSERT_POSITION_CHANGED, "Assert server position changed"),
-                SmokeStep(SmokeStepKind.COLLECT_ARTIFACTS, "Collect logs, events, OpenAPI, and metadata"),
-            ),
-            artifacts = listOf(
-                "openapi.json",
-                "calls.jsonl",
-                "events.jsonl",
-                "stdout.log",
-                "stderr.log",
-                "version.json",
-                "session.json",
-            ),
-        )
+        fun default(): RealClientSmokePlan =
+            RealClientSmokePlan(
+                environmentGate = "CRAFTLESS_REAL_CLIENT_SMOKE",
+                steps =
+                    listOf(
+                        SmokeStep(SmokeStepKind.START_SERVER, "Start local offline Paper server"),
+                        SmokeStep(SmokeStepKind.LAUNCH_CLIENT, "Launch one offline real Minecraft Java client"),
+                        SmokeStep(SmokeStepKind.START_API, "Start Craftless local API wrapper"),
+                        SmokeStep(SmokeStepKind.CONNECT_CLIENT, "Connect client through Craftless API"),
+                        SmokeStep(SmokeStepKind.INVOKE_CHAT_ACTION, "Invoke player.chat through Craftless API"),
+                        SmokeStep(SmokeStepKind.MOVE_FORWARD, "Move forward through Craftless API"),
+                        SmokeStep(SmokeStepKind.ASSERT_SERVER_JOIN, "Assert server saw player join"),
+                        SmokeStep(SmokeStepKind.ASSERT_CHAT_LOG, "Assert server saw chat"),
+                        SmokeStep(SmokeStepKind.ASSERT_POSITION_CHANGED, "Assert server position changed"),
+                        SmokeStep(SmokeStepKind.COLLECT_ARTIFACTS, "Collect logs, events, OpenAPI, and metadata"),
+                    ),
+                artifacts =
+                    listOf(
+                        "openapi.json",
+                        "calls.jsonl",
+                        "events.jsonl",
+                        "stdout.log",
+                        "stderr.log",
+                        "version.json",
+                        "session.json",
+                    ),
+            )
     }
 }
 

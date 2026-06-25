@@ -4,18 +4,18 @@ import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.runtime.DriverBackendAction
-import java.nio.file.Files
-import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 
 class FabricDriverModuleTest {
     private val json = Json { ignoreUnknownKeys = true }
@@ -26,14 +26,24 @@ class FabricDriverModuleTest {
 
         assertEquals("craftless-driver-fabric", metadata["id"]?.jsonPrimitive?.content)
         assertEquals("0.1.0-SNAPSHOT", metadata["version"]?.jsonPrimitive?.content)
-        assertEquals("com.minekube.craftless.driver.fabric.v1_21_6.CraftlessFabricClientEntrypoint", metadata["entrypoints"]
-            ?.jsonObject
-            ?.get("client")
-            ?.jsonArray
-            ?.single()
-            ?.jsonPrimitive
-            ?.content)
-        assertEquals("craftless-driver-fabric.mixins.json", metadata["mixins"]?.jsonArray?.single()?.jsonPrimitive?.content)
+        assertEquals(
+            "com.minekube.craftless.driver.fabric.v1_21_6.CraftlessFabricClientEntrypoint",
+            metadata["entrypoints"]
+                ?.jsonObject
+                ?.get("client")
+                ?.jsonArray
+                ?.single()
+                ?.jsonPrimitive
+                ?.content,
+        )
+        assertEquals(
+            "craftless-driver-fabric.mixins.json",
+            metadata["mixins"]
+                ?.jsonArray
+                ?.single()
+                ?.jsonPrimitive
+                ?.content,
+        )
 
         val mixins = resourceJson("craftless-driver-fabric.mixins.json")
         assertEquals("com.minekube.craftless.driver.fabric.v1_21_6.mixin", mixins["package"]?.jsonPrimitive?.content)
@@ -47,7 +57,10 @@ class FabricDriverModuleTest {
 
     @Test
     fun `fabric gateway exposes generic runtime boundaries instead of action-specific methods`() {
-        val methodNames = FabricClientGateway::class.java.methods.map { it.name }.toSet()
+        val methodNames =
+            FabricClientGateway::class.java.methods
+                .map { it.name }
+                .toSet()
 
         assertTrue("executeOnClient" in methodNames)
         assertTrue("dispatchChatMessage" !in methodNames)
@@ -117,17 +130,19 @@ class FabricDriverModuleTest {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)
 
-        val result = backend.invoke(
-            "alice",
-            DriverActionInvocation(
-                action = "player.move",
-                arguments = mapOf(
-                    "forward" to JsonPrimitive(true),
-                    "jump" to JsonPrimitive(true),
-                    "ticks" to JsonPrimitive(20),
+        val result =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "player.move",
+                    arguments =
+                        mapOf(
+                            "forward" to JsonPrimitive(true),
+                            "jump" to JsonPrimitive(true),
+                            "ticks" to JsonPrimitive(20),
+                        ),
                 ),
             )
-        )
 
         assertEquals("player.move", result.action)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
@@ -145,11 +160,12 @@ class FabricDriverModuleTest {
                 "alice",
                 DriverActionInvocation(
                     action = "player.move",
-                    arguments = mapOf(
-                        "forward" to JsonPrimitive(true),
-                        "ticks" to JsonPrimitive(0),
-                    ),
-                )
+                    arguments =
+                        mapOf(
+                            "forward" to JsonPrimitive(true),
+                            "ticks" to JsonPrimitive(0),
+                        ),
+                ),
             )
         }
 
@@ -162,13 +178,14 @@ class FabricDriverModuleTest {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)
 
-        val result = backend.invoke(
-            "alice",
-            DriverActionInvocation(
-                action = "player.chat",
-                arguments = mapOf("message" to JsonPrimitive("hello action")),
+        val result =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "player.chat",
+                    arguments = mapOf("message" to JsonPrimitive("hello action")),
+                ),
             )
-        )
 
         assertEquals("player.chat", result.action)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
@@ -187,7 +204,7 @@ class FabricDriverModuleTest {
                 DriverActionInvocation(
                     action = "player.chat",
                     arguments = mapOf("message" to JsonPrimitive("/server lobby")),
-                )
+                ),
             )
         }
 
@@ -211,17 +228,18 @@ class FabricDriverModuleTest {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)
         val artifactsDir = Files.createTempDirectory("craftless-fabric-smoke-artifacts")
-        val controller = FabricClientSmokeController.fromEnvironment(
-            mapOf(
-                "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
-                "CRAFTLESS_SMOKE_SERVER_HOST" to "localhost",
-                "CRAFTLESS_SMOKE_SERVER_PORT" to "25567",
-                "CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE" to "hello from fabric smoke",
-                "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
-                "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
-                "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
+        val controller =
+            FabricClientSmokeController.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                    "CRAFTLESS_SMOKE_SERVER_HOST" to "localhost",
+                    "CRAFTLESS_SMOKE_SERVER_PORT" to "25567",
+                    "CRAFTLESS_FABRIC_SMOKE_CHAT_MESSAGE" to "hello from fabric smoke",
+                    "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
+                    "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
+                    "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
+                ),
             )
-        )
 
         assertEquals(0.milliseconds, controller.startupSettleDelay)
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
@@ -250,14 +268,15 @@ class FabricDriverModuleTest {
         val gateway = RecordingFabricClientGateway()
         gateway.ready = false
         val backend = FabricDriverBackend.real(gateway)
-        val controller = FabricClientSmokeController.fromEnvironment(
-            mapOf(
-                "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
-                "CRAFTLESS_SMOKE_SERVER_PORT" to "25567",
-                "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
-                "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
+        val controller =
+            FabricClientSmokeController.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                    "CRAFTLESS_SMOKE_SERVER_PORT" to "25567",
+                    "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
+                    "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
+                ),
             )
-        )
 
         assertTrue(controller.start(backend, gateway, pollInterval = 10.milliseconds))
 
@@ -278,16 +297,19 @@ class FabricDriverModuleTest {
     }
 
     private fun resourceJson(path: String) =
-        json.parseToJsonElement(
-            requireNotNull(javaClass.classLoader.getResource(path)) { "missing resource $path" }.readText()
-        ).jsonObject
+        json
+            .parseToJsonElement(
+                requireNotNull(javaClass.classLoader.getResource(path)) { "missing resource $path" }.readText(),
+            ).jsonObject
 }
 
 private class RecordingFabricClientGateway : FabricClientGateway {
     var scheduled = 0
     val actions = mutableListOf<String>()
+
     @Volatile
     var connected = false
+
     @Volatile
     var ready = true
 

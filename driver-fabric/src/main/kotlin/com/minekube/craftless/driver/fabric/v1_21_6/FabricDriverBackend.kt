@@ -18,7 +18,10 @@ class FabricDriverBackend private constructor(
     private val events = mutableListOf<String>()
     private val actionBindingsById = actionBindings.associateBy { it.descriptor.id }
 
-    override fun connect(clientId: String, target: ConnectionTarget): DriverBackendResult {
+    override fun connect(
+        clientId: String,
+        target: ConnectionTarget,
+    ): DriverBackendResult {
         require(target.host.isNotBlank()) { "connection host is required" }
         require(target.port in 1..65535) { "connection port must be between 1 and 65535" }
         record("connect $clientId ${target.host}:${target.port}")
@@ -28,8 +31,7 @@ class FabricDriverBackend private constructor(
         return DriverBackendResult(DriverBackendAction.CONNECT, "fabric ${mode.id} connect requested")
     }
 
-    override fun actions(clientId: String): List<DriverActionDescriptor> =
-        actionBindingsById.values.map { it.descriptor }
+    override fun actions(clientId: String): List<DriverActionDescriptor> = actionBindingsById.values.map { it.descriptor }
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
         DriverRuntimeMetadata(
@@ -43,7 +45,10 @@ class FabricDriverBackend private constructor(
             permissionsFingerprint = "local-client",
         )
 
-    override fun invoke(clientId: String, invocation: DriverActionInvocation): DriverActionResult {
+    override fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+    ): DriverActionResult {
         require(invocation.action.isNotBlank()) { "action is required" }
         val binding = actionBindingsById[invocation.action]
         if (binding == null) {
@@ -56,11 +61,12 @@ class FabricDriverBackend private constructor(
         return binding.invoke(
             clientId = clientId,
             invocation = invocation,
-            context = FabricActionContext(
-                modeId = mode.id,
-                gateway = gateway,
-                record = ::record,
-            ),
+            context =
+                FabricActionContext(
+                    modeId = mode.id,
+                    gateway = gateway,
+                    record = ::record,
+                ),
         )
     }
 
@@ -78,7 +84,9 @@ class FabricDriverBackend private constructor(
         events += event
     }
 
-    private enum class Mode(val id: String) {
+    private enum class Mode(
+        val id: String,
+    ) {
         METADATA_ONLY("metadata-only"),
         REAL_CLIENT("real-client"),
     }
@@ -96,7 +104,6 @@ class FabricDriverBackend private constructor(
             installed = backend
         }
 
-        fun current(): FabricDriverBackend =
-            installed ?: metadataOnly().also(::install)
+        fun current(): FabricDriverBackend = installed ?: metadataOnly().also(::install)
     }
 }

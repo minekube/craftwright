@@ -7,6 +7,14 @@ bun = "1.3.14"
 description = "Run the Kotlin/JVM test suite"
 run = "mise exec -- gradle test"
 
+[tasks.lint]
+description = "Run Kotlin formatting and static-analysis checks"
+run = "mise exec -- gradle lint"
+
+[tasks.lint-fix]
+description = "Auto-format Kotlin sources with ktlint"
+run = "mise exec -- gradle lintFormat"
+
 [tasks.playwright-test]
 description = "Run the Playwright integration helper tests"
 run = "mise exec -- bun test playwright"
@@ -14,6 +22,7 @@ run = "mise exec -- bun test playwright"
 [tasks.ci]
 description = "Run all repository verification checks"
 run = [
+    "mise exec -- gradle lint",
     "mise exec -- gradle test",
     "mise exec -- bun test playwright",
 ]

@@ -37,7 +37,7 @@ data class LocalServerFixture(
             server-port=$port
             enable-command-block=true
             spawn-protection=0
-            """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
 
         return LocalServerLayout(
@@ -84,16 +84,18 @@ data class LocalServerLayout(
         require(command.isNotEmpty()) { "server process command is required" }
         require(timeoutMillis > 0) { "server process timeout must be positive" }
         Files.createDirectories(serverLog.parent)
-        val process = ProcessBuilder(command)
-            .directory(root.toFile())
-            .redirectErrorStream(true)
-            .start()
+        val process =
+            ProcessBuilder(command)
+                .directory(root.toFile())
+                .redirectErrorStream(true)
+                .start()
         val output = mutableListOf<String>()
-        val outputReader = thread(name = "craftless-local-server-output") {
-            process.inputStream.bufferedReader().useLines { lines ->
-                lines.forEach { line -> output += line }
+        val outputReader =
+            thread(name = "craftless-local-server-output") {
+                process.inputStream.bufferedReader().useLines { lines ->
+                    lines.forEach { line -> output += line }
+                }
             }
-        }
 
         val exited = process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)
         if (!exited) {
@@ -125,14 +127,15 @@ data class LocalServerLayout(
         val serverJarPath = serverJar.toAbsolutePath().normalize()
         Files.writeString(eulaFile, "eula=true\n", CREATE)
         return collectEvidenceFromProcess(
-            command = listOf(
-                javaPath.toString(),
-                "-Xms$minHeap",
-                "-Xmx$maxHeap",
-                "-jar",
-                serverJarPath.toString(),
-                "nogui",
-            ),
+            command =
+                listOf(
+                    javaPath.toString(),
+                    "-Xms$minHeap",
+                    "-Xmx$maxHeap",
+                    "-jar",
+                    serverJarPath.toString(),
+                    "nogui",
+                ),
             timeoutMillis = timeoutMillis,
         )
     }
@@ -156,29 +159,30 @@ data class LocalServerLayout(
         Files.writeString(eulaFile, "eula=true\n", CREATE)
         Files.createDirectories(serverLog.parent)
 
-        val process = ProcessBuilder(
-            javaPath.toString(),
-            "-Xms$minHeap",
-            "-Xmx$maxHeap",
-            "-jar",
-            serverJarPath.toString(),
-            "nogui",
-        )
-            .directory(root.toFile())
-            .redirectErrorStream(true)
-            .start()
+        val process =
+            ProcessBuilder(
+                javaPath.toString(),
+                "-Xms$minHeap",
+                "-Xmx$maxHeap",
+                "-jar",
+                serverJarPath.toString(),
+                "nogui",
+            ).directory(root.toFile())
+                .redirectErrorStream(true)
+                .start()
         val output = Collections.synchronizedList(mutableListOf<String>())
         val ready = CountDownLatch(1)
-        val outputReader = thread(name = "craftless-minecraft-server-output") {
-            process.inputStream.bufferedReader().useLines { lines ->
-                lines.forEach { line ->
-                    output += line
-                    if (line.isMinecraftServerReadyLine()) {
-                        ready.countDown()
+        val outputReader =
+            thread(name = "craftless-minecraft-server-output") {
+                process.inputStream.bufferedReader().useLines { lines ->
+                    lines.forEach { line ->
+                        output += line
+                        if (line.isMinecraftServerReadyLine()) {
+                            ready.countDown()
+                        }
                     }
                 }
             }
-        }
 
         fun stopAndCollect(message: String): Nothing {
             process.destroyForcibly()
@@ -208,14 +212,15 @@ data class LocalServerLayout(
         readinessTimeoutMillis: Long = 120_000,
         shutdownTimeoutMillis: Long = 10_000,
     ): LocalServerProcessResult {
-        val handle = startMinecraftServer(
-            serverJar = serverJar,
-            javaExecutable = javaExecutable,
-            minHeap = minHeap,
-            maxHeap = maxHeap,
-            readinessTimeoutMillis = readinessTimeoutMillis,
-            shutdownTimeoutMillis = shutdownTimeoutMillis,
-        )
+        val handle =
+            startMinecraftServer(
+                serverJar = serverJar,
+                javaExecutable = javaExecutable,
+                minHeap = minHeap,
+                maxHeap = maxHeap,
+                readinessTimeoutMillis = readinessTimeoutMillis,
+                shutdownTimeoutMillis = shutdownTimeoutMillis,
+            )
         return handle.stopAndCollect()
     }
 
@@ -223,7 +228,8 @@ data class LocalServerLayout(
         if (!Files.exists(evidenceLog)) {
             return emptyList()
         }
-        return evidenceLog.readLines()
+        return evidenceLog
+            .readLines()
             .filter { it.isNotBlank() }
             .map { line -> localServerEvidenceJson.decodeFromString<LocalServerEvidence>(line) }
     }
@@ -300,7 +306,10 @@ data class LocalServerEvidence(
         fun playerJoined(player: String): LocalServerEvidence =
             LocalServerEvidence(type = LocalServerEvidenceType.PLAYER_JOINED, player = player)
 
-        fun chat(player: String, message: String): LocalServerEvidence {
+        fun chat(
+            player: String,
+            message: String,
+        ): LocalServerEvidence {
             require(message.isNotBlank()) { "chat evidence message is required" }
             return LocalServerEvidence(
                 type = LocalServerEvidenceType.CHAT,
@@ -341,10 +350,11 @@ data class LocalServerPosition(
     val z: Double,
 )
 
-private val localServerEvidenceJson = Json {
-    encodeDefaults = false
-    ignoreUnknownKeys = true
-}
+private val localServerEvidenceJson =
+    Json {
+        encodeDefaults = false
+        ignoreUnknownKeys = true
+    }
 
 private fun String.toLocalServerEvidence(): LocalServerEvidence? {
     val message = substringAfter("]: ", missingDelimiterValue = this)
@@ -360,34 +370,35 @@ private fun String.toLocalServerEvidence(): LocalServerEvidence? {
     movementRegex.matchEntire(message)?.let { match ->
         return LocalServerEvidence.movement(
             player = match.groupValues[1],
-            from = LocalServerPosition(
-                x = match.groupValues[2].toDouble(),
-                y = match.groupValues[3].toDouble(),
-                z = match.groupValues[4].toDouble(),
-            ),
-            to = LocalServerPosition(
-                x = match.groupValues[5].toDouble(),
-                y = match.groupValues[6].toDouble(),
-                z = match.groupValues[7].toDouble(),
-            ),
+            from =
+                LocalServerPosition(
+                    x = match.groupValues[2].toDouble(),
+                    y = match.groupValues[3].toDouble(),
+                    z = match.groupValues[4].toDouble(),
+                ),
+            to =
+                LocalServerPosition(
+                    x = match.groupValues[5].toDouble(),
+                    y = match.groupValues[6].toDouble(),
+                    z = match.groupValues[7].toDouble(),
+                ),
         )
     }
     return null
 }
 
-private val playerNamePattern = "([A-Za-z0-9_]{1,16})"
-private val coordinatePattern = "(-?\\d+(?:\\.\\d+)?)"
-private val joinedGameRegex = Regex("$playerNamePattern joined the game")
-private val leftGameRegex = Regex("$playerNamePattern left the game")
-private val chatRegex = Regex("(?:\\[Not Secure] )?<$playerNamePattern> (.+)")
-private val movementRegex = Regex(
-    "\\[Craftless] $playerNamePattern moved from " +
-        "$coordinatePattern $coordinatePattern $coordinatePattern to " +
-        "$coordinatePattern $coordinatePattern $coordinatePattern"
-)
+private const val PLAYER_NAME_PATTERN = "([A-Za-z0-9_]{1,16})"
+private const val COORDINATE_PATTERN = "(-?\\d+(?:\\.\\d+)?)"
+private val joinedGameRegex = Regex("$PLAYER_NAME_PATTERN joined the game")
+private val leftGameRegex = Regex("$PLAYER_NAME_PATTERN left the game")
+private val chatRegex = Regex("(?:\\[Not Secure] )?<$PLAYER_NAME_PATTERN> (.+)")
+private val movementRegex =
+    Regex(
+        "\\[Craftless] $PLAYER_NAME_PATTERN moved from " +
+            "$COORDINATE_PATTERN $COORDINATE_PATTERN $COORDINATE_PATTERN to " +
+            "$COORDINATE_PATTERN $COORDINATE_PATTERN $COORDINATE_PATTERN",
+    )
 
-private fun String.isMinecraftServerReadyLine(): Boolean =
-    contains("Done (") && contains("For help, type")
+private fun String.isMinecraftServerReadyLine(): Boolean = contains("Done (") && contains("For help, type")
 
-private fun <T> MutableList<T>.snapshot(): List<T> =
-    synchronized(this) { toList() }
+private fun <T> MutableList<T>.snapshot(): List<T> = synchronized(this) { toList() }

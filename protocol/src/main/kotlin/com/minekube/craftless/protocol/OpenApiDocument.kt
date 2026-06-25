@@ -19,21 +19,23 @@ data class OpenApiDocument(
             extensions: Map<String, String> = emptyMap(),
             actions: List<OpenApiAction> = emptyList(),
         ): OpenApiDocument {
-            val duplicateAction = actions
-                .groupBy { it.id }
-                .entries
-                .firstOrNull { (_, matches) -> matches.size > 1 }
+            val duplicateAction =
+                actions
+                    .groupBy { it.id }
+                    .entries
+                    .firstOrNull { (_, matches) -> matches.size > 1 }
             if (duplicateAction != null) {
                 throw IllegalArgumentException("duplicate action id ${duplicateAction.key}")
             }
             val actionsById = actions.associateBy { it.id }
             return OpenApiDocument(
-                paths = catalog.routes.groupBy { it.path }.mapValues { (_, routes) ->
-                    OpenApiPath(
-                        get = routes.firstOrNull { it.method == "GET" }?.toOperation(actionsById),
-                        post = routes.firstOrNull { it.method == "POST" }?.toOperation(actionsById),
-                    )
-                },
+                paths =
+                    catalog.routes.groupBy { it.path }.mapValues { (_, routes) ->
+                        OpenApiPath(
+                            get = routes.firstOrNull { it.method == "GET" }?.toOperation(actionsById),
+                            post = routes.firstOrNull { it.method == "POST" }?.toOperation(actionsById),
+                        )
+                    },
                 extensions = extensions,
                 actions = actions,
             )
@@ -123,8 +125,7 @@ data class OpenApiActionArgument(
     }
 }
 
-fun String.isCraftlessActionArgumentType(): Boolean =
-    this in CRAFTLESS_ACTION_ARGUMENT_TYPES
+fun String.isCraftlessActionArgumentType(): Boolean = this in CRAFTLESS_ACTION_ARGUMENT_TYPES
 
 private val CRAFTLESS_ACTION_ARGUMENT_TYPES =
     setOf("boolean", "integer", "number", "string", "object", "array")
@@ -136,14 +137,15 @@ private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenA
         tags = listOf(tag),
         responses = route.responses(),
         requestBody = route.requestBody(actionsById),
-        extensions = buildMap {
-            put("x-craftless-owner", route.owner)
-            route.member?.let { put("x-craftless-member", it) }
-            put("x-craftless-target", target)
-            put("x-craftless-return", returnKind)
-            put("x-craftless-source", source)
-            actionId?.let { put("x-craftless-action", it) }
-        },
+        extensions =
+            buildMap {
+                put("x-craftless-owner", route.owner)
+                route.member?.let { put("x-craftless-member", it) }
+                put("x-craftless-target", target)
+                put("x-craftless-return", returnKind)
+                put("x-craftless-source", source)
+                actionId?.let { put("x-craftless-action", it) }
+            },
     )
 }
 
@@ -198,256 +200,286 @@ private fun ApiRoute.requestBody(actionsById: Map<String, OpenApiAction>): OpenA
 
 private fun Map<String, OpenApiActionArgument>.toRequestBody(): OpenApiRequestBody =
     OpenApiRequestBody(
-        content = jsonContent(
-            OpenApiSchema(
-                type = "object",
-                properties = mapValues { (_, argument) -> OpenApiSchema(type = argument.type) },
-                required = filterValues { it.required }.keys.toList(),
-                additionalProperties = false,
-            )
-        )
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties = mapValues { (_, argument) -> OpenApiSchema(type = argument.type) },
+                    required = filterValues { it.required }.keys.toList(),
+                    additionalProperties = false,
+                ),
+            ),
     )
 
 private fun actionInvocationResponse(): OpenApiResponse =
     OpenApiResponse(
-        content = jsonContent(
-            OpenApiSchema(
-                type = "object",
-                properties = mapOf(
-                    "action" to OpenApiSchema(type = "string"),
-                    "status" to OpenApiSchema(type = "string"),
-                    "message" to OpenApiSchema(type = "string"),
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "action" to OpenApiSchema(type = "string"),
+                            "status" to OpenApiSchema(type = "string"),
+                            "message" to OpenApiSchema(type = "string"),
+                        ),
+                    required = listOf("action", "status"),
                 ),
-                required = listOf("action", "status"),
-            )
-        )
+            ),
     )
 
 private fun errorResponse(status: String): OpenApiResponse =
     OpenApiResponse(
-        description = when (status) {
-            "400" -> "Bad Request"
-            "404" -> "Not Found"
-            "409" -> "Conflict"
-            else -> "Error"
-        },
+        description =
+            when (status) {
+                "400" -> "Bad Request"
+                "404" -> "Not Found"
+                "409" -> "Conflict"
+                else -> "Error"
+            },
         content = jsonContent(errorSchema()),
     )
 
 private fun errorSchema(): OpenApiSchema =
     OpenApiSchema(
         type = "object",
-        properties = mapOf(
-            "code" to OpenApiSchema(type = "string"),
-            "message" to OpenApiSchema(type = "string"),
-        ),
+        properties =
+            mapOf(
+                "code" to OpenApiSchema(type = "string"),
+                "message" to OpenApiSchema(type = "string"),
+            ),
         required = listOf("code", "message"),
     )
 
 private fun versionResponse(): OpenApiResponse =
     OpenApiResponse(
-        content = jsonContent(
-            OpenApiSchema(
-                type = "object",
-                properties = mapOf(
-                    "minecraft" to OpenApiSchema(type = "string"),
-                    "loader" to OpenApiSchema(type = "string"),
-                    "loaderVersion" to OpenApiSchema(type = "string"),
-                    "driver" to OpenApiSchema(type = "string"),
-                    "driverVersion" to OpenApiSchema(type = "string"),
-                    "java" to OpenApiSchema(type = "string"),
-                    "mappingsFingerprint" to OpenApiSchema(type = "string"),
-                    "openapiGeneratedAt" to OpenApiSchema(type = "string"),
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "minecraft" to OpenApiSchema(type = "string"),
+                            "loader" to OpenApiSchema(type = "string"),
+                            "loaderVersion" to OpenApiSchema(type = "string"),
+                            "driver" to OpenApiSchema(type = "string"),
+                            "driverVersion" to OpenApiSchema(type = "string"),
+                            "java" to OpenApiSchema(type = "string"),
+                            "mappingsFingerprint" to OpenApiSchema(type = "string"),
+                            "openapiGeneratedAt" to OpenApiSchema(type = "string"),
+                        ),
+                    required =
+                        listOf(
+                            "minecraft",
+                            "loader",
+                            "loaderVersion",
+                            "driver",
+                            "driverVersion",
+                            "java",
+                            "mappingsFingerprint",
+                            "openapiGeneratedAt",
+                        ),
                 ),
-                required = listOf(
-                    "minecraft",
-                    "loader",
-                    "loaderVersion",
-                    "driver",
-                    "driverVersion",
-                    "java",
-                    "mappingsFingerprint",
-                    "openapiGeneratedAt",
-                ),
-            )
-        )
+            ),
     )
 
 private fun eventListResponse(): OpenApiResponse =
     OpenApiResponse(
-        content = jsonContent(
-            OpenApiSchema(
-                type = "array",
-                items = OpenApiSchema(
-                    type = "object",
-                    properties = mapOf(
-                        "type" to OpenApiSchema(type = "string"),
-                        "client" to OpenApiSchema(type = "string"),
-                        "message" to OpenApiSchema(type = "string"),
-                        "time" to OpenApiSchema(type = "string"),
-                    ),
-                    required = listOf("type", "time"),
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "array",
+                    items =
+                        OpenApiSchema(
+                            type = "object",
+                            properties =
+                                mapOf(
+                                    "type" to OpenApiSchema(type = "string"),
+                                    "client" to OpenApiSchema(type = "string"),
+                                    "message" to OpenApiSchema(type = "string"),
+                                    "time" to OpenApiSchema(type = "string"),
+                                ),
+                            required = listOf("type", "time"),
+                        ),
                 ),
-            )
-        )
+            ),
     )
 
 private fun actionListResponse(): OpenApiResponse =
     OpenApiResponse(
-        content = jsonContent(
-            OpenApiSchema(
-                type = "array",
-                items = actionDescriptorSchema(),
-            )
-        )
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "array",
+                    items = actionDescriptorSchema(),
+                ),
+            ),
     )
 
 private fun openApiDocumentResponse(): OpenApiResponse =
     OpenApiResponse(
-        content = jsonContent(
-            OpenApiSchema(
-                type = "object",
-                properties = mapOf(
-                    "openapi" to OpenApiSchema(type = "string"),
-                    "info" to OpenApiSchema(
-                        type = "object",
-                        properties = mapOf(
-                            "title" to OpenApiSchema(type = "string"),
-                            "version" to OpenApiSchema(type = "string"),
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "openapi" to OpenApiSchema(type = "string"),
+                            "info" to
+                                OpenApiSchema(
+                                    type = "object",
+                                    properties =
+                                        mapOf(
+                                            "title" to OpenApiSchema(type = "string"),
+                                            "version" to OpenApiSchema(type = "string"),
+                                        ),
+                                    required = listOf("title", "version"),
+                                ),
+                            "paths" to OpenApiSchema(type = "object", additionalProperties = true),
+                            "x-craftless" to OpenApiSchema(type = "object", additionalProperties = true),
+                            "x-craftless-actions" to
+                                OpenApiSchema(
+                                    type = "array",
+                                    items = actionDescriptorSchema(),
+                                ),
                         ),
-                        required = listOf("title", "version"),
-                    ),
-                    "paths" to OpenApiSchema(type = "object", additionalProperties = true),
-                    "x-craftless" to OpenApiSchema(type = "object", additionalProperties = true),
-                    "x-craftless-actions" to OpenApiSchema(
-                        type = "array",
-                        items = actionDescriptorSchema(),
-                    ),
+                    required = listOf("openapi", "info", "paths"),
                 ),
-                required = listOf("openapi", "info", "paths"),
-            )
-        )
+            ),
     )
 
 private fun actionDescriptorSchema(): OpenApiSchema =
     OpenApiSchema(
         type = "object",
-        properties = mapOf(
-            "id" to OpenApiSchema(type = "string"),
-            "schemaVersion" to OpenApiSchema(type = "string"),
-            "args" to OpenApiSchema(type = "object", additionalProperties = true),
-        ),
+        properties =
+            mapOf(
+                "id" to OpenApiSchema(type = "string"),
+                "schemaVersion" to OpenApiSchema(type = "string"),
+                "args" to OpenApiSchema(type = "object", additionalProperties = true),
+            ),
         required = listOf("id", "schemaVersion"),
     )
 
 private fun genericActionRequestBody(): OpenApiRequestBody =
     OpenApiRequestBody(
-        content = jsonContent(
-            OpenApiSchema(
-                type = "object",
-                properties = mapOf(
-                    "action" to OpenApiSchema(type = "string"),
-                    "args" to OpenApiSchema(type = "object", additionalProperties = true),
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "action" to OpenApiSchema(type = "string"),
+                            "args" to OpenApiSchema(type = "object", additionalProperties = true),
+                        ),
+                    required = listOf("action"),
                 ),
-                required = listOf("action"),
-            )
-        )
+            ),
     )
 
 private fun clientListResponse(): OpenApiResponse =
     OpenApiResponse(
-        content = jsonContent(
-            OpenApiSchema(
-                type = "array",
-                items = clientSchema(),
-            )
-        )
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "array",
+                    items = clientSchema(),
+                ),
+            ),
     )
 
-private fun clientResponse(): OpenApiResponse =
-    OpenApiResponse(content = jsonContent(clientSchema()))
+private fun clientResponse(): OpenApiResponse = OpenApiResponse(content = jsonContent(clientSchema()))
 
 private fun clientSchema(): OpenApiSchema =
     OpenApiSchema(
         type = "object",
-        properties = mapOf(
-            "id" to OpenApiSchema(type = "string"),
-            "instance" to OpenApiSchema(
-                type = "object",
-                properties = mapOf(
-                    "id" to OpenApiSchema(type = "string"),
-                    "version" to OpenApiSchema(
+        properties =
+            mapOf(
+                "id" to OpenApiSchema(type = "string"),
+                "instance" to
+                    OpenApiSchema(
                         type = "object",
-                        properties = mapOf(
-                            "id" to OpenApiSchema(type = "string"),
-                        ),
-                        required = listOf("id"),
+                        properties =
+                            mapOf(
+                                "id" to OpenApiSchema(type = "string"),
+                                "version" to
+                                    OpenApiSchema(
+                                        type = "object",
+                                        properties =
+                                            mapOf(
+                                                "id" to OpenApiSchema(type = "string"),
+                                            ),
+                                        required = listOf("id"),
+                                    ),
+                                "loader" to OpenApiSchema(type = "string"),
+                                "files" to instanceFilesSchema(),
+                            ),
+                        required = listOf("id", "version", "loader", "files"),
                     ),
-                    "loader" to OpenApiSchema(type = "string"),
-                    "files" to instanceFilesSchema(),
-                ),
-                required = listOf("id", "version", "loader", "files"),
+                "profile" to profileSchema(),
+                "state" to OpenApiSchema(type = "string"),
             ),
-            "profile" to profileSchema(),
-            "state" to OpenApiSchema(type = "string"),
-        ),
         required = listOf("id", "instance", "profile", "state"),
     )
 
 private fun createClientRequestBody(): OpenApiRequestBody =
     OpenApiRequestBody(
-        content = jsonContent(
-            OpenApiSchema(
-                type = "object",
-                properties = mapOf(
-                    "id" to OpenApiSchema(type = "string"),
-                    "version" to OpenApiSchema(type = "string"),
-                    "loader" to OpenApiSchema(type = "string"),
-                    "profile" to profileSchema(),
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "id" to OpenApiSchema(type = "string"),
+                            "version" to OpenApiSchema(type = "string"),
+                            "loader" to OpenApiSchema(type = "string"),
+                            "profile" to profileSchema(),
+                        ),
+                    required = listOf("id", "version", "loader", "profile"),
                 ),
-                required = listOf("id", "version", "loader", "profile"),
-            )
-        )
+            ),
     )
 
 private fun connectRequestBody(): OpenApiRequestBody =
     OpenApiRequestBody(
-        content = jsonContent(
-            OpenApiSchema(
-                type = "object",
-                properties = mapOf(
-                    "host" to OpenApiSchema(type = "string"),
-                    "port" to OpenApiSchema(type = "integer"),
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "host" to OpenApiSchema(type = "string"),
+                            "port" to OpenApiSchema(type = "integer"),
+                        ),
+                    required = listOf("host", "port"),
                 ),
-                required = listOf("host", "port"),
-            )
-        )
+            ),
     )
 
 private fun profileSchema(): OpenApiSchema =
     OpenApiSchema(
         type = "object",
-        properties = mapOf(
-            "kind" to OpenApiSchema(type = "string"),
-            "name" to OpenApiSchema(type = "string"),
-        ),
+        properties =
+            mapOf(
+                "kind" to OpenApiSchema(type = "string"),
+                "name" to OpenApiSchema(type = "string"),
+            ),
         required = listOf("kind", "name"),
     )
 
 private fun instanceFilesSchema(): OpenApiSchema =
     OpenApiSchema(
         type = "object",
-        properties = mapOf(
-            "root" to OpenApiSchema(type = "string"),
-            "gameRoot" to OpenApiSchema(type = "string"),
-            "mods" to OpenApiSchema(type = "string"),
-            "config" to OpenApiSchema(type = "string"),
-            "saves" to OpenApiSchema(type = "string"),
-            "resourcePacks" to OpenApiSchema(type = "string"),
-            "shaderPacks" to OpenApiSchema(type = "string"),
-        ),
+        properties =
+            mapOf(
+                "root" to OpenApiSchema(type = "string"),
+                "gameRoot" to OpenApiSchema(type = "string"),
+                "mods" to OpenApiSchema(type = "string"),
+                "config" to OpenApiSchema(type = "string"),
+                "saves" to OpenApiSchema(type = "string"),
+                "resourcePacks" to OpenApiSchema(type = "string"),
+                "shaderPacks" to OpenApiSchema(type = "string"),
+            ),
         required = listOf("root", "gameRoot", "mods", "config", "saves", "resourcePacks", "shaderPacks"),
     )
 
-private fun jsonContent(schema: OpenApiSchema): Map<String, OpenApiMediaType> =
-    mapOf("application/json" to OpenApiMediaType(schema))
+private fun jsonContent(schema: OpenApiSchema): Map<String, OpenApiMediaType> = mapOf("application/json" to OpenApiMediaType(schema))

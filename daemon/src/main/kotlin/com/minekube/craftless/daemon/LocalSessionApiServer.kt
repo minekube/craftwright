@@ -45,23 +45,24 @@ class LocalSessionApiServer private constructor(
     private val host: String,
     requestedPort: Int,
 ) : AutoCloseable {
-    private val json = Json {
-        prettyPrint = false
-        encodeDefaults = true
-        ignoreUnknownKeys = true
-    }
+    private val json =
+        Json {
+            prettyPrint = false
+            encodeDefaults = true
+            ignoreUnknownKeys = true
+        }
     private val events = mutableListOf<SessionEvent>()
     private val port = if (requestedPort == 0) allocateLoopbackPort() else requestedPort
-    private val server = embeddedServer(CIO, host = host, port = port) {
-        installRoutes()
-    }
+    private val server =
+        embeddedServer(CIO, host = host, port = port) {
+            installRoutes()
+        }
 
     fun start() {
         server.start()
     }
 
-    fun url(path: String): String =
-        "http://$host:$port$path"
+    fun url(path: String): String = "http://$host:$port$path"
 
     override fun close() {
         server.stop(gracePeriodMillis = 250, timeoutMillis = 1_000)
@@ -90,11 +91,12 @@ class LocalSessionApiServer private constructor(
                 runCatching {
                     val request = json.decodeFromString<CreateClientRequest>(call.receiveText())
                     val client = service.createClient(request)
-                    events += SessionEvent(
-                        type = "client.created",
-                        client = client.id,
-                        message = "created client ${client.id}",
-                    )
+                    events +=
+                        SessionEvent(
+                            type = "client.created",
+                            client = client.id,
+                            message = "created client ${client.id}",
+                        )
                     call.respondJson(HttpStatusCode.Created, client)
                 }.getOrElse { error ->
                     call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
@@ -125,26 +127,29 @@ class LocalSessionApiServer private constructor(
                 runCatching {
                     service.requireActiveClient(clientId)
                     val request = json.decodeFromString<ConnectRequest>(call.receiveText())
-                    val client = service.connectClient(
-                        clientId,
-                        ConnectionTarget(
-                            host = request.host,
-                            port = request.port,
+                    val client =
+                        service.connectClient(
+                            clientId,
+                            ConnectionTarget(
+                                host = request.host,
+                                port = request.port,
+                            ),
                         )
-                    )
-                    events += SessionEvent(
-                        type = "client.connected",
-                        client = client.id,
-                        message = "connected ${client.id} to ${request.host}:${request.port}",
-                    )
+                    events +=
+                        SessionEvent(
+                            type = "client.connected",
+                            client = client.id,
+                            message = "connected ${client.id} to ${request.host}:${request.port}",
+                        )
                     call.respondJson(HttpStatusCode.OK, client)
                 }.getOrElse { error ->
                     when (error) {
                         is RouteFailure -> call.respondRouteFailure(error)
-                        else -> call.respondJson(
-                            HttpStatusCode.BadRequest,
-                            ErrorResponse("BAD_REQUEST", error.message ?: "bad request"),
-                        )
+                        else ->
+                            call.respondJson(
+                                HttpStatusCode.BadRequest,
+                                ErrorResponse("BAD_REQUEST", error.message ?: "bad request"),
+                            )
                     }
                 }
             }
@@ -164,15 +169,17 @@ class LocalSessionApiServer private constructor(
                         throw InvalidActionInput("invalid action id ${request.action}")
                     }
                     val driver = service.requireActiveDriver(clientId)
-                    val action = driver.actionDescriptor(request.action)
-                        ?: throw UnsupportedAction("action ${request.action} is not available for client $clientId")
+                    val action =
+                        driver.actionDescriptor(request.action)
+                            ?: throw UnsupportedAction("action ${request.action} is not available for client $clientId")
                     action.requireArguments(request.args)
-                    val result = driver.invoke(
-                        DriverActionInvocation(
-                            action = request.action,
-                            arguments = request.args,
+                    val result =
+                        driver.invoke(
+                            DriverActionInvocation(
+                                action = request.action,
+                                arguments = request.args,
+                            ),
                         )
-                    )
                     if (result.status == DriverActionStatus.UNSUPPORTED) {
                         throw UnsupportedAction(result.message ?: "action ${request.action} is not available for client $clientId")
                     }
@@ -183,15 +190,16 @@ class LocalSessionApiServer private constructor(
                             action = result.action,
                             status = result.status.name,
                             message = result.message,
-                        )
+                        ),
                     )
                 }.getOrElse { error ->
                     when (error) {
                         is RouteFailure -> call.respondRouteFailure(error)
-                        else -> call.respondJson(
-                            HttpStatusCode.BadRequest,
-                            ErrorResponse("INVALID_ACTION_INPUT", error.message ?: "invalid action input"),
-                        )
+                        else ->
+                            call.respondJson(
+                                HttpStatusCode.BadRequest,
+                                ErrorResponse("INVALID_ACTION_INPUT", error.message ?: "invalid action input"),
+                            )
                     }
                 }
             }
@@ -199,11 +207,12 @@ class LocalSessionApiServer private constructor(
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
                     val client = service.stopClient(clientId)
-                    events += SessionEvent(
-                        type = "client.stopped",
-                        client = client.id,
-                        message = "stopped client ${client.id}",
-                    )
+                    events +=
+                        SessionEvent(
+                            type = "client.stopped",
+                            client = client.id,
+                            message = "stopped client ${client.id}",
+                        )
                     call.respondJson(HttpStatusCode.OK, client)
                 }.getOrElse { error ->
                     call.respondMissingClient(error)
@@ -221,12 +230,13 @@ class LocalSessionApiServer private constructor(
                     }
                     val arguments = call.receiveActionArguments()
                     action.requireArguments(arguments)
-                    val result = driver.invoke(
-                        DriverActionInvocation(
-                            action = actionId,
-                            arguments = arguments,
+                    val result =
+                        driver.invoke(
+                            DriverActionInvocation(
+                                action = actionId,
+                                arguments = arguments,
+                            ),
                         )
-                    )
                     if (result.status == DriverActionStatus.UNSUPPORTED) {
                         throw UnsupportedAction(result.message ?: "action $actionId is not available for client $clientId")
                     }
@@ -237,15 +247,16 @@ class LocalSessionApiServer private constructor(
                             action = result.action,
                             status = result.status.name,
                             message = result.message,
-                        )
+                        ),
                     )
                 }.getOrElse { error ->
                     when (error) {
                         is RouteFailure -> call.respondRouteFailure(error)
-                        else -> call.respondJson(
-                            HttpStatusCode.BadRequest,
-                            ErrorResponse("INVALID_ACTION_INPUT", error.message ?: "invalid action input"),
-                        )
+                        else ->
+                            call.respondJson(
+                                HttpStatusCode.BadRequest,
+                                ErrorResponse("INVALID_ACTION_INPUT", error.message ?: "invalid action input"),
+                            )
                     }
                 }
             }
@@ -255,9 +266,11 @@ class LocalSessionApiServer private constructor(
     companion object {
         fun inMemory(
             port: Int = 0,
-            driverFactory: DriverSessionFactory = DriverSessionFactory { request ->
-                com.minekube.craftless.driver.api.FakeDriverSession(request.id)
-            },
+            driverFactory: DriverSessionFactory =
+                DriverSessionFactory { request ->
+                    com.minekube.craftless.driver.api
+                        .FakeDriverSession(request.id)
+                },
         ): LocalSessionApiServer =
             LocalSessionApiServer(
                 service = ClientSessionService.inMemory(driverFactory),
@@ -294,13 +307,13 @@ private suspend fun ApplicationCall.receiveActionArguments(): Map<String, JsonEl
     return if (body.isBlank()) emptyMap() else Json.decodeFromString(body)
 }
 
-private fun DriverSession.actionDescriptor(actionId: String): DriverActionDescriptor? =
-    actions().firstOrNull { it.id == actionId }
+private fun DriverSession.actionDescriptor(actionId: String): DriverActionDescriptor? = actions().firstOrNull { it.id == actionId }
 
 private fun ClientSessionService.requireActiveClient(clientId: String): Client {
-    val client = runCatching { client(clientId) }.getOrElse { error ->
-        throw MissingClient(error.message ?: "client $clientId not found")
-    }
+    val client =
+        runCatching { client(clientId) }.getOrElse { error ->
+            throw MissingClient(error.message ?: "client $clientId not found")
+        }
     if (client.state == ClientState.STOPPED) {
         throw StoppedClient("client $clientId is stopped")
     }
@@ -317,10 +330,11 @@ private fun ClientSessionService.requireActiveDriver(clientId: String): DriverSe
 private fun DriverActionDescriptor.requireArguments(arguments: Map<String, JsonElement>) {
     val undeclared = arguments.keys.firstOrNull { it !in this.arguments }
     require(undeclared == null) { "action $id does not declare argument $undeclared" }
-    val missingRequired = this.arguments
-        .filterValues { it.required }
-        .keys
-        .firstOrNull { it !in arguments }
+    val missingRequired =
+        this.arguments
+            .filterValues { it.required }
+            .keys
+            .firstOrNull { it !in arguments }
     require(missingRequired == null) { "action $id requires argument $missingRequired" }
     arguments.forEach { (name, value) ->
         this.arguments.getValue(name).requireValueType(id, name, value)
@@ -348,8 +362,7 @@ private fun JsonElement.matchesActionArgumentType(type: String): Boolean =
         else -> false
     }
 
-private fun JsonPrimitive.isJsonString(): Boolean =
-    toString().startsWith("\"")
+private fun JsonPrimitive.isJsonString(): Boolean = toString().startsWith("\"")
 
 private fun String.toActionId(): String {
     val parts = split(":", limit = 2)
@@ -378,8 +391,7 @@ private fun DriverActionResult.toSessionEvent(clientId: String): SessionEvent? {
     )
 }
 
-private fun DriverEventType.sessionEventType(): String =
-    name.lowercase().replace("_", ".")
+private fun DriverEventType.sessionEventType(): String = name.lowercase().replace("_", ".")
 
 private sealed class RouteFailure(
     val status: HttpStatusCode,
@@ -387,13 +399,21 @@ private sealed class RouteFailure(
     message: String,
 ) : RuntimeException(message)
 
-private class MissingClient(message: String) : RouteFailure(HttpStatusCode.NotFound, "MISSING_CLIENT", message)
+private class MissingClient(
+    message: String,
+) : RouteFailure(HttpStatusCode.NotFound, "MISSING_CLIENT", message)
 
-private class UnsupportedAction(message: String) : RouteFailure(HttpStatusCode.NotFound, "UNSUPPORTED_ACTION", message)
+private class UnsupportedAction(
+    message: String,
+) : RouteFailure(HttpStatusCode.NotFound, "UNSUPPORTED_ACTION", message)
 
-private class InvalidActionInput(message: String) : RouteFailure(HttpStatusCode.BadRequest, "INVALID_ACTION_INPUT", message)
+private class InvalidActionInput(
+    message: String,
+) : RouteFailure(HttpStatusCode.BadRequest, "INVALID_ACTION_INPUT", message)
 
-private class StoppedClient(message: String) : RouteFailure(HttpStatusCode.Conflict, "STOPPED_CLIENT", message)
+private class StoppedClient(
+    message: String,
+) : RouteFailure(HttpStatusCode.Conflict, "STOPPED_CLIENT", message)
 
 @Serializable
 data class RuntimeVersion(

@@ -1,5 +1,6 @@
 package com.minekube.craftless.driver.runtime
 
+import com.minekube.craftless.bridge.hmc.HmcBridgeBackend
 import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionArgument
 import com.minekube.craftless.driver.api.DriverActionDescriptor
@@ -8,7 +9,6 @@ import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
-import com.minekube.craftless.bridge.hmc.HmcBridgeBackend
 import com.minekube.craftless.protocol.ClientState
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
@@ -21,10 +21,11 @@ class BackendDriverSessionTest {
     @Test
     fun `runtime driver session delegates automation actions to a backend`() {
         val backend = RecordingDriverBackend()
-        val session = BackendDriverSession(
-            clientId = "alice",
-            backend = backend,
-        )
+        val session =
+            BackendDriverSession(
+                clientId = "alice",
+                backend = backend,
+            )
 
         assertEquals(ClientState.RUNNING, session.snapshot().state)
 
@@ -45,35 +46,41 @@ class BackendDriverSessionTest {
 
     @Test
     fun `runtime driver session invokes generic backend actions`() {
-        val backend = RecordingDriverBackend(
-            resultEventType = DriverEventType.MOVEMENT,
-        )
-        val session = BackendDriverSession(
-            clientId = "alice",
-            backend = backend,
-        )
-
-        val result = session.invoke(
-            DriverActionInvocation(
-                action = "player.move",
-                arguments = mapOf("forward" to JsonPrimitive(true), "ticks" to JsonPrimitive(20)),
+        val backend =
+            RecordingDriverBackend(
+                resultEventType = DriverEventType.MOVEMENT,
             )
-        )
+        val session =
+            BackendDriverSession(
+                clientId = "alice",
+                backend = backend,
+            )
+
+        val result =
+            session.invoke(
+                DriverActionInvocation(
+                    action = "player.move",
+                    arguments = mapOf("forward" to JsonPrimitive(true), "ticks" to JsonPrimitive(20)),
+                ),
+            )
 
         assertEquals("player.move", result.action)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
         assertEquals("action alice player.move forward=true ticks=20", backend.calls.single())
-        assertTrue(session.events().any {
-            it.type == DriverEventType.MOVEMENT &&
-                it.message == "action alice player.move forward=true ticks=20"
-        })
-
-        val chat = session.invoke(
-            DriverActionInvocation(
-                action = "player.chat",
-                arguments = mapOf("message" to JsonPrimitive("chat through action")),
-            )
+        assertTrue(
+            session.events().any {
+                it.type == DriverEventType.MOVEMENT &&
+                    it.message == "action alice player.move forward=true ticks=20"
+            },
         )
+
+        val chat =
+            session.invoke(
+                DriverActionInvocation(
+                    action = "player.chat",
+                    arguments = mapOf("message" to JsonPrimitive("chat through action")),
+                ),
+            )
 
         assertEquals("player.chat", chat.action)
         assertEquals(DriverActionStatus.ACCEPTED, chat.status)
@@ -82,52 +89,62 @@ class BackendDriverSessionTest {
 
     @Test
     fun `runtime driver session records error events for rejected actions`() {
-        val backend = RecordingDriverBackend(
-            rejectedAction = "player.fail",
-        )
-        val session = BackendDriverSession(
-            clientId = "alice",
-            backend = backend,
-        )
-
-        val result = session.invoke(
-            DriverActionInvocation(
-                action = "player.fail",
-                arguments = mapOf("message" to JsonPrimitive("boom")),
+        val backend =
+            RecordingDriverBackend(
+                rejectedAction = "player.fail",
             )
-        )
+        val session =
+            BackendDriverSession(
+                clientId = "alice",
+                backend = backend,
+            )
+
+        val result =
+            session.invoke(
+                DriverActionInvocation(
+                    action = "player.fail",
+                    arguments = mapOf("message" to JsonPrimitive("boom")),
+                ),
+            )
 
         assertEquals("player.fail", result.action)
         assertEquals(DriverActionStatus.FAILED, result.status)
-        assertTrue(session.events().any {
-            it.type == DriverEventType.ERROR &&
-                it.message == "rejected player.fail"
-        })
+        assertTrue(
+            session.events().any {
+                it.type == DriverEventType.ERROR &&
+                    it.message == "rejected player.fail"
+            },
+        )
     }
 
     @Test
     fun `runtime driver session records accepted events from driver result metadata`() {
-        val backend = RecordingDriverBackend(
-            resultEventType = DriverEventType.MOVEMENT,
-        )
-        val session = BackendDriverSession(
-            clientId = "alice",
-            backend = backend,
-        )
-
-        val result = session.invoke(
-            DriverActionInvocation(
-                action = "world.scan",
-                arguments = mapOf("radius" to JsonPrimitive(4)),
+        val backend =
+            RecordingDriverBackend(
+                resultEventType = DriverEventType.MOVEMENT,
             )
-        )
+        val session =
+            BackendDriverSession(
+                clientId = "alice",
+                backend = backend,
+            )
+
+        val result =
+            session.invoke(
+                DriverActionInvocation(
+                    action = "world.scan",
+                    arguments = mapOf("radius" to JsonPrimitive(4)),
+                ),
+            )
 
         assertEquals("world.scan", result.action)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
-        assertTrue(session.events().any {
-            it.type == DriverEventType.MOVEMENT &&
-                it.message == "action alice world.scan radius=4"
-        })
+        assertTrue(
+            session.events().any {
+                it.type == DriverEventType.MOVEMENT &&
+                    it.message == "action alice world.scan radius=4"
+            },
+        )
     }
 
     @Test
@@ -140,19 +157,23 @@ class BackendDriverSessionTest {
         )
         assertEquals(
             DriverActionStatus.ACCEPTED,
-            backend.invoke(
-                "alice",
-                DriverActionInvocation(
-                    action = "player.chat",
-                    arguments = mapOf("message" to JsonPrimitive("hello as action")),
-                ),
-            ).status,
+            backend
+                .invoke(
+                    "alice",
+                    DriverActionInvocation(
+                        action = "player.chat",
+                        arguments = mapOf("message" to JsonPrimitive("hello as action")),
+                    ),
+                ).status,
         )
         assertEquals("craftless-driver-bridge", backend.runtimeMetadata("alice").driver)
         assertEquals("bridge-evidence", backend.runtimeMetadata("alice").permissionsFingerprint)
         assertEquals(
             setOf("forward", "backward", "left", "right", "ticks"),
-            backend.actions("alice").single { it.id == "player.move" }.arguments.keys,
+            backend
+                .actions("alice")
+                .single { it.id == "player.move" }
+                .arguments.keys,
         )
         assertFailsWith<IllegalArgumentException> {
             backend.invoke(
@@ -170,13 +191,14 @@ class BackendDriverSessionTest {
     fun `hmc bridge backend keeps unsupported action errors craftless owned`() {
         val backend = HmcBridgeDriverBackend(HmcBridgeBackend.dryRun())
 
-        val result = backend.invoke(
-            "alice",
-            DriverActionInvocation(
-                action = "world.scan",
-                arguments = emptyMap(),
-            ),
-        )
+        val result =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "world.scan",
+                    arguments = emptyMap(),
+                ),
+            )
 
         assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
         assertEquals("unsupported action world.scan", result.message)
@@ -191,7 +213,10 @@ private class RecordingDriverBackend(
 ) : DriverBackend {
     val calls = mutableListOf<String>()
 
-    override fun connect(clientId: String, target: ConnectionTarget): DriverBackendResult {
+    override fun connect(
+        clientId: String,
+        target: ConnectionTarget,
+    ): DriverBackendResult {
         calls += "connect $clientId ${target.host}:${target.port}"
         return DriverBackendResult(DriverBackendAction.CONNECT, "connected")
     }
@@ -219,7 +244,10 @@ private class RecordingDriverBackend(
             permissionsFingerprint = "permissions-test",
         )
 
-    override fun invoke(clientId: String, invocation: DriverActionInvocation): DriverActionResult {
+    override fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+    ): DriverActionResult {
         if (invocation.action == rejectedAction) {
             return DriverActionResult(invocation.action, DriverActionStatus.FAILED, "rejected ${invocation.action}")
         }
@@ -240,23 +268,25 @@ private fun testPlayerMoveActionDescriptor(): DriverActionDescriptor =
     DriverActionDescriptor(
         id = "player.move",
         schemaVersion = "1",
-        arguments = mapOf(
-            "forward" to DriverActionArgument("boolean"),
-            "backward" to DriverActionArgument("boolean"),
-            "left" to DriverActionArgument("boolean"),
-            "right" to DriverActionArgument("boolean"),
-            "jump" to DriverActionArgument("boolean"),
-            "sneak" to DriverActionArgument("boolean"),
-            "sprint" to DriverActionArgument("boolean"),
-            "ticks" to DriverActionArgument("integer"),
-        ),
+        arguments =
+            mapOf(
+                "forward" to DriverActionArgument("boolean"),
+                "backward" to DriverActionArgument("boolean"),
+                "left" to DriverActionArgument("boolean"),
+                "right" to DriverActionArgument("boolean"),
+                "jump" to DriverActionArgument("boolean"),
+                "sneak" to DriverActionArgument("boolean"),
+                "sprint" to DriverActionArgument("boolean"),
+                "ticks" to DriverActionArgument("integer"),
+            ),
     )
 
 private fun testPlayerChatActionDescriptor(): DriverActionDescriptor =
     DriverActionDescriptor(
         id = "player.chat",
         schemaVersion = "1",
-        arguments = mapOf(
-            "message" to DriverActionArgument("string", required = true),
-        ),
+        arguments =
+            mapOf(
+                "message" to DriverActionArgument("string", required = true),
+            ),
     )

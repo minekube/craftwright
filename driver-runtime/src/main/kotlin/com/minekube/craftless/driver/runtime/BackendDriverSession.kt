@@ -17,16 +17,16 @@ class BackendDriverSession(
     private val backend: DriverBackend,
 ) : DriverSession {
     private var state = ClientState.RUNNING
-    private val events = mutableListOf(
-        DriverEvent(
-            type = DriverEventType.CLIENT_CREATED,
-            client = clientId,
-            message = "created client $clientId",
+    private val events =
+        mutableListOf(
+            DriverEvent(
+                type = DriverEventType.CLIENT_CREATED,
+                client = clientId,
+                message = "created client $clientId",
+            ),
         )
-    )
 
-    override fun snapshot(): DriverClientSnapshot =
-        DriverClientSnapshot(id = clientId, state = state)
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(id = clientId, state = state)
 
     override fun connect(target: ConnectionTarget): DriverClientSnapshot {
         require(target.host.isNotBlank()) { "connection host is required" }
@@ -34,19 +34,18 @@ class BackendDriverSession(
         val result = backend.connect(clientId, target)
         require(result.action == DriverBackendAction.CONNECT) { "backend returned ${result.action} for connect" }
         state = ClientState.CONNECTED
-        events += DriverEvent(
-            type = DriverEventType.CLIENT_CONNECTED,
-            client = clientId,
-            message = result.message ?: "connected $clientId to ${target.host}:${target.port}",
-        )
+        events +=
+            DriverEvent(
+                type = DriverEventType.CLIENT_CONNECTED,
+                client = clientId,
+                message = result.message ?: "connected $clientId to ${target.host}:${target.port}",
+            )
         return snapshot()
     }
 
-    override fun actions(): List<DriverActionDescriptor> =
-        backend.actions(clientId)
+    override fun actions(): List<DriverActionDescriptor> = backend.actions(clientId)
 
-    override fun runtimeMetadata(): DriverRuntimeMetadata =
-        backend.runtimeMetadata(clientId)
+    override fun runtimeMetadata(): DriverRuntimeMetadata = backend.runtimeMetadata(clientId)
 
     override fun invoke(invocation: DriverActionInvocation): DriverActionResult {
         require(invocation.action.isNotBlank()) { "action is required" }
@@ -59,27 +58,32 @@ class BackendDriverSession(
         val result = backend.stop(clientId)
         require(result.action == DriverBackendAction.STOP) { "backend returned ${result.action} for stop" }
         state = ClientState.STOPPED
-        events += DriverEvent(
-            type = DriverEventType.CLIENT_STOPPED,
-            client = clientId,
-            message = result.message ?: "stopped client $clientId",
-        )
+        events +=
+            DriverEvent(
+                type = DriverEventType.CLIENT_STOPPED,
+                client = clientId,
+                message = result.message ?: "stopped client $clientId",
+            )
         return snapshot()
     }
 
-    override fun events(): List<DriverEvent> =
-        events.toList()
+    override fun events(): List<DriverEvent> = events.toList()
 }
 
 interface DriverBackend {
-    fun connect(clientId: String, target: ConnectionTarget): DriverBackendResult
+    fun connect(
+        clientId: String,
+        target: ConnectionTarget,
+    ): DriverBackendResult
 
     fun actions(clientId: String): List<DriverActionDescriptor> = emptyList()
 
-    fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
-        DriverRuntimeMetadata.runtimeAdapter()
+    fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = DriverRuntimeMetadata.runtimeAdapter()
 
-    fun invoke(clientId: String, invocation: DriverActionInvocation): DriverActionResult =
+    fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+    ): DriverActionResult =
         DriverActionResult(
             action = invocation.action,
             status = DriverActionStatus.UNSUPPORTED,

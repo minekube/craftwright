@@ -19,7 +19,10 @@ import com.minekube.craftless.driver.api.stringArgument
 class HmcBridgeDriverBackend(
     private val bridge: HmcBridgeBackend,
 ) : DriverBackend {
-    override fun connect(clientId: String, target: ConnectionTarget): DriverBackendResult {
+    override fun connect(
+        clientId: String,
+        target: ConnectionTarget,
+    ): DriverBackendResult {
         val result = bridge.connect(clientId, "${target.host}:${target.port}")
         require(result.action == ClientAction.CONNECT) { "driver backend returned ${result.action} for connect" }
         return DriverBackendResult(DriverBackendAction.CONNECT, result.publicDescription)
@@ -43,11 +46,15 @@ class HmcBridgeDriverBackend(
             permissionsFingerprint = "bridge-evidence",
         )
 
-    override fun invoke(clientId: String, invocation: DriverActionInvocation): DriverActionResult {
+    override fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+    ): DriverActionResult {
         if (invocation.action == "player.chat") {
-            val message = requireChatMessage(
-                requireNotNull(invocation.arguments.stringArgument("message")) { "message is required" },
-            )
+            val message =
+                requireChatMessage(
+                    requireNotNull(invocation.arguments.stringArgument("message")) { "message is required" },
+                )
             val result = bridge.chat(clientId, message)
             require(result.action == ClientAction.CHAT) { "driver backend returned ${result.action} for chat" }
             return DriverActionResult(
@@ -64,12 +71,13 @@ class HmcBridgeDriverBackend(
                 message = "unsupported action ${invocation.action}",
             )
         }
-        val intent = when {
-            invocation.arguments.booleanArgument("backward") -> MoveIntent.BACKWARD
-            invocation.arguments.booleanArgument("left") -> MoveIntent.LEFT
-            invocation.arguments.booleanArgument("right") -> MoveIntent.RIGHT
-            else -> MoveIntent.FORWARD
-        }
+        val intent =
+            when {
+                invocation.arguments.booleanArgument("backward") -> MoveIntent.BACKWARD
+                invocation.arguments.booleanArgument("left") -> MoveIntent.LEFT
+                invocation.arguments.booleanArgument("right") -> MoveIntent.RIGHT
+                else -> MoveIntent.FORWARD
+            }
         val ticks = invocation.arguments.intArgument("ticks") ?: 20
         val result = bridge.move(clientId, intent, ticks)
         require(result.action == ClientAction.MOVE) { "driver backend returned ${result.action} for move" }
@@ -86,20 +94,22 @@ private fun bridgePlayerMoveActionDescriptor(): DriverActionDescriptor =
     DriverActionDescriptor(
         id = "player.move",
         schemaVersion = "1",
-        arguments = mapOf(
-            "forward" to DriverActionArgument("boolean"),
-            "backward" to DriverActionArgument("boolean"),
-            "left" to DriverActionArgument("boolean"),
-            "right" to DriverActionArgument("boolean"),
-            "ticks" to DriverActionArgument("integer"),
-        ),
+        arguments =
+            mapOf(
+                "forward" to DriverActionArgument("boolean"),
+                "backward" to DriverActionArgument("boolean"),
+                "left" to DriverActionArgument("boolean"),
+                "right" to DriverActionArgument("boolean"),
+                "ticks" to DriverActionArgument("integer"),
+            ),
     )
 
 private fun bridgePlayerChatActionDescriptor(): DriverActionDescriptor =
     DriverActionDescriptor(
         id = "player.chat",
         schemaVersion = "1",
-        arguments = mapOf(
-            "message" to DriverActionArgument("string", required = true),
-        ),
+        arguments =
+            mapOf(
+                "message" to DriverActionArgument("string", required = true),
+            ),
     )

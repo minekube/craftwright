@@ -3,28 +3,43 @@ package com.minekube.craftless.bridge.hmc
 class HmcBridgeBackend private constructor(
     private val runner: BridgeCommandRunner,
 ) {
-    fun connect(clientId: String, server: String): BridgeActionResult =
-        run(ClientAction.CONNECT, clientId, "connect to $server", BridgeCommand("connect $server"))
+    fun connect(
+        clientId: String,
+        server: String,
+    ): BridgeActionResult = run(ClientAction.CONNECT, clientId, "connect to $server", BridgeCommand("connect $server"))
 
-    fun chat(clientId: String, message: String): BridgeActionResult {
+    fun chat(
+        clientId: String,
+        message: String,
+    ): BridgeActionResult {
         require(message.isNotBlank()) { "chat message is required" }
         require(!message.startsWith("/")) { "minecraft command strings are not valid chat action input" }
         return run(ClientAction.CHAT, clientId, "invoke player.chat action", BridgeCommand("chat $message"))
     }
 
-    fun move(clientId: String, intent: MoveIntent, ticks: Int): BridgeActionResult {
+    fun move(
+        clientId: String,
+        intent: MoveIntent,
+        ticks: Int,
+    ): BridgeActionResult {
         require(ticks > 0) { "movement ticks must be positive" }
-        return run(ClientAction.MOVE, clientId, "move ${intent.name.lowercase()} for $ticks ticks", BridgeCommand("key ${intent.bridgeKey} $ticks"))
+        return run(
+            ClientAction.MOVE,
+            clientId,
+            "move ${intent.name.lowercase()} for $ticks ticks",
+            BridgeCommand("key ${intent.bridgeKey} $ticks"),
+        )
     }
 
-    fun jump(clientId: String): BridgeActionResult =
-        run(ClientAction.JUMP, clientId, "jump", BridgeCommand("key space 2"))
+    fun jump(clientId: String): BridgeActionResult = run(ClientAction.JUMP, clientId, "jump", BridgeCommand("key space 2"))
 
-    fun look(clientId: String, yaw: Double, pitch: Double): BridgeActionResult =
-        run(ClientAction.LOOK, clientId, "set look direction", BridgeCommand("look $yaw $pitch"))
+    fun look(
+        clientId: String,
+        yaw: Double,
+        pitch: Double,
+    ): BridgeActionResult = run(ClientAction.LOOK, clientId, "set look direction", BridgeCommand("look $yaw $pitch"))
 
-    fun stop(clientId: String): BridgeActionResult =
-        run(ClientAction.STOP, clientId, "stop client", BridgeCommand("stop"))
+    fun stop(clientId: String): BridgeActionResult = run(ClientAction.STOP, clientId, "stop client", BridgeCommand("stop"))
 
     private fun run(
         action: ClientAction,
@@ -63,8 +78,13 @@ data class BridgeActionResult(
 class BridgeCommand internal constructor(
     private val value: String,
 ) {
-    fun redacted(): String = "<internal bridge command>"
+    fun redacted(): String = REDACTED
+
     internal fun raw(): String = value
+
+    companion object {
+        private const val REDACTED = "<internal bridge command>"
+    }
 }
 
 enum class ClientAction {
@@ -76,7 +96,9 @@ enum class ClientAction {
     STOP,
 }
 
-enum class MoveIntent(internal val bridgeKey: String) {
+enum class MoveIntent(
+    internal val bridgeKey: String,
+) {
     FORWARD("w"),
     BACKWARD("s"),
     LEFT("a"),

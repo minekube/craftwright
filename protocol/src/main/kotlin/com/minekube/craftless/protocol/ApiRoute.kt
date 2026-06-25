@@ -38,10 +38,11 @@ class ApiRouteCatalog(
     val routes: List<ApiRoute>,
 ) {
     init {
-        val duplicateRoute = routes
-            .groupBy { it.method to it.path }
-            .entries
-            .firstOrNull { (_, matches) -> matches.size > 1 }
+        val duplicateRoute =
+            routes
+                .groupBy { it.method to it.path }
+                .entries
+                .firstOrNull { (_, matches) -> matches.size > 1 }
         if (duplicateRoute != null) {
             val (method, path) = duplicateRoute.key
             require(false) { "duplicate route $method $path" }
@@ -61,26 +62,29 @@ class ApiRouteCatalog(
         return matches.single()
     }
 
-    fun route(method: String, path: String): ApiRoute =
-        byMethodAndPath[method to path] ?: error("route not found: $method $path")
+    fun route(
+        method: String,
+        path: String,
+    ): ApiRoute = byMethodAndPath[method to path] ?: error("route not found: $method $path")
 
     companion object {
-        fun sessionDefaults(): ApiRouteCatalog = ApiRouteCatalog(
-            listOf(
-                route("GET", "/openapi.json", "getOpenapiJson", "openapi", "supervisor", "openapi", "route"),
-                route("GET", "/version", "getVersion", "version", "supervisor", "version", "route"),
-                route("GET", "/events", "getEvents", "events", "supervisor", "events", "route"),
-                route("GET", "/clients", "listClients", "clients", "clients", "list", "route"),
-                route("POST", "/clients", "createClient", "clients", "clients", "create", "route"),
-                route("GET", "/clients/{id}", "getClient", "clients", "clients", "get", "route"),
-                route("GET", "/clients/{id}/openapi.json", "getClientOpenapiJson", "clients", "clients", "openapi", "route"),
-                route("POST", "/clients/{id}:connect", "clientConnect", "clients", "clients", "connect", "method"),
-                route("GET", "/clients/{id}/actions", "listClientActions", "clients", "clients", "actions", "action"),
-                route("POST", "/clients/{id}:run", "runClientAction", "clients", "clients", "run", "action"),
-                route("POST", "/clients/{id}:stop", "stopClient", "clients", "clients", "stop", "method"),
-                route("GET", "/clients/{id}/events", "getClientEvents", "clients", "clients", "events", "route"),
+        fun sessionDefaults(): ApiRouteCatalog =
+            ApiRouteCatalog(
+                listOf(
+                    route("GET", "/openapi.json", "getOpenapiJson", "openapi", "supervisor", "openapi", "route"),
+                    route("GET", "/version", "getVersion", "version", "supervisor", "version", "route"),
+                    route("GET", "/events", "getEvents", "events", "supervisor", "events", "route"),
+                    route("GET", "/clients", "listClients", "clients", "clients", "list", "route"),
+                    route("POST", "/clients", "createClient", "clients", "clients", "create", "route"),
+                    route("GET", "/clients/{id}", "getClient", "clients", "clients", "get", "route"),
+                    route("GET", "/clients/{id}/openapi.json", "getClientOpenapiJson", "clients", "clients", "openapi", "route"),
+                    route("POST", "/clients/{id}:connect", "clientConnect", "clients", "clients", "connect", "method"),
+                    route("GET", "/clients/{id}/actions", "listClientActions", "clients", "clients", "actions", "action"),
+                    route("POST", "/clients/{id}:run", "runClientAction", "clients", "clients", "run", "action"),
+                    route("POST", "/clients/{id}:stop", "stopClient", "clients", "clients", "stop", "method"),
+                    route("GET", "/clients/{id}/events", "getClientEvents", "clients", "clients", "events", "route"),
+                ),
             )
-        )
 
         private fun route(
             method: String,
@@ -91,16 +95,17 @@ class ApiRouteCatalog(
             member: String,
             source: String,
             returnKind: String = "value",
-        ): ApiRoute = ApiRoute(
-            method = method,
-            path = path,
-            operationId = operationId,
-            tag = tag,
-            owner = owner,
-            member = member,
-            target = if (source == "action") "client" else "supervisor",
-            source = source,
-            returnKind = returnKind,
-        )
+        ): ApiRoute =
+            ApiRoute(
+                method = method,
+                path = path,
+                operationId = operationId,
+                tag = tag,
+                owner = owner,
+                member = member,
+                target = if (source == "action") "client" else "supervisor",
+                source = source,
+                returnKind = returnKind,
+            )
     }
 }

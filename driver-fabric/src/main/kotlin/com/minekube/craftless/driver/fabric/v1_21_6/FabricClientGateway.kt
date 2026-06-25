@@ -36,11 +36,12 @@ class MinecraftFabricClientGateway(
 
     override fun connect(target: ConnectionTarget) {
         val address = ServerAddress(target.host, target.port)
-        val serverInfo = ServerInfo(
-            "Craftless ${target.host}:${target.port}",
-            "${target.host}:${target.port}",
-            ServerInfo.ServerType.OTHER,
-        )
+        val serverInfo =
+            ServerInfo(
+                "Craftless ${target.host}:${target.port}",
+                "${target.host}:${target.port}",
+                ServerInfo.ServerType.OTHER,
+            )
         ConnectScreen.connect(
             TitleScreen(),
             client,
@@ -55,9 +56,7 @@ class MinecraftFabricClientGateway(
         client.scheduleStop()
     }
 
-    override fun isConnected(): Boolean =
-        client.networkHandler != null && client.player != null
+    override fun isConnected(): Boolean = client.networkHandler != null && client.player != null
 
-    override fun isReadyToConnect(): Boolean =
-        client.networkHandler == null && client.player == null && client.overlay == null
+    override fun isReadyToConnect(): Boolean = client.networkHandler == null && client.player == null && client.overlay == null
 }

@@ -21,24 +21,25 @@ class LocalMinecraftServerSmokeTest {
 
     @Test
     fun `local server smoke parses opt in environment`() {
-        val config = LocalMinecraftServerSmokeConfig.fromEnvironment(
-            mapOf(
-                "CRAFTLESS_LOCAL_SERVER_SMOKE" to "1",
-                "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT" to "/tmp/craftless-smoke",
-                "CRAFTLESS_SMOKE_MINECRAFT_VERSION" to "1.21.6",
-                "CRAFTLESS_SMOKE_SERVER_PORT" to "25567",
-                "CRAFTLESS_SMOKE_JAVA_EXECUTABLE" to "/tmp/craftless-java",
-                "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON" to """["/tmp/craftless-action","--target","server"]""",
-                "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS" to "45000",
-                "CRAFTLESS_SMOKE_EXPECT_PLAYER" to "Alice",
-                "CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE" to "hello from configured smoke command",
-                "CRAFTLESS_SMOKE_EXPECT_DISCONNECT" to "1",
-                "CRAFTLESS_SMOKE_READINESS_TIMEOUT_MS" to "90000",
-                "CRAFTLESS_SMOKE_SHUTDOWN_TIMEOUT_MS" to "15000",
-                "CRAFTLESS_SMOKE_MIN_HEAP" to "256M",
-                "CRAFTLESS_SMOKE_MAX_HEAP" to "512M",
+        val config =
+            LocalMinecraftServerSmokeConfig.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_LOCAL_SERVER_SMOKE" to "1",
+                    "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT" to "/tmp/craftless-smoke",
+                    "CRAFTLESS_SMOKE_MINECRAFT_VERSION" to "1.21.6",
+                    "CRAFTLESS_SMOKE_SERVER_PORT" to "25567",
+                    "CRAFTLESS_SMOKE_JAVA_EXECUTABLE" to "/tmp/craftless-java",
+                    "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON" to """["/tmp/craftless-action","--target","server"]""",
+                    "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS" to "45000",
+                    "CRAFTLESS_SMOKE_EXPECT_PLAYER" to "Alice",
+                    "CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE" to "hello from configured smoke command",
+                    "CRAFTLESS_SMOKE_EXPECT_DISCONNECT" to "1",
+                    "CRAFTLESS_SMOKE_READINESS_TIMEOUT_MS" to "90000",
+                    "CRAFTLESS_SMOKE_SHUTDOWN_TIMEOUT_MS" to "15000",
+                    "CRAFTLESS_SMOKE_MIN_HEAP" to "256M",
+                    "CRAFTLESS_SMOKE_MAX_HEAP" to "512M",
+                ),
             )
-        )
 
         assertTrue(config.enabled)
         assertEquals(Path.of("/tmp/craftless-smoke"), config.root)
@@ -58,18 +59,20 @@ class LocalMinecraftServerSmokeTest {
 
     @Test
     fun `local server smoke is enabled by fabric client smoke gate`() {
-        val config = LocalMinecraftServerSmokeConfig.fromEnvironment(
-            mapOf("CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1")
-        )
+        val config =
+            LocalMinecraftServerSmokeConfig.fromEnvironment(
+                mapOf("CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1"),
+            )
 
         assertTrue(config.enabled)
     }
 
     @Test
     fun `fabric client smoke chooses non-default port when none is configured`() {
-        val config = LocalMinecraftServerSmokeConfig.fromEnvironment(
-            mapOf("CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1")
-        )
+        val config =
+            LocalMinecraftServerSmokeConfig.fromEnvironment(
+                mapOf("CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1"),
+            )
 
         assertTrue(config.port in 1..65535)
         assertFalse(config.port == 25565)
@@ -77,9 +80,10 @@ class LocalMinecraftServerSmokeTest {
 
     @Test
     fun `local server smoke skips without opt in`() {
-        val result = LocalMinecraftServerSmoke.run(
-            config = LocalMinecraftServerSmokeConfig.fromEnvironment(emptyMap()),
-        )
+        val result =
+            LocalMinecraftServerSmoke.run(
+                config = LocalMinecraftServerSmokeConfig.fromEnvironment(emptyMap()),
+            )
 
         assertEquals(LocalMinecraftServerSmokeStatus.SKIPPED, result.status)
         assertEquals("set CRAFTLESS_LOCAL_SERVER_SMOKE=1 to run the local server smoke", result.message)
@@ -102,27 +106,29 @@ class LocalMinecraftServerSmokeTest {
             echo '[12:00:01] [Server thread/INFO]: Alice joined the game'
             echo '[12:00:02] [Server thread/INFO]: <Alice> hello while smoke action ran'
             echo '[12:00:03] [Server thread/INFO]: Alice left the game'
-            """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
         assertTrue(fakeJava.toFile().setExecutable(true))
-        val config = LocalMinecraftServerSmokeConfig(
-            enabled = true,
-            root = root,
-            javaExecutable = fakeJava,
-            readinessTimeoutMillis = 5_000,
-            shutdownTimeoutMillis = 5_000,
-        )
+        val config =
+            LocalMinecraftServerSmokeConfig(
+                enabled = true,
+                root = root,
+                javaExecutable = fakeJava,
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
+            )
         var actionObservedRunningServer = false
 
-        val result = LocalMinecraftServerSmoke.runWithServer(
-            config = config,
-            provisionServerJar = { _, _ -> fakeServerJar },
-        ) { layout, handle ->
-            actionObservedRunningServer = handle.isRunning()
-            assertTrue(waitUntilExists(root.resolve("server-is-ready")))
-            assertFalse(Files.exists(root.resolve("minecraft-server-stdin.txt")))
-            assertTrue(Files.exists(layout.serverProperties))
-        }
+        val result =
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ -> fakeServerJar },
+            ) { layout, handle ->
+                actionObservedRunningServer = handle.isRunning()
+                assertTrue(waitUntilExists(root.resolve("server-is-ready")))
+                assertFalse(Files.exists(root.resolve("minecraft-server-stdin.txt")))
+                assertTrue(Files.exists(layout.serverProperties))
+            }
 
         assertTrue(actionObservedRunningServer)
         assertEquals(LocalMinecraftServerSmokeStatus.RAN, result.status)
@@ -148,7 +154,7 @@ class LocalMinecraftServerSmokeTest {
             echo '[12:00:01] [Server thread/INFO]: Alice joined the game'
             echo '[12:00:02] [Server thread/INFO]: <Alice> hello from configured smoke command'
             echo '[12:00:03] [Server thread/INFO]: Alice left the game'
-            """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
         Files.writeString(
             actionCommand,
@@ -161,28 +167,30 @@ class LocalMinecraftServerSmokeTest {
             printf '%s\n' "${'$'}CRAFTLESS_SMOKE_SERVER_PORT" > action-server-port.txt
             printf '%s\n' "${'$'}CRAFTLESS_SMOKE_ARTIFACTS_DIR" > action-artifacts-dir.txt
             echo 'configured smoke action ran'
-            """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
         assertTrue(fakeJava.toFile().setExecutable(true))
         assertTrue(actionCommand.toFile().setExecutable(true))
-        val config = LocalMinecraftServerSmokeConfig(
-            enabled = true,
-            root = root,
-            port = 25567,
-            javaExecutable = fakeJava,
-            actionCommand = listOf(actionCommand.toString(), "--client", "fabric"),
-            actionTimeoutMillis = 5_000,
-            expectedPlayer = "Alice",
-            expectedChatMessage = "hello from configured smoke command",
-            expectDisconnect = true,
-            readinessTimeoutMillis = 5_000,
-            shutdownTimeoutMillis = 5_000,
-        )
+        val config =
+            LocalMinecraftServerSmokeConfig(
+                enabled = true,
+                root = root,
+                port = 25567,
+                javaExecutable = fakeJava,
+                actionCommand = listOf(actionCommand.toString(), "--client", "fabric"),
+                actionTimeoutMillis = 5_000,
+                expectedPlayer = "Alice",
+                expectedChatMessage = "hello from configured smoke command",
+                expectDisconnect = true,
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
+            )
 
-        val result = LocalMinecraftServerSmoke.runWithServer(
-            config = config,
-            provisionServerJar = { _, _ -> fakeServerJar },
-        )
+        val result =
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ -> fakeServerJar },
+            )
 
         assertEquals(LocalMinecraftServerSmokeStatus.RAN, result.status)
         assertEquals(0, result.actionExitCode)
@@ -223,32 +231,37 @@ class LocalMinecraftServerSmokeTest {
             printf '%s\n' "${'$'}command" > minecraft-server-stdin.txt
             echo '[12:00:01] [Server thread/INFO]: Alice joined the game'
             echo '[12:00:02] [Server thread/INFO]: Alice left the game'
-            """.trimIndent() + "\n"
+            """.trimIndent() + "\n",
         )
         assertTrue(fakeJava.toFile().setExecutable(true))
-        val config = LocalMinecraftServerSmokeConfig(
-            enabled = true,
-            root = root,
-            javaExecutable = fakeJava,
-            expectedPlayer = "Alice",
-            expectedChatMessage = "hello missing",
-            readinessTimeoutMillis = 5_000,
-            shutdownTimeoutMillis = 5_000,
-        )
-
-        val error = assertFailsWith<IllegalStateException> {
-            LocalMinecraftServerSmoke.runWithServer(
-                config = config,
-                provisionServerJar = { _, _ -> fakeServerJar },
+        val config =
+            LocalMinecraftServerSmokeConfig(
+                enabled = true,
+                root = root,
+                javaExecutable = fakeJava,
+                expectedPlayer = "Alice",
+                expectedChatMessage = "hello missing",
+                readinessTimeoutMillis = 5_000,
+                shutdownTimeoutMillis = 5_000,
             )
-        }
+
+        val error =
+            assertFailsWith<IllegalStateException> {
+                LocalMinecraftServerSmoke.runWithServer(
+                    config = config,
+                    provisionServerJar = { _, _ -> fakeServerJar },
+                )
+            }
 
         assertTrue(error.message?.contains("expected chat evidence") == true)
         assertEquals("stop\n", Files.readString(root.resolve("minecraft-server-stdin.txt")))
     }
 }
 
-private fun waitUntilExists(path: Path, timeoutMillis: Long = 1_000): Boolean {
+private fun waitUntilExists(
+    path: Path,
+    timeoutMillis: Long = 1_000,
+): Boolean {
     val deadline = System.nanoTime() + timeoutMillis * 1_000_000
     while (System.nanoTime() < deadline) {
         if (Files.exists(path)) {

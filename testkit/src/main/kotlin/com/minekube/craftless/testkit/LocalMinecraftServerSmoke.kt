@@ -2,6 +2,8 @@ package com.minekube.craftless.testkit
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import java.net.ServerSocket
 import java.nio.file.Files
 import java.nio.file.Path
@@ -10,13 +12,10 @@ import java.nio.file.StandardOpenOption.TRUNCATE_EXISTING
 import java.util.Collections
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
-import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 
 object LocalMinecraftServerSmoke {
-    fun run(config: LocalMinecraftServerSmokeConfig = LocalMinecraftServerSmokeConfig.fromEnvironment()): LocalMinecraftServerSmokeResult {
-        return runWithServer(config)
-    }
+    fun run(config: LocalMinecraftServerSmokeConfig = LocalMinecraftServerSmokeConfig.fromEnvironment()): LocalMinecraftServerSmokeResult =
+        runWithServer(config)
 
     fun runWithServer(
         config: LocalMinecraftServerSmokeConfig = LocalMinecraftServerSmokeConfig.fromEnvironment(),
@@ -40,25 +39,27 @@ object LocalMinecraftServerSmoke {
             HttpClient(CIO).use { http ->
                 val layout = LocalServerFixture(root = config.root, port = config.port).prepare()
                 val serverJar = provisionServerJar(layout, http)
-                val server = layout.startMinecraftServer(
-                    serverJar = serverJar,
-                    javaExecutable = config.javaExecutable,
-                    minHeap = config.minHeap,
-                    maxHeap = config.maxHeap,
-                    readinessTimeoutMillis = config.readinessTimeoutMillis,
-                    shutdownTimeoutMillis = config.shutdownTimeoutMillis,
-                )
+                val server =
+                    layout.startMinecraftServer(
+                        serverJar = serverJar,
+                        javaExecutable = config.javaExecutable,
+                        minHeap = config.minHeap,
+                        maxHeap = config.maxHeap,
+                        readinessTimeoutMillis = config.readinessTimeoutMillis,
+                        shutdownTimeoutMillis = config.shutdownTimeoutMillis,
+                    )
                 var commandResult: LocalMinecraftSmokeCommandResult? = null
-                val processResult = try {
-                    action(layout, server)
-                    commandResult = runConfiguredActionCommand(config, layout)
-                    server.stopAndCollect()
-                } catch (failure: Throwable) {
-                    if (server.isRunning()) {
+                val processResult =
+                    runCatching {
+                        action(layout, server)
+                        commandResult = runConfiguredActionCommand(config, layout)
                         server.stopAndCollect()
+                    }.getOrElse { failure ->
+                        if (server.isRunning()) {
+                            server.stopAndCollect()
+                        }
+                        throw failure
                     }
-                    throw failure
-                }
                 LocalMinecraftServerSmokeResult(
                     status = LocalMinecraftServerSmokeStatus.RAN,
                     message = "local Minecraft server smoke collected ${processResult.evidenceCount} evidence event(s)",
@@ -161,18 +162,25 @@ data class LocalMinecraftServerSmokeConfig(
             val enabled = env.isEnabled(ENABLED) || env.isEnabled(FABRIC_ENABLED)
             return LocalMinecraftServerSmokeConfig(
                 enabled = enabled,
-                root = env[ROOT]?.takeIf { it.isNotBlank() }
-                    ?.let(Path::of)
-                    ?: Path.of("build", "craftless-local-server-smoke"),
+                root =
+                    env[ROOT]
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let(Path::of)
+                        ?: Path.of("build", "craftless-local-server-smoke"),
                 minecraftVersion = env[VERSION]?.takeIf { it.isNotBlank() } ?: "1.21.6",
-                port = env[CRAFTLESS_SMOKE_SERVER_PORT_ENV]?.toIntStrict(CRAFTLESS_SMOKE_SERVER_PORT_ENV)
-                    ?: if (enabled) findAvailableSmokePort() else DEFAULT_MINECRAFT_SERVER_PORT,
-                javaExecutable = env[JAVA_EXECUTABLE]?.takeIf { it.isNotBlank() }
-                    ?.let(Path::of)
-                    ?: Path.of(System.getProperty("java.home")).resolve("bin").resolve("java"),
-                actionCommand = env[ACTION_COMMAND_JSON]?.takeIf { it.isNotBlank() }
-                    ?.let { smokeJson.decodeFromString<List<String>>(it) }
-                    ?: emptyList(),
+                port =
+                    env[CRAFTLESS_SMOKE_SERVER_PORT_ENV]?.toIntStrict(CRAFTLESS_SMOKE_SERVER_PORT_ENV)
+                        ?: if (enabled) findAvailableSmokePort() else DEFAULT_MINECRAFT_SERVER_PORT,
+                javaExecutable =
+                    env[JAVA_EXECUTABLE]
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let(Path::of)
+                        ?: Path.of(System.getProperty("java.home")).resolve("bin").resolve("java"),
+                actionCommand =
+                    env[ACTION_COMMAND_JSON]
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { smokeJson.decodeFromString<List<String>>(it) }
+                        ?: emptyList(),
                 actionTimeoutMillis = env[ACTION_TIMEOUT]?.toLongStrict(ACTION_TIMEOUT) ?: 300_000,
                 expectedPlayer = env[EXPECT_PLAYER]?.takeIf { it.isNotBlank() },
                 expectedChatMessage = env[EXPECT_CHAT_MESSAGE]?.takeIf { it.isNotBlank() },
@@ -184,14 +192,11 @@ data class LocalMinecraftServerSmokeConfig(
             )
         }
 
-        private fun String.toIntStrict(name: String): Int =
-            toIntOrNull() ?: error("$name must be an integer")
+        private fun String.toIntStrict(name: String): Int = toIntOrNull() ?: error("$name must be an integer")
 
-        private fun String.toLongStrict(name: String): Long =
-            toLongOrNull() ?: error("$name must be a long integer")
+        private fun String.toLongStrict(name: String): Long = toLongOrNull() ?: error("$name must be a long integer")
 
-        private fun Map<String, String>.isEnabled(name: String): Boolean =
-            this[name] == "1" || this[name].equals("true", ignoreCase = true)
+        private fun Map<String, String>.isEnabled(name: String): Boolean = this[name] == "1" || this[name].equals("true", ignoreCase = true)
 
         private fun findAvailableSmokePort(): Int {
             repeat(16) {
@@ -221,20 +226,24 @@ private fun runConfiguredActionCommand(
     }
     Files.createDirectories(layout.artifactsDir)
     val output = Collections.synchronizedList(mutableListOf<String>())
-    val process = ProcessBuilder(config.actionCommand)
-        .directory(config.root.toFile())
-        .also { builder ->
-            builder.environment()[CRAFTLESS_SMOKE_SERVER_PORT_ENV] = config.port.toString()
-            builder.environment()[CRAFTLESS_SMOKE_ARTIFACTS_DIR_ENV] =
-                layout.artifactsDir.toAbsolutePath().normalize().toString()
+    val process =
+        ProcessBuilder(config.actionCommand)
+            .directory(config.root.toFile())
+            .also { builder ->
+                builder.environment()[CRAFTLESS_SMOKE_SERVER_PORT_ENV] = config.port.toString()
+                builder.environment()[CRAFTLESS_SMOKE_ARTIFACTS_DIR_ENV] =
+                    layout.artifactsDir
+                        .toAbsolutePath()
+                        .normalize()
+                        .toString()
+            }.redirectErrorStream(true)
+            .start()
+    val outputReader =
+        thread(name = "craftless-smoke-action-output") {
+            process.inputStream.bufferedReader().useLines { lines ->
+                lines.forEach { line -> output += line }
+            }
         }
-        .redirectErrorStream(true)
-        .start()
-    val outputReader = thread(name = "craftless-smoke-action-output") {
-        process.inputStream.bufferedReader().useLines { lines ->
-            lines.forEach { line -> output += line }
-        }
-    }
 
     val exited = process.waitFor(config.actionTimeoutMillis, TimeUnit.MILLISECONDS)
     if (!exited) {
@@ -251,28 +260,29 @@ private fun runConfiguredActionCommand(
     return LocalMinecraftSmokeCommandResult(log = log, exitCode = exitCode)
 }
 
-private fun LocalServerLayout.assertExpectedEvidence(
-    config: LocalMinecraftServerSmokeConfig,
-): LocalMinecraftSmokeEvidenceSummary {
+private fun LocalServerLayout.assertExpectedEvidence(config: LocalMinecraftServerSmokeConfig): LocalMinecraftSmokeEvidenceSummary {
     val evidence = readEvidence()
-    val playerJoined = config.expectedPlayer?.let { player ->
-        evidence.any { it.type == LocalServerEvidenceType.PLAYER_JOINED && it.player == player }
-    } ?: false
-    val chatObserved = config.expectedChatMessage?.let { message ->
-        evidence.any {
-            it.type == LocalServerEvidenceType.CHAT &&
-                (config.expectedPlayer == null || it.player == config.expectedPlayer) &&
-                it.message == message
+    val playerJoined =
+        config.expectedPlayer?.let { player ->
+            evidence.any { it.type == LocalServerEvidenceType.PLAYER_JOINED && it.player == player }
+        } ?: false
+    val chatObserved =
+        config.expectedChatMessage?.let { message ->
+            evidence.any {
+                it.type == LocalServerEvidenceType.CHAT &&
+                    (config.expectedPlayer == null || it.player == config.expectedPlayer) &&
+                    it.message == message
+            }
+        } ?: false
+    val playerDisconnected =
+        if (config.expectDisconnect) {
+            evidence.any {
+                it.type == LocalServerEvidenceType.PLAYER_DISCONNECTED &&
+                    (config.expectedPlayer == null || it.player == config.expectedPlayer)
+            }
+        } else {
+            false
         }
-    } ?: false
-    val playerDisconnected = if (config.expectDisconnect) {
-        evidence.any {
-            it.type == LocalServerEvidenceType.PLAYER_DISCONNECTED &&
-                (config.expectedPlayer == null || it.player == config.expectedPlayer)
-        }
-    } else {
-        false
-    }
 
     if (config.expectedPlayer != null) {
         check(playerJoined) {
@@ -303,9 +313,9 @@ private fun LocalServerLayout.writeSmokeActionOutput(output: List<String>): Path
     return log
 }
 
-private fun <T> MutableList<T>.snapshot(): List<T> =
-    synchronized(this) { toList() }
+private fun <T> MutableList<T>.snapshot(): List<T> = synchronized(this) { toList() }
 
-private val smokeJson = Json {
-    ignoreUnknownKeys = true
-}
+private val smokeJson =
+    Json {
+        ignoreUnknownKeys = true
+    }
