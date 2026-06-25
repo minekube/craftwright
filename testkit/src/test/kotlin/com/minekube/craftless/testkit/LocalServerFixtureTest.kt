@@ -127,6 +127,53 @@ class LocalServerFixtureTest {
             layout.readEvidence(),
         )
     }
+
+    @Test
+    fun `fixture launches minecraft server jar with accepted eula and evidence collection`() {
+        val root = Files.createTempDirectory("craftless-minecraft-server-evidence")
+        val layout = LocalServerFixture(root = root, port = 25567).prepare()
+        val fakeJava = root.resolve("fake-java")
+        val fakeServerJar = root.resolve("server.jar")
+        Files.writeString(fakeServerJar, "fake")
+        Files.writeString(
+            fakeJava,
+            """
+            #!/bin/sh
+            printf '%s\n' "$@" > minecraft-server-args.txt
+            echo '[12:00:00] [Server thread/INFO]: Alice joined the game'
+            echo '[12:00:01] [Server thread/INFO]: <Alice> hello from minecraft server process'
+            echo '[12:00:02] [Server thread/INFO]: Alice left the game'
+            """.trimIndent() + "\n"
+        )
+        assertTrue(fakeJava.toFile().setExecutable(true))
+
+        val result = layout.collectMinecraftServerEvidence(
+            serverJar = fakeServerJar,
+            javaExecutable = fakeJava,
+            minHeap = "256M",
+            maxHeap = "512M",
+        )
+
+        assertEquals(0, result.exitCode)
+        assertEquals(3, result.evidenceCount)
+        assertEquals("eula=true\n", Files.readString(layout.eulaFile))
+        assertEquals(
+            listOf("-Xms256M", "-Xmx512M", "-jar", fakeServerJar.toString(), "nogui"),
+            Files.readAllLines(root.resolve("minecraft-server-args.txt")),
+        )
+        assertEquals(
+            listOf(
+                LocalServerEvidence(type = LocalServerEvidenceType.PLAYER_JOINED, player = "Alice"),
+                LocalServerEvidence(
+                    type = LocalServerEvidenceType.CHAT,
+                    player = "Alice",
+                    message = "hello from minecraft server process",
+                ),
+                LocalServerEvidence(type = LocalServerEvidenceType.PLAYER_DISCONNECTED, player = "Alice"),
+            ),
+            layout.readEvidence(),
+        )
+    }
 }
 
 private object LocalServerLogEmitter {

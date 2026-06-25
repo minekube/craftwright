@@ -36,6 +36,7 @@ data class LocalServerFixture(
         return LocalServerLayout(
             root = root,
             serverProperties = serverProperties,
+            eulaFile = root.resolve("eula.txt"),
             logsDir = logsDir,
             artifactsDir = artifactsDir,
             serverLog = logsDir.resolve("server.log"),
@@ -47,6 +48,7 @@ data class LocalServerFixture(
 data class LocalServerLayout(
     val root: Path,
     val serverProperties: Path,
+    val eulaFile: Path,
     val logsDir: Path,
     val artifactsDir: Path,
     val serverLog: Path,
@@ -104,6 +106,31 @@ data class LocalServerLayout(
         return LocalServerProcessResult(
             exitCode = process.exitValue(),
             evidenceCount = imported,
+        )
+    }
+
+    fun collectMinecraftServerEvidence(
+        serverJar: Path,
+        javaExecutable: Path = Path.of(System.getProperty("java.home")).resolve("bin").resolve("java"),
+        minHeap: String = "512M",
+        maxHeap: String = "1G",
+        timeoutMillis: Long = 60_000,
+    ): LocalServerProcessResult {
+        require(Files.exists(serverJar)) { "minecraft server jar does not exist: $serverJar" }
+        require(Files.exists(javaExecutable)) { "java executable does not exist: $javaExecutable" }
+        require(minHeap.isNotBlank()) { "minecraft server minimum heap is required" }
+        require(maxHeap.isNotBlank()) { "minecraft server maximum heap is required" }
+        Files.writeString(eulaFile, "eula=true\n", CREATE)
+        return collectEvidenceFromProcess(
+            command = listOf(
+                javaExecutable.toString(),
+                "-Xms$minHeap",
+                "-Xmx$maxHeap",
+                "-jar",
+                serverJar.toString(),
+                "nogui",
+            ),
+            timeoutMillis = timeoutMillis,
         )
     }
 
