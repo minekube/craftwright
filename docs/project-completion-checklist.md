@@ -98,8 +98,11 @@ Verification:
   per-client OpenAPI descriptor as the argument/help schema authority,
   including nested resource aliases derived from action ids, and do not treat
   `/clients/{id}/actions` as an invocation precondition.
-- [ ] CLI, agents, and generated clients consume OpenAPI/descriptors at
-  runtime instead of hard-coding gameplay commands.
+- [~] CLI and external helper consumers use OpenAPI/descriptors at runtime
+  instead of hard-coding gameplay commands. The Playwright helper now has a
+  thin OpenAPI action client that fetches `/clients/{id}/openapi.json` before
+  invoking `POST /clients/{id}:run`; generated clients and agent-tool
+  packaging remain roadmap.
 - [x] `DriverSession` remains lifecycle/events/runtime metadata plus
   `actions()` and `invoke(...)`; no static player/world/inventory methods.
 - [x] Fabric discovery/projection and execution bindings stay internal and
