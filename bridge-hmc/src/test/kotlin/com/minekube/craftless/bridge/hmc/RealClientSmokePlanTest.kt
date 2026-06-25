@@ -14,7 +14,7 @@ class RealClientSmokePlanTest {
         assertTrue(plan.steps.any { it.kind == SmokeStepKind.LAUNCH_CLIENT })
         assertTrue(plan.steps.any { it.kind == SmokeStepKind.START_API })
         assertTrue(plan.steps.any { it.kind == SmokeStepKind.CONNECT_CLIENT })
-        assertTrue(plan.steps.any { it.kind == SmokeStepKind.SEND_CHAT })
+        assertTrue(plan.steps.any { it.kind == SmokeStepKind.INVOKE_CHAT_ACTION })
         assertTrue(plan.steps.any { it.kind == SmokeStepKind.MOVE_FORWARD })
         assertTrue(plan.steps.any { it.kind == SmokeStepKind.ASSERT_SERVER_JOIN })
         assertTrue(plan.steps.any { it.kind == SmokeStepKind.ASSERT_CHAT_LOG })
