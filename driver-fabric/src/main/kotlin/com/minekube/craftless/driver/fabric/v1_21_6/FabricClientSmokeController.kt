@@ -8,6 +8,8 @@ import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.runtime.BackendDriverSession
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.Loader
+import com.minekube.craftless.protocol.OpenApiActionAvailability
+import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.Profile
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -116,7 +118,7 @@ data class FabricClientSmokeController(
                             http.runAvailableAction(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
-                                actions = connectedActions,
+                                openApi = connectedOpenApi,
                                 action = "player.chat",
                                 args = mapOf("message" to JsonPrimitive(chatMessage)),
                             )
@@ -124,7 +126,7 @@ data class FabricClientSmokeController(
                             http.runAvailableAction(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
-                                actions = connectedActions,
+                                openApi = connectedOpenApi,
                                 action = "player.move",
                                 args =
                                     mapOf(
@@ -136,14 +138,14 @@ data class FabricClientSmokeController(
                             http.runAvailableAction(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
-                                actions = connectedActions,
+                                openApi = connectedOpenApi,
                                 action = "player.query",
                             )
                         val inventoryResult =
                             http.runAvailableAction(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
-                                actions = connectedActions,
+                                openApi = connectedOpenApi,
                                 action = "inventory.query",
                             )
                         val equipSlot =
@@ -154,7 +156,7 @@ data class FabricClientSmokeController(
                             http.runAvailableAction(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
-                                actions = connectedActions,
+                                openApi = connectedOpenApi,
                                 action = "inventory.equip",
                                 args = mapOf("slot" to JsonPrimitive(equipSlot)),
                             )
@@ -162,7 +164,7 @@ data class FabricClientSmokeController(
                             http.runAvailableAction(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
-                                actions = connectedActions,
+                                openApi = connectedOpenApi,
                                 action = "world.block.break",
                                 args = mapOf("max-distance" to JsonPrimitive(4.0)),
                             )
@@ -273,11 +275,11 @@ private suspend fun HttpClient.getText(url: String): String {
 private suspend fun HttpClient.runAvailableAction(
     api: LocalSessionApiServer,
     clientId: String,
-    actions: String,
+    openApi: String,
     action: String,
     args: Map<String, JsonElement> = emptyMap(),
 ): String {
-    actions.requireAvailableAction(action)
+    openApi.requireAvailableSmokeAction(action)
     return postJson(
         api.url("/clients/$clientId:run"),
         ActionInvocationRequest(
@@ -287,17 +289,16 @@ private suspend fun HttpClient.runAvailableAction(
     )
 }
 
-private fun String.requireAvailableAction(action: String) {
+internal fun String.requireAvailableSmokeAction(action: String) {
     val available =
         smokeJson
-            .parseToJsonElement(this)
-            .jsonArray
-            .any { element ->
-                val descriptor = element.jsonObject
-                descriptor["id"]?.jsonPrimitive?.content == action &&
-                    descriptor["availability"]?.jsonPrimitive?.content == "available"
+            .decodeFromString<OpenApiDocument>(this)
+            .actions
+            .any { descriptor ->
+                descriptor.id == action &&
+                    descriptor.availability == OpenApiActionAvailability.AVAILABLE
             }
-    check(available) { "fabric smoke action $action is not available in connected client metadata" }
+    check(available) { "fabric smoke action $action is not available in connected client OpenAPI" }
 }
 
 private fun String.findHotbarSlotForItem(itemName: String): Int? =

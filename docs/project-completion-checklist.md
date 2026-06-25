@@ -181,10 +181,11 @@ Verification:
   equip an `Iron Sword` when it appears in `inventory.query`; real acquisition
   is still missing.
 - [~] The slice uses generated OpenAPI/action metadata as the client contract.
-  The smoke controller now re-fetches connected client metadata and gates
+  The smoke controller now re-fetches connected client OpenAPI and gates
   `player.query`, `inventory.query`, `inventory.equip`, and
-  `world.block.break` invocations on available action descriptors before
-  calling generic `POST /clients/{id}:run`.
+  `world.block.break` invocations on available actions from
+  `x-craftless-actions` before calling generic `POST /clients/{id}:run`;
+  `/clients/{id}/actions` remains an evidence/projection artifact.
 - [~] The slice discovers the needed actions/resources from the running client;
   it does not call hard-coded Kotlin methods or static CLI commands for current
   smoke gameplay actions. The smoke chooses the equip slot from live

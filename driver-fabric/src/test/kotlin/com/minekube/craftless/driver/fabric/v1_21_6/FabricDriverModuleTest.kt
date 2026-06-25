@@ -633,6 +633,34 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric smoke action availability comes from live openapi metadata`() {
+        val openApi =
+            """
+            {
+              "openapi": "3.1.0",
+              "info": { "title": "Craftless smoke API", "version": "1" },
+              "paths": {},
+              "x-craftless": {},
+              "x-craftless-actions": [
+                {
+                  "id": "player.chat",
+                  "schemaVersion": "1",
+                  "args": {},
+                  "availability": "available"
+                }
+              ]
+            }
+            """.trimIndent()
+
+        openApi.requireAvailableSmokeAction("player.chat")
+        val error =
+            kotlin.test.assertFailsWith<IllegalStateException> {
+                openApi.requireAvailableSmokeAction("player.fly")
+            }
+        assertEquals("fabric smoke action player.fly is not available in connected client OpenAPI", error.message)
+    }
+
+    @Test
     fun `fabric smoke controller waits for client readiness before connecting`() {
         val gateway = RecordingFabricClientGateway()
         gateway.ready = false
