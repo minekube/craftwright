@@ -1,6 +1,7 @@
 package com.minekube.craftless.driver.api
 
 import com.minekube.craftless.protocol.ClientState
+import com.minekube.craftless.protocol.isCraftlessActionId
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.booleanOrNull
@@ -51,10 +52,6 @@ data class DriverActionDescriptor(
         require(arguments.keys.none { it.isBlank() }) { "action argument name is required" }
     }
 }
-
-private fun String.isCraftlessActionId(): Boolean =
-    matches(Regex("[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+")) &&
-        !startsWith("minecraft.")
 
 @Serializable
 data class DriverRuntimeMetadata(

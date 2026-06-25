@@ -102,7 +102,7 @@ data class OpenApiAction(
     }
 }
 
-private fun String.isCraftlessActionId(): Boolean =
+fun String.isCraftlessActionId(): Boolean =
     matches(Regex("[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+")) &&
         !startsWith("minecraft.")
 
