@@ -1,22 +1,22 @@
 import { expect, test } from "bun:test";
 import { createCraftwrightFixture, toHaveChat } from "./index";
 
-test("fixture provides the SDK client without shelling out to CLI output", async () => {
+test("fixture provides an injected automation client without shelling out to CLI output", async () => {
   let usedMc: unknown;
-  const sdk = {
+  const client = {
     launch: async () => ({ id: "alice" }),
   };
-  const fixture = createCraftwrightFixture({ sdk });
+  const fixture = createCraftwrightFixture({ client });
 
   await fixture({}, async (mc) => {
     usedMc = mc;
     await mc.launch({ name: "Alice", version: "1.21.4", offline: true });
   });
 
-  expect(usedMc).toBe(sdk);
+  expect(usedMc).toBe(client);
 });
 
-test("chat matcher delegates to the SDK waitForChat method", async () => {
+test("chat matcher delegates to the injected player waitForChat method", async () => {
   const calls: RegExp[] = [];
   const player = {
     waitForChat: async (pattern: RegExp) => {

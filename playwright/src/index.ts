@@ -1,18 +1,32 @@
-import { createCraftwright, type Craftwright, type CraftwrightPlayer } from "../../ts-sdk/src/index";
+export interface CraftwrightAutomationClient {
+  launch(input: {
+    name: string;
+    id?: string;
+    version: string;
+    loader?: string;
+    offline?: boolean;
+  }): Promise<unknown>;
+}
 
-export interface CraftwrightFixtureOptions {
-  sdk?: Craftwright;
+export interface CraftwrightPlayer {
+  waitForChat(pattern: RegExp | string): Promise<unknown>;
+}
+
+export interface CraftwrightFixtureOptions<TClient extends CraftwrightAutomationClient> {
+  client: TClient;
 }
 
 export type FixtureUse<T> = (value: T) => Promise<void>;
 
-export function createCraftwrightFixture(options: CraftwrightFixtureOptions = {}) {
-  const sdk = options.sdk ?? createCraftwright();
+export function createCraftwrightFixture<TClient extends CraftwrightAutomationClient>(
+  options: CraftwrightFixtureOptions<TClient>,
+) {
+  const client = options.client;
   return async function craftwrightFixture(
     _args: Record<string, unknown>,
-    use: FixtureUse<Craftwright>,
+    use: FixtureUse<TClient>,
   ): Promise<void> {
-    await use(sdk);
+    await use(client);
   };
 }
 
@@ -26,6 +40,3 @@ export async function toHaveChat(
     message: `received chat matching ${pattern}`,
   };
 }
-
-export { createCraftwright };
-export type { Craftwright, CraftwrightPlayer };

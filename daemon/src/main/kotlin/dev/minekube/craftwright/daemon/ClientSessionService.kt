@@ -10,7 +10,9 @@ import dev.minekube.craftwright.protocol.CreateClientRequest
 import dev.minekube.craftwright.protocol.Instance
 import dev.minekube.craftwright.protocol.MinecraftVersion
 
-class ClientSessionService private constructor() {
+class ClientSessionService private constructor(
+    private val driverFactory: DriverSessionFactory,
+) {
     private val clients = linkedMapOf<String, Client>()
     private val drivers = linkedMapOf<String, DriverSession>()
 
@@ -32,10 +34,7 @@ class ClientSessionService private constructor() {
             state = ClientState.RUNNING,
         )
         clients[request.id] = client
-        drivers[request.id] = FakeDriverSession(
-            clientId = request.id,
-            profileName = request.profile.name,
-        )
+        drivers[request.id] = driverFactory.create(request)
         return client
     }
 
@@ -74,7 +73,14 @@ class ClientSessionService private constructor() {
     }
 
     companion object {
-        fun inMemory(): ClientSessionService = ClientSessionService()
+        fun inMemory(
+            driverFactory: DriverSessionFactory = DriverSessionFactory { request ->
+                FakeDriverSession(
+                    clientId = request.id,
+                    profileName = request.profile.name,
+                )
+            },
+        ): ClientSessionService = ClientSessionService(driverFactory)
     }
 
     private fun updateState(clientId: String, state: ClientState): Client {
@@ -82,6 +88,10 @@ class ClientSessionService private constructor() {
         clients[clientId] = updated
         return updated
     }
+}
+
+fun interface DriverSessionFactory {
+    fun create(request: CreateClientRequest): DriverSession
 }
 
 private fun route(

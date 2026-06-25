@@ -20,9 +20,8 @@
 - Create `bridge-hmc/`: temporary HeadlessMC/HMC-Specifics bridge interface, limitation docs, and command mapping kept internal.
 - Create `cli/`: JVM `mcw` entrypoint and first command tree tests.
 - Create `docs/bridge-limitations.md`: public warning that bridge movement is simulated and not the final Fabric driver.
-- `driver-api/`, `ts-sdk/`, and `playwright/` now exist. Later create
-  `driver-runtime/` and `driver-fabric-1_21_6/` once the bridge-backed skeleton
-  is verified.
+- `driver-api/`, `driver-runtime/`, and `playwright/` now exist. Later create
+  `driver-fabric-1_21_6/` once the bridge-backed skeleton is verified.
 
 ## Task 1: Gradle/Kotlin Foundation
 
@@ -313,32 +312,31 @@ Run: `mise exec -- gradle :cli:test`
 
 Expected: PASS.
 
-## Task 9: TypeScript SDK And Playwright/Vitest Integration Plan
+## Task 9: Playwright/Vitest Integration Plan
 
 **Files:**
-- Create: `ts-sdk/package.json`
-- Create: `ts-sdk/src/index.ts`
 - Create: `playwright/package.json`
 - Create: `playwright/src/index.ts`
-- Create: `docs/superpowers/specs/2026-06-25-typescript-sdk-plan.md`
 
 - [x] **Step 1: Write failing package smoke tests**
 
-Test that SDK methods map to daemon/session routes and Playwright fixtures call the SDK rather than parsing human CLI output.
+Test that Playwright fixtures accept injected automation clients rather than
+parsing human CLI output.
 
 - [x] **Step 2: Run test to verify it fails**
 
-Run: `mise exec -- bun test ts-sdk && mise exec -- bun test playwright`
+Run: `mise exec -- bun test playwright`
 
-Expected: FAIL until packages are scaffolded.
+Expected: FAIL until the package is scaffolded.
 
 - [x] **Step 3: Write minimal implementation**
 
-Create typed client stubs for start, launch, connect, chat, waitForChat, player, and stop.
+Create fixture and matcher helpers that do not depend on a checked-in
+TypeScript SDK.
 
 - [x] **Step 4: Verify**
 
-Run: `mise exec -- bun test ts-sdk && mise exec -- bun test playwright`
+Run: `mise exec -- bun test playwright`
 
 Expected: PASS.
 

@@ -6,8 +6,8 @@ Date: 2026-06-25
 
 `driver-api/` is the JVM contract between the supervisor/daemon and any
 in-client driver implementation. The fake daemon session and the future Fabric
-driver should use the same session shape so SDK, CLI, and Playwright routes do
-not change when fake state is replaced by real Minecraft control.
+driver should use the same session shape so CLI and Playwright routes do not
+change when fake state is replaced by real Minecraft control.
 
 ## Current Contract
 
@@ -22,6 +22,14 @@ The module currently exposes:
 - `DriverEventType`
 - `FakeDriverSession`
 
+`driver-runtime/` now adds:
+
+- `BackendDriverSession`
+- `DriverBackend`
+- `DriverBackendResult`
+- `DriverBackendAction`
+- `HmcBridgeDriverBackend`
+
 Minimum supported actions:
 
 - snapshot current client state;
@@ -32,12 +40,19 @@ Minimum supported actions:
 - return structured driver events.
 
 `FakeDriverSession` is a test and daemon-development implementation. It is not
-the final Minecraft driver. It exists so daemon, CLI, SDK, and fixture code can
-use the same public contract before the Fabric module lands.
+the final Minecraft driver. It exists so daemon, CLI, and fixture code can use
+the same public contract before the Fabric module lands.
+
+`BackendDriverSession` is the first runtime adapter. It keeps `DriverSession`
+state and events in Craftwright-owned types while delegating automation actions
+to a `DriverBackend`. The current HMC bridge adapter is temporary; the Fabric
+driver should satisfy the same backend/session boundary with real in-client
+actions.
 
 ## Fabric Handoff
 
-The first Fabric driver should implement `DriverSession` for real client state:
+The first Fabric driver should implement the runtime backend/session boundary
+for real client state:
 
 - map `connect(ConnectionTarget)` to in-client server connection behavior;
 - map `sendChat(ChatCommand)` to real client chat send behavior;

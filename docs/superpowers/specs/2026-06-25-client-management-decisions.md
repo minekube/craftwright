@@ -189,7 +189,7 @@ Priority order:
 2. Headless/CI operation.
 3. Generated OpenAPI session API.
 4. Kotlin/JVM client manager.
-5. TypeScript SDK and Playwright/Vitest fixtures.
+5. Playwright/Vitest fixtures.
 6. Prism compatibility/import/launch adapter.
 7. Optional Prism upstream API/plugin exploration.
 

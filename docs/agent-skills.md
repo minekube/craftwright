@@ -51,7 +51,7 @@ Community candidates checked:
 
 Do not install the whole `Kotlin/kotlin-agent-skills` set into Craftwright right
 now. Most upstream skills are not relevant to this repo's current Kotlin/JVM
-server, CLI, Fabric-driver, and TypeScript SDK work:
+server, CLI, Fabric-driver, and Playwright helper work:
 
 - no Android Gradle Plugin migration;
 - no CocoaPods or SwiftPM migration;

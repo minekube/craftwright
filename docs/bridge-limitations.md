@@ -8,6 +8,10 @@ The bridge must not expose HeadlessMC or HMC-Specifics command strings as public
 API names, JSON fields, CLI verbs, or SDK methods. Those command strings are an
 internal adapter detail.
 
+The `driver-runtime` module can adapt this bridge behind `DriverSession`, but
+that adapter is still only Phase 1 evidence. The durable backend remains the
+Fabric driver running inside the client JVM.
+
 Known limitations:
 
 - Movement is simulated through bridge input and must not be described as robust

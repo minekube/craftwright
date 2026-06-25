@@ -17,11 +17,13 @@ Craftwright is a Kotlin/JVM-first project with one implementation direction:
 - a short scriptable CLI, currently `mcw` unless renamed separately;
 - a local supervisor/API for client sessions;
 - a stable JVM `driver-api` contract with a fake implementation for daemon and
-  SDK integration;
+  route integration;
+- a `driver-runtime` adapter layer that can run `DriverSession` over bridge or
+  Fabric-style backends without changing daemon routes;
 - a temporary HeadlessMC/HMC-Specifics bridge backend for Phase 1 evidence;
 - a real Fabric driver as the durable automation engine;
 - generated OpenAPI for the running client/session;
-- TypeScript SDK and Playwright/Vitest-style testing integrations.
+- Playwright/Vitest-style testing integrations.
 
 ## Evidence
 
@@ -59,6 +61,7 @@ Phase 1:
 
 - extend the Kotlin/JVM Gradle project skeleton;
 - implement the CLI and local API surface;
+- route daemon-created clients through an injectable driver runtime boundary;
 - add a temporary HeadlessMC/HMC-Specifics bridge backend;
 - add a real integration smoke test that launches a real client, joins a
   server, sends chat, moves forward, and verifies server-side position changed;
@@ -76,8 +79,7 @@ Phase 2:
 
 Later:
 
-- TypeScript SDK;
-- Playwright and Vitest fixtures;
+- expand Playwright and Vitest fixtures;
 - compatibility rows for additional Minecraft versions;
 - optional PrismLauncher import/adapter work.
 
@@ -89,7 +91,6 @@ Current docs:
 - `docs/superpowers/specs/2026-06-25-client-management-decisions.md`
 - `docs/superpowers/specs/2026-06-25-generated-client-api-design.md`
 - `docs/superpowers/specs/2026-06-25-driver-api-contract.md`
-- `docs/superpowers/specs/2026-06-25-typescript-sdk-plan.md`
 - `docs/superpowers/plans/2026-06-25-jvm-generated-api-foundation.md`
 - `docs/bridge-limitations.md`
 - `docs/agent-skills.md`
@@ -104,12 +105,8 @@ mise run ci
 mise exec -- gradle test
 ```
 
-Use Bun for TypeScript package work when SDK modules are added:
+Use Bun for TypeScript package work:
 
 ```sh
-mise exec -- bun test ts-sdk
 mise exec -- bun test playwright
 ```
-
-The SDK test suite includes a live smoke against `mcw clients api` through the
-Gradle CLI application entrypoint.

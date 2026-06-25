@@ -18,6 +18,9 @@ class HmcBridgeBackend private constructor(
     fun look(clientId: String, yaw: Double, pitch: Double): BridgeActionResult =
         run(ClientAction.LOOK, clientId, "set look direction", BridgeCommand("look $yaw $pitch"))
 
+    fun stop(clientId: String): BridgeActionResult =
+        run(ClientAction.STOP, clientId, "stop client", BridgeCommand("stop"))
+
     private fun run(
         action: ClientAction,
         clientId: String,
@@ -65,6 +68,7 @@ enum class ClientAction {
     MOVE,
     JUMP,
     LOOK,
+    STOP,
 }
 
 enum class MoveIntent(internal val bridgeKey: String) {

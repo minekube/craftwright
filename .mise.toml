@@ -7,10 +7,6 @@ bun = "1.3.14"
 description = "Run the Kotlin/JVM test suite"
 run = "mise exec -- gradle test"
 
-[tasks.ts-sdk-test]
-description = "Run the TypeScript SDK tests"
-run = "mise exec -- bun test ts-sdk"
-
 [tasks.playwright-test]
 description = "Run the Playwright integration helper tests"
 run = "mise exec -- bun test playwright"
@@ -19,6 +15,5 @@ run = "mise exec -- bun test playwright"
 description = "Run all repository verification checks"
 run = [
     "mise exec -- gradle test",
-    "mise exec -- bun test ts-sdk",
     "mise exec -- bun test playwright",
 ]

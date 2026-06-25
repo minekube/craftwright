@@ -7,7 +7,7 @@ Date: 2026-06-25
 This spec defines Craftwright as a JVM-first Minecraft automation platform.
 
 Craftwright still has the same product goal: automate real Minecraft Java
-clients for tests, agents, and CI through a short CLI, typed SDKs, and stable
+clients for tests, agents, and CI through a short CLI, typed fixtures, and stable
 machine protocols. The architectural change is where the real automation core
 lives. The core must run on the JVM, close to Minecraft classes, modloaders,
 Mixins, mappings, ticks, GUI state, player state, and network state.
@@ -22,7 +22,8 @@ for low-level Minecraft integration.
 - Kotlin is the default language for product logic.
 - Java is the default language for Mixins, accessors, and bytecode-sensitive
   Minecraft-version glue.
-- TypeScript remains the first external SDK and Playwright integration surface.
+- Playwright remains the first TypeScript integration surface; a TypeScript SDK
+  is postponed until the JVM protocol and generated API are steadier.
 - HeadlessMC, HMC-Specifics, and MC-Runtime-Test are primary prior art and
   implementation references, but Craftwright should not expose their text
   console as its public automation contract.
@@ -92,9 +93,8 @@ Minecraft class access, Fabric lifecycle integration, or tick-thread execution.
 
 TypeScript should instead provide:
 
-- `@craftwright/client` SDK.
 - Playwright Test fixtures.
-- Vitest unit helpers for the SDK and protocol.
+- Vitest unit helpers for the protocol.
 - Agent-friendly API wrappers.
 - Optional generated types from the JVM protocol schema.
 
@@ -127,7 +127,9 @@ craftwright/
     starts this boundary with `DriverSession` and `FakeDriverSession`.
 
   driver-runtime/
-    JVM runtime loaded with or before Minecraft.
+    Runtime adapter layer for `DriverSession` implementations. The repository
+    now includes `BackendDriverSession`, a pluggable `DriverBackend`, and an HMC
+    bridge adapter so daemon routes are no longer hard-wired to fake state.
 
   driver-fabric-1_21_6/
     Fabric Loom module with Java Mixins and version adapters.
@@ -138,16 +140,13 @@ craftwright/
   testkit/
     Fake clients, fake servers, process fixtures, and integration helpers.
 
-  ts-sdk/
-    TypeScript SDK package.
-
   playwright/
     Playwright fixtures and matchers.
 ```
 
 Module names may be refined during implementation, but the boundary should
 remain: product logic outside Minecraft, version-specific driver code inside
-Minecraft-facing modules, and external SDKs outside the JVM core.
+Minecraft-facing modules, and TypeScript test helpers outside the JVM core.
 
 ## Runtime Architecture
 
@@ -167,9 +166,11 @@ that is known to work in offline mode.
 The driver runs inside the Minecraft client JVM. It is the real automation
 engine.
 
-The supervisor and daemon should talk to this layer through `driver-api/`.
-Current fake daemon state uses `FakeDriverSession`; the Fabric module should
-replace that implementation without changing SDK or daemon routes.
+The supervisor and daemon should talk to this layer through `driver-api/` and
+the `driver-runtime/` backend adapter. Current default daemon state still uses
+`FakeDriverSession`, but `ClientSessionService` can now be constructed with an
+injected runtime driver factory. The Fabric module should replace the backend
+implementation without changing daemon or Playwright-facing routes.
 
 Responsibilities:
 
@@ -223,12 +224,11 @@ The same protocol powers:
 
 - `mcw` CLI.
 - `mcw daemon`.
-- TypeScript SDK.
 - Playwright fixtures.
 - future MCP/agent tools.
 
-CLI remains canonical for human and script usage, but the SDK should not parse
-human CLI text. SDKs speak the daemon/protocol contract.
+CLI remains canonical for human and script usage. TypeScript helpers should
+speak the daemon/protocol contract and should not parse human CLI text.
 
 ## Client Management Decision
 
@@ -322,18 +322,9 @@ orphaned Minecraft processes.
 
 TypeScript is still essential for adoption.
 
-Target SDK shape:
-
-```ts
-const mc = await craftwright.start()
-const alice = await mc.launch({ name: "alice", version: "1.21.6", offline: true })
-
-await alice.connect("localhost", 25565)
-await alice.chat("hello")
-await alice.waitForChat(/Welcome/)
-await alice.command("/server lobby")
-await alice.stop()
-```
+The checked-in TypeScript SDK has been removed for now. Keep the Playwright
+package as a thin helper layer around injected automation clients until the JVM
+protocol is ready for generated client code.
 
 Playwright should be the primary test runner integration:
 
@@ -347,8 +338,8 @@ test("player can join through Gate", async ({ mc }) => {
 })
 ```
 
-The Playwright adapter should use the TypeScript SDK, which speaks to the JVM
-daemon. It should not shell out and parse human CLI output.
+The Playwright adapter should speak to injected automation clients. It should
+not shell out and parse human CLI output.
 
 ## Implementation Strategy
 
@@ -405,12 +396,11 @@ Minimum capabilities:
 - disconnects/stops cleanly;
 - writes logs and structured events.
 
-### Phase 4: Scenario And SDK
+### Phase 4: Scenario And Test Helpers
 
 Add:
 
 - `mcw scenario run` using the JVM supervisor and driver;
-- TypeScript SDK launch/connect/chat/wait/stop;
 - Playwright fixture smoke test;
 - artifact collection.
 
@@ -431,7 +421,7 @@ Test bands:
 
 - unit tests for protocol models, config, CLI parsing, cache metadata, and event
   state machines;
-- fake-driver integration tests for daemon, SDK, scenarios, and Playwright
+- fake-driver integration tests for daemon, scenarios, and Playwright
   fixtures;
 - opt-in real-client smoke tests behind an environment variable;
 - CI job for one pinned Minecraft/Fabric version after local reliability is
@@ -451,7 +441,7 @@ The first real smoke should use:
 ## Risks
 
 - Kotlin adds another language next to Java and TypeScript. Mitigation: Kotlin
-  owns product logic; Java owns Mixins; TypeScript owns external SDKs.
+  owns product logic; Java owns Mixins; TypeScript owns external test helpers.
 - Minecraft version drift will break Mixins. Mitigation: version modules and
   explicit support matrix.
 - Reimplementing launcher behavior can become large. Mitigation: learn from
@@ -480,8 +470,7 @@ Craftwright is complete enough for its original goal when:
 - clients can send chat, send slash commands, wait for chat/disconnect/screen
   state, and stop reliably;
 - structured events and artifacts are emitted without relying on human log text;
-- TypeScript SDK and Playwright fixtures are stable enough for Minekube E2E
-  tests;
+- Playwright fixtures are stable enough for Minekube E2E tests;
 - at least one Minecraft/Fabric version is supported in CI;
 - adding a new Minecraft version is documented and tested through a repeatable
   driver-module process.

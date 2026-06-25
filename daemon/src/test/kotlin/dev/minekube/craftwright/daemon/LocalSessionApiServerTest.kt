@@ -93,7 +93,7 @@ class LocalSessionApiServerTest {
     }
 
     @Test
-    fun `server handles sdk session routes for fake client actions`() = withHttpClient { http ->
+    fun `server handles session routes for fake client actions`() = withHttpClient { http ->
         LocalSessionApiServer.inMemory().use { server ->
             server.start()
             createAlice(http, server)
@@ -108,10 +108,10 @@ class LocalSessionApiServerTest {
 
             http.post(server.url("/clients/alice/player/sendChat")) {
                 contentType(ContentType.Application.Json)
-                setBody("""{"message":"hello from sdk"}""")
+                setBody("""{"message":"hello from route"}""")
             }.let { response ->
                 assertEquals(HttpStatusCode.OK, response.status)
-                assertTrue(response.bodyAsText().contains("\"message\":\"hello from sdk\""))
+                assertTrue(response.bodyAsText().contains("\"message\":\"hello from route\""))
             }
 
             http.get(server.url("/clients/alice/player")).let { response ->
