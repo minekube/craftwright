@@ -194,6 +194,39 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend discovers broad craftless gameplay action families`() {
+        val backend = FabricDriverBackend.metadataOnly()
+
+        val actionIds = backend.actions("alice").map { it.id }.toSet()
+
+        assertTrue("player.look" in actionIds)
+        assertTrue("player.raycast" in actionIds)
+        assertTrue("world.block.break" in actionIds)
+        assertTrue("world.block.interact" in actionIds)
+        assertTrue("inventory.query" in actionIds)
+        assertTrue("inventory.equip" in actionIds)
+        assertTrue("item.craft" in actionIds)
+    }
+
+    @Test
+    fun `fabric backend reports discovered unimplemented actions as unsupported`() {
+        val backend = FabricDriverBackend.metadataOnly()
+
+        val result =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "item.craft",
+                    arguments = mapOf("item" to JsonPrimitive("minecraft:iron_sword")),
+                ),
+            )
+
+        assertEquals("item.craft", result.action)
+        assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
+        assertTrue(result.message?.contains("not implemented") == true)
+    }
+
+    @Test
     fun `fabric backend rejects raw minecraft command strings as chat action input`() {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)

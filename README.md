@@ -86,8 +86,8 @@ Legend: 🟢 yes, 🟡 partial or limited, 🔵 planned, 🔴 no.
 | Live per-client OpenAPI/action schema | 🟢 | 🔴 | 🔴 |
 | Runtime discovery from version, mods, server features, and permissions | 🟢 | 🟡 protocol data | 🟡 in-client state |
 | Stable automation surface for agents and generated clients | 🟢 | 🟡 library API | 🟡 Java API |
-| Movement/pathfinding depth | 🔵 planned actions | 🟢 | 🟢 |
-| Inventory, screen, perception, and world queries | 🔵 planned actions | 🟢 | 🟡 pathing-focused |
+| Movement/pathfinding depth | 🟡 generated movement action; pathfinding roadmap | 🟢 | 🟢 |
+| Inventory, screen, perception, and world queries | 🟡 descriptors started; execution bindings roadmap | 🟢 | 🟡 pathing-focused |
 | Multi-client local supervisor | 🟡 in-memory API now | 🔴 | 🔴 |
 | Minecraft version support model | 🔵 stable API; Fabric driver/mappings paced | 🟡 protocol matrix | 🟡 versioned builds |
 | Best fit | Real-client automation infrastructure | Fast bot scripts | In-game pathfinding |
@@ -117,6 +117,11 @@ Implemented now:
   packs.
 - Fabric/Loom driver module with internal version-aware bindings and
   gateway-backed runtime hooks for current action evidence.
+- Fabric-generated action descriptors for current chat/move bindings plus
+  broader Craftless-owned gameplay families such as look, raycast, block
+  interaction, inventory, equip, and crafting. Unimplemented descriptors are
+  visible in the live spec and return structured `UNSUPPORTED` until a real
+  binding exists.
 - Testkit helpers and an opt-in `:testkit:localMinecraftServerSmoke` task for
   provisioning a Minecraft server jar, accepting the EULA, starting the server,
   keeping it running around a caller-supplied smoke action, and collecting
@@ -132,8 +137,9 @@ Still roadmap:
 
 - stronger real-client movement proof using server-side position deltas or
   measured in-client position telemetry;
-- broader generated action families for look, raycast, inventory, world/entity
-  queries, screen interaction, and events;
+- real execution bindings for the broader generated action families, including
+  look, raycast, inventory, world/entity queries, screen interaction, crafting,
+  and events;
 - consolidated Fabric driver support across more Minecraft versions;
 - fuller client file management informed by Prism Launcher source, with any
   Prism import/adapter remaining optional rather than a core dependency.

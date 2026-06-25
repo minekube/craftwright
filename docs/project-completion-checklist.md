@@ -248,6 +248,8 @@ Evidence:
   evidence without exposing action-specific chat/move gateway methods.
 - [x] Fabric driver supports generated `player.chat`.
 - [x] Fabric driver supports generated `player.move`.
+- [x] Fabric driver exposes broader Craftless-owned gameplay descriptors for
+  look, raycast, block interaction, inventory, equip, and crafting.
 - [x] Opt-in Fabric smoke task exists behind `CRAFTLESS_FABRIC_CLIENT_SMOKE`.
 - [x] Fabric action implementations are separated into internal action binding
   objects such as chat and move bindings.
@@ -297,6 +299,12 @@ Evidence:
     `runtime-metadata.json`, `server-evidence.jsonl`, and `server.log`.
     `client-events.jsonl` contains a `movement` event for generated
     `player.move` with the real Fabric driver.
+  - Current descriptor evidence:
+    `FabricDriverModuleTest` asserts the Fabric backend advertises
+    `player.look`, `player.raycast`, `world.block.break`,
+    `world.block.interact`, `inventory.query`, `inventory.equip`, and
+    `item.craft`; unimplemented discovered actions return structured
+    `UNSUPPORTED`.
   - Root-cause evidence: direct local connections must pass `null`
     `CookieStorage`; passing an empty non-null cookie store put Minecraft on
     the transfer connection path. The offline local smoke server also disables
@@ -453,3 +461,5 @@ Final evidence:
   - Generated `player.move` has real-client driver-side event telemetry. A
     stronger server-side position-delta proof remains roadmap, not a blocker for
     this milestone's daemon-generated action path.
+  - Broader gameplay descriptors are visible in generated OpenAPI, but most do
+    not yet have real Fabric execution bindings.

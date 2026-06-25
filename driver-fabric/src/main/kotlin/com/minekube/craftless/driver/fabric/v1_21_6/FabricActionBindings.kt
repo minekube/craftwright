@@ -39,7 +39,91 @@ internal fun defaultFabricActionBindings(): List<FabricActionBinding> =
     listOf(
         FabricPlayerMoveActionBinding,
         FabricPlayerChatActionBinding,
+    ) + discoveredFabricGameplayActionBindings()
+
+private fun discoveredFabricGameplayActionBindings(): List<FabricActionBinding> =
+    listOf(
+        unsupportedDiscoveredAction(
+            id = "player.look",
+            arguments =
+                mapOf(
+                    "yaw" to DriverActionArgument("number", required = true),
+                    "pitch" to DriverActionArgument("number", required = true),
+                ),
+        ),
+        unsupportedDiscoveredAction(
+            id = "player.raycast",
+            arguments =
+                mapOf(
+                    "max-distance" to DriverActionArgument("number"),
+                ),
+        ),
+        unsupportedDiscoveredAction(
+            id = "world.block.break",
+            arguments = blockPositionArguments(),
+        ),
+        unsupportedDiscoveredAction(
+            id = "world.block.interact",
+            arguments = blockPositionArguments() + mapOf("face" to DriverActionArgument("string")),
+        ),
+        unsupportedDiscoveredAction(
+            id = "inventory.query",
+            arguments =
+                mapOf(
+                    "scope" to DriverActionArgument("string"),
+                ),
+        ),
+        unsupportedDiscoveredAction(
+            id = "inventory.equip",
+            arguments =
+                mapOf(
+                    "slot" to DriverActionArgument("integer", required = true),
+                ),
+        ),
+        unsupportedDiscoveredAction(
+            id = "item.craft",
+            arguments =
+                mapOf(
+                    "item" to DriverActionArgument("string", required = true),
+                    "count" to DriverActionArgument("integer"),
+                ),
+        ),
     )
+
+private fun blockPositionArguments(): Map<String, DriverActionArgument> =
+    mapOf(
+        "x" to DriverActionArgument("integer", required = true),
+        "y" to DriverActionArgument("integer", required = true),
+        "z" to DriverActionArgument("integer", required = true),
+    )
+
+private fun unsupportedDiscoveredAction(
+    id: String,
+    arguments: Map<String, DriverActionArgument> = emptyMap(),
+): FabricActionBinding =
+    UnsupportedDiscoveredFabricActionBinding(
+        descriptor =
+            DriverActionDescriptor(
+                id = id,
+                schemaVersion = "1",
+                arguments = arguments,
+            ),
+    )
+
+private data class UnsupportedDiscoveredFabricActionBinding(
+    override val descriptor: DriverActionDescriptor,
+) : FabricActionBinding {
+    override fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+        context: FabricActionContext,
+    ): DriverActionResult =
+        DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.UNSUPPORTED,
+            message = "discovered Fabric action ${invocation.action} is not implemented by this driver yet",
+        )
+}
 
 private object FabricPlayerChatActionBinding : FabricActionBinding {
     override val descriptor: DriverActionDescriptor =
