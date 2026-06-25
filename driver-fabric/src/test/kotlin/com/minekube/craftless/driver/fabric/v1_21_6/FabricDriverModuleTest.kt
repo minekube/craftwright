@@ -376,6 +376,60 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric runtime discovery exposes block break only from client state`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = false
+        val backend = FabricDriverBackend.real(gateway)
+
+        val unavailableBreak = backend.actions("alice").single { it.id == "world.block.break" }
+        val unavailableResult =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "world.block.break",
+                    arguments = mapOf("max-distance" to JsonPrimitive(4.0)),
+                ),
+            )
+
+        assertEquals(DriverActionSource.RUNTIME_PROBE, unavailableBreak.source)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, unavailableBreak.availability)
+        assertEquals("client-not-connected", unavailableBreak.availabilityReason)
+        assertEquals("number", unavailableBreak.arguments["max-distance"]?.type)
+        assertEquals("boolean", unavailableBreak.arguments["include-fluids"]?.type)
+        assertEquals("object", unavailableBreak.result.properties["data"]?.type)
+        assertEquals(DriverActionStatus.UNSUPPORTED, unavailableResult.status)
+        assertEquals("client-not-connected", unavailableResult.message)
+
+        gateway.connected = true
+        gateway.queryResult =
+            buildJsonObject {
+                put("hit", true)
+                put("target-kind", "block")
+                put("started", true)
+                put("block", "1 64 1")
+            }
+
+        val blockBreak = backend.actions("alice").single { it.id == "world.block.break" }
+        val result =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "world.block.break",
+                    arguments = mapOf("max-distance" to JsonPrimitive(4.0)),
+                ),
+            )
+
+        assertEquals(DriverActionSource.BINDING, blockBreak.source)
+        assertEquals(DriverActionAvailability.AVAILABLE, blockBreak.availability)
+        assertEquals(null, blockBreak.availabilityReason)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertEquals(true, result.data["started"]?.jsonPrimitive?.boolean)
+        assertEquals("1 64 1", result.data["block"]?.jsonPrimitive?.content)
+        assertEquals(listOf("client-query"), gateway.actions)
+        assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric discovery rejects available actions without execution binding`() {
         val error =
             assertFailsWith<IllegalArgumentException> {

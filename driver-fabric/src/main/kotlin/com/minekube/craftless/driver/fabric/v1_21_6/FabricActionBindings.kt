@@ -22,6 +22,7 @@ import kotlinx.serialization.json.put
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.input.Input
 import net.minecraft.item.ItemStack
+import net.minecraft.util.Hand
 import net.minecraft.util.PlayerInput
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.EntityHitResult
@@ -123,6 +124,53 @@ internal fun fabricInventoryEquipDescriptor(): DriverActionDescriptor =
             ),
     )
 
+internal object FabricWorldBlockBreakActionBinding : FabricActionBinding {
+    override val descriptor: DriverActionDescriptor = fabricWorldBlockBreakDescriptor()
+
+    override fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+        context: FabricActionContext,
+    ): DriverActionResult {
+        val maxDistance = invocation.arguments["max-distance"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_MAX_DISTANCE
+        require(maxDistance > 0.0) { "block break max-distance must be positive" }
+        val includeFluids = invocation.arguments.booleanArgument("include-fluids")
+        val data =
+            context.queryOnClient {
+                val camera = requireNotNull(cameraEntity ?: player) { "client is not connected to a server" }
+                val target =
+                    camera.raycast(maxDistance, 1.0f, includeFluids) as? BlockHitResult
+                        ?: error("no block target")
+                val interactionManager =
+                    requireNotNull(interactionManager) { "client interaction manager is unavailable" }
+                val started = interactionManager.attackBlock(target.blockPos, target.side)
+                if (started) {
+                    player?.swingHand(Hand.MAIN_HAND)
+                }
+                target.toCraftlessBlockBreakData(started)
+            }
+        return DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.ACCEPTED,
+            message = "fabric ${context.modeId} action ${invocation.action} accepted",
+            data = data,
+        )
+    }
+}
+
+internal fun fabricWorldBlockBreakDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "world.block.break",
+        schemaVersion = "1",
+        arguments =
+            mapOf(
+                "max-distance" to DriverActionArgument("number"),
+                "include-fluids" to DriverActionArgument("boolean"),
+            ),
+        result =
+            fabricObjectDataResultDescriptor(),
+    )
+
 internal object FabricPlayerRaycastActionBinding : FabricActionBinding {
     override val descriptor: DriverActionDescriptor = fabricRaycastDescriptor()
 
@@ -146,9 +194,9 @@ internal object FabricPlayerRaycastActionBinding : FabricActionBinding {
             data = data,
         )
     }
-
-    private const val DEFAULT_MAX_DISTANCE = 5.0
 }
+
+private const val DEFAULT_MAX_DISTANCE = 5.0
 
 internal fun fabricRaycastDescriptor(): DriverActionDescriptor =
     DriverActionDescriptor(
@@ -338,6 +386,16 @@ private fun ItemStack.toCraftlessSlotData(slot: Int): JsonObject =
             put("count", count)
             put("item-name", name.string)
         }
+    }
+
+private fun BlockHitResult.toCraftlessBlockBreakData(started: Boolean): JsonObject =
+    buildJsonObject {
+        put("hit", true)
+        put("target-kind", "block")
+        put("started", started)
+        put("block", blockPos.toShortString())
+        put("side", side.name.lowercase())
+        put("position", pos.toCraftlessJson())
     }
 
 private fun HitResult.toCraftlessRaycastData(): JsonObject =
