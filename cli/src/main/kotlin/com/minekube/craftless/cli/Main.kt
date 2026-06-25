@@ -473,7 +473,11 @@ object CraftlessCli {
         optionValues("--arg").forEach { argument ->
             val parts = argument.split("=", limit = 2)
             require(parts.size == 2 && parts[0].isNotBlank()) { "--arg must use key=value syntax" }
-            values[parts[0]] = parts[1].toJsonArgument(action.arguments[parts[0]]?.type)
+            val name = parts[0]
+            val descriptor = requireNotNull(action.arguments[name]) {
+                "action ${action.id} does not declare argument $name"
+            }
+            values[name] = parts[1].toJsonArgument(descriptor.type)
         }
 
         val positional = mutableListOf<String>()
