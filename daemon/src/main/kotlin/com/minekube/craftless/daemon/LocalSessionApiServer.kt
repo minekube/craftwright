@@ -218,9 +218,14 @@ class LocalSessionApiServer private constructor(
     }
 
     companion object {
-        fun inMemory(port: Int = 0): LocalSessionApiServer =
+        fun inMemory(
+            port: Int = 0,
+            driverFactory: DriverSessionFactory = DriverSessionFactory { request ->
+                com.minekube.craftless.driver.api.FakeDriverSession(request.id)
+            },
+        ): LocalSessionApiServer =
             LocalSessionApiServer(
-                service = ClientSessionService.inMemory(),
+                service = ClientSessionService.inMemory(driverFactory),
                 host = "127.0.0.1",
                 requestedPort = port,
             )

@@ -1,5 +1,13 @@
 package com.minekube.craftless.cli
 
+import com.minekube.craftless.daemon.DriverSessionFactory
+import com.minekube.craftless.driver.api.DriverActionArgument
+import com.minekube.craftless.driver.api.DriverActionDescriptor
+import com.minekube.craftless.driver.api.DriverActionInvocation
+import com.minekube.craftless.driver.api.DriverActionResult
+import com.minekube.craftless.driver.api.DriverActionStatus
+import com.minekube.craftless.driver.api.DriverSession
+import com.minekube.craftless.driver.api.FakeDriverSession
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
@@ -622,8 +630,49 @@ class CraftlessCliTest {
         assertTrue(errors.toString().contains("NOT_FOUND"))
     }
 
-    private class LocalTestApiServer : AutoCloseable {
-        private val server = com.minekube.craftless.daemon.LocalSessionApiServer.inMemory()
+    @Test
+    fun `clients run returns nonzero when runtime action result fails`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        LocalTestApiServer(
+            driverFactory = DriverSessionFactory { request ->
+                FailingActionDriver(FakeDriverSession(request.id))
+            },
+        ).use { server ->
+            server.createAlice()
+
+            val exit = CraftlessCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "run",
+                    "player.fail",
+                    "--api",
+                    server.url,
+                    "--arg",
+                    "message=boom",
+                ),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
+
+            assertEquals(1, exit)
+        }
+
+        assertEquals("", output.toString())
+        assertTrue(errors.toString().contains("\"status\":\"FAILED\""))
+        assertTrue(errors.toString().contains("driver rejected player.fail"))
+    }
+
+    private class LocalTestApiServer(
+        driverFactory: DriverSessionFactory = DriverSessionFactory { request ->
+            FakeDriverSession(request.id)
+        },
+    ) : AutoCloseable {
+        private val server = com.minekube.craftless.daemon.LocalSessionApiServer.inMemory(
+            driverFactory = driverFactory,
+        )
         val url: String
 
         init {
@@ -658,5 +707,29 @@ class CraftlessCliTest {
         override fun close() {
             server.close()
         }
+    }
+
+    private class FailingActionDriver(
+        private val delegate: DriverSession,
+    ) : DriverSession by delegate {
+        override fun actions(): List<DriverActionDescriptor> =
+            delegate.actions() + DriverActionDescriptor(
+                id = "player.fail",
+                schemaVersion = "1",
+                arguments = mapOf(
+                    "message" to DriverActionArgument("string", required = true),
+                ),
+            )
+
+        override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
+            if (invocation.action == "player.fail") {
+                DriverActionResult(
+                    action = invocation.action,
+                    status = DriverActionStatus.FAILED,
+                    message = "driver rejected ${invocation.action}",
+                )
+            } else {
+                delegate.invoke(invocation)
+            }
     }
 }

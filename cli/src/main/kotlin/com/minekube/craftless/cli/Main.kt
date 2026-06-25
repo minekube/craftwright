@@ -36,7 +36,10 @@ fun main(args: Array<String>) {
 }
 
 object CraftlessCli {
-    private val json = Json { encodeDefaults = true }
+    private val json = Json {
+        encodeDefaults = true
+        ignoreUnknownKeys = true
+    }
 
     fun root(): CoreCliktCommand = RootCommand().subcommands(
         LeafCommand("versions"),
@@ -297,7 +300,7 @@ object CraftlessCli {
                         contentType(ContentType.Application.Json)
                         setBody(json.encodeToString(payload))
                     }
-                    response.forwardBody(stdout, stderr)
+                    response.forwardActionResultBody(stdout, stderr)
                 }
             }
         }.getOrElse { error ->
@@ -357,7 +360,7 @@ object CraftlessCli {
                         contentType(ContentType.Application.Json)
                         setBody(json.encodeToString(args.actionAliasArguments(action)))
                     }
-                    response.forwardBody(stdout, stderr)
+                    response.forwardActionResultBody(stdout, stderr)
                 }
             }
         }.getOrElse { error ->
@@ -554,6 +557,26 @@ object CraftlessCli {
             else -> toJsonArgument()
         }
 
+    private suspend fun io.ktor.client.statement.HttpResponse.forwardActionResultBody(
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+    ): Int {
+        val body = bodyAsText()
+        if (!status.isSuccess()) {
+            stderr(body)
+            return 1
+        }
+
+        val result = json.decodeFromString<ActionInvocationResponse>(body)
+        return if (result.status == "ACCEPTED") {
+            stdout(body)
+            0
+        } else {
+            stderr(body)
+            1
+        }
+    }
+
     private suspend fun io.ktor.client.statement.HttpResponse.forwardBody(
         stdout: (String) -> Unit,
         stderr: (String) -> Unit,
@@ -597,6 +620,13 @@ data class ApiServerMetadata(
 data class ActionRunRequest(
     val action: String,
     val args: Map<String, JsonElement> = emptyMap(),
+)
+
+@Serializable
+data class ActionInvocationResponse(
+    val action: String,
+    val status: String,
+    val message: String? = null,
 )
 
 @Serializable
