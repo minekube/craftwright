@@ -23,7 +23,7 @@ class ClientSessionService private constructor(
     private val drivers = linkedMapOf<String, DriverSession>()
 
     fun createClient(request: CreateClientRequest): Client {
-        require(request.id.isNotBlank()) { "client id is required" }
+        require(request.id.isCraftlessClientId()) { "client id must be a route-safe segment" }
         require(request.version.isNotBlank()) { "minecraft version is required" }
         require(request.profile.name.length <= 16) { "offline profile name must be 16 characters or fewer" }
         require(!clients.containsKey(request.id)) { "client ${request.id} already exists" }
@@ -135,6 +135,9 @@ private fun DriverSession.sortedActions(): List<DriverActionDescriptor> {
     }
     return actions.sortedBy { it.id }
 }
+
+private fun String.isCraftlessClientId(): Boolean =
+    matches(Regex("[A-Za-z0-9][A-Za-z0-9_-]{0,63}"))
 
 fun interface DriverSessionFactory {
     fun create(request: CreateClientRequest): DriverSession

@@ -82,6 +82,31 @@ class ClientSessionServiceTest {
     }
 
     @Test
+    fun `session service rejects client ids that cannot be used as route segments`() {
+        val service = ClientSessionService.inMemory()
+
+        listOf(
+            "",
+            "alice/bob",
+            "alice:run",
+            "alice bob",
+            ".alice",
+            "alice.",
+        ).forEach { clientId ->
+            assertFailsWith<IllegalArgumentException> {
+                service.createClient(
+                    CreateClientRequest(
+                        id = clientId,
+                        version = "1.21.4",
+                        loader = Loader.FABRIC,
+                        profile = Profile.offline("Alice"),
+                    )
+                )
+            }
+        }
+    }
+
+    @Test
     fun `client specific openapi exposes action metadata without static action routes`() {
         val service = ClientSessionService.inMemory()
         service.createClient(
