@@ -18,6 +18,8 @@ Status legend:
 - [x] JVM work is documented as `mise exec -- gradle ...`.
 - [x] JavaScript helper work is documented as `mise exec -- bun ...`.
 - [x] Kotlin lint/static analysis is documented as `mise run lint`.
+- [x] `mise run lint` enforces ktlint, detekt, and Kotlin compiler warnings as
+  errors.
 - [x] Kotlin formatting is documented as `mise run lint-fix`.
 - [x] CI entrypoint is documented as `mise run ci`.
 - [x] No npm, npx, yarn, pnpm, or global node workflow remains.
@@ -46,10 +48,10 @@ Evidence:
 - [x] README presents Craftless as the active product.
 - [x] Public domain references use `minekube.com`.
 - [x] No previous product-name references remain.
-- [ ] No removed TypeScript SDK is documented as active.
-- [ ] README describes only current active architecture plus clearly marked
+- [x] No removed TypeScript SDK is documented as active.
+- [x] README describes only current active architecture plus clearly marked
   roadmap.
-- [ ] Public API does not expose HeadlessMC, HMC-Specifics, Fabric/Yarn,
+- [x] Public API does not expose HeadlessMC, HMC-Specifics, Fabric/Yarn,
   intermediary names, raw Minecraft internals, or launcher internals.
 
 Evidence:
@@ -61,8 +63,13 @@ Evidence:
   - `mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.NamespacePolicyTest`
   - manual previous-name search using split literals to avoid embedding stale
     names in docs
-- Next action: run the namespace/policy tests and repository searches before
-  marking the remaining public-surface items complete.
+- Current public-surface audit evidence:
+  - `mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.NamespacePolicyTest`
+  - `rg -n "TypeScript SDK|typescript|TypeScript|HeadlessMC|HMC-Specifics|Fabric/Yarn|launcher internals|minekube\\.dev|player/sendChat|/player/sendChat" README.md docs --glob '!docs/superpowers/**' -S`
+  - Remaining hits are policy text, roadmap non-goals, bridge limitation docs
+    scoped as evidence-only, and checklist evidence. README active-product
+    status does not advertise removed SDKs or bridge internals as product
+    surfaces.
 
 ## 2. HTTP And API Rules
 
@@ -119,14 +126,15 @@ Evidence:
 - [x] Runtime gateways expose generic lifecycle, scheduling, and runtime access
   boundaries only; action-specific chat, move, inventory, look, raycast, and
   interaction behavior lives in discovered action bindings.
-- [ ] Runtime/action fingerprint includes Minecraft version, loader, driver,
+- [x] Runtime/action fingerprint includes Minecraft version, loader, driver,
   mappings, mods, registries, server features, permissions, and schema versions.
-- [ ] Action descriptors include all needed argument schemas.
-- [ ] Action result schemas are represented where needed.
+- [x] Action descriptors include all needed argument schemas for current actions.
+- [x] Action result schemas are represented in driver descriptors, action
+  metadata, and generated alias OpenAPI responses.
 - [x] Daemon rejects unavailable actions.
 - [x] Daemon rejects invalid or mismatched arguments.
-- [ ] Generated aliases are derived from OpenAPI/action metadata only.
-- [ ] No static route family is added for gameplay actions such as
+- [x] Generated aliases are derived from OpenAPI/action metadata only.
+- [x] No static route family is added for gameplay actions such as
   `/player/sendChat`.
 
 Evidence:
@@ -146,6 +154,16 @@ Current daemon rejection evidence:
 - Verification:
   - `mise exec -- gradle :protocol:test :daemon:test`
   - `mise run ci`
+- Current schema/fingerprint evidence:
+  - `DriverActionDescriptor.result` carries action result schema metadata.
+  - `OpenApiAction.result` publishes result metadata through
+    `x-craftless-actions` and `/clients/{id}/actions`.
+  - Generated action alias responses use the action-specific result schema.
+  - `x-craftless-action-fingerprint` includes action IDs, schema versions,
+    argument schemas, and result schemas.
+  - `ClientSessionServiceTest` asserts runtime fingerprints include Minecraft
+    version, loader, loader version, driver, driver version, mappings, mods,
+    registries, server features, permissions, and action schema fingerprints.
 Current action-boundary audit:
 
 - Working-tree evidence: `driver-fabric/.../FabricActionBindings.kt` owns the
@@ -373,16 +391,17 @@ Evidence:
 - [x] `mise run lint` passes.
 - [x] `mise exec -- gradle test` passes.
 - [x] `mise exec -- bun test playwright` passes.
-- [ ] Protocol policy tests cover naming, HTTP bans, and SDK boundaries.
-- [ ] Driver contract tests cover stale method bans and action model.
-- [ ] Daemon tests cover OpenAPI/action routes.
-- [ ] CLI tests cover adaptive dispatch/help.
+- [x] Protocol policy tests cover naming, HTTP bans, and SDK boundaries.
+- [x] Driver contract tests cover stale method bans and action model.
+- [x] Daemon tests cover OpenAPI/action routes.
+- [x] CLI tests cover adaptive dispatch/help.
 - [x] Fabric module tests cover metadata, action gateway, and smoke plan.
 - [x] Opt-in real-client smoke has a documented successful run.
 
 Evidence:
 
 - Current verification:
+  - `mise exec -- gradle :driver-api:test --tests com.minekube.craftless.driver.api.DriverSessionContractTest :protocol:test --tests com.minekube.craftless.protocol.OpenApiGenerationTest :daemon:test --tests com.minekube.craftless.daemon.ClientSessionServiceTest`
   - `mise exec -- gradle :testkit:test :driver-fabric:test`
   - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
   - `mise run lint`
@@ -390,9 +409,8 @@ Evidence:
   - `mise run ci`
   - `mise run ci` executed `mise exec -- gradle lint`,
     `mise exec -- gradle test`, and `mise exec -- bun test playwright`.
-- Remaining verification work: audit and mark the protocol, driver, daemon,
-  and CLI coverage bullets only after confirming each named test covers the
-  stated gate.
+- Coverage audit is complete for the current protocol, driver, daemon, and CLI
+  gates listed above.
 
 ## Final Completion Gate
 

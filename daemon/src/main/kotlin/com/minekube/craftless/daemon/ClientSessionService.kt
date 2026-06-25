@@ -14,6 +14,8 @@ import com.minekube.craftless.protocol.Instance
 import com.minekube.craftless.protocol.MinecraftVersion
 import com.minekube.craftless.protocol.OpenApiAction
 import com.minekube.craftless.protocol.OpenApiActionArgument
+import com.minekube.craftless.protocol.OpenApiActionResult
+import com.minekube.craftless.protocol.OpenApiActionSchema
 import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.isCraftlessClientId
 
@@ -105,6 +107,14 @@ class ClientSessionService private constructor(
                                     required = argument.required,
                                 )
                             },
+                        result =
+                            OpenApiActionResult(
+                                properties =
+                                    action.result.properties.mapValues { (_, property) ->
+                                        OpenApiActionSchema(property.type)
+                                    },
+                                required = action.result.required,
+                            ),
                     )
                 },
         )
@@ -214,7 +224,14 @@ private fun DriverActionDescriptor.fingerprintPart(): String {
                 val required = if (argument.required) "!" else ""
                 "$name:${argument.type}$required"
             }
-    return "$id:$schemaVersion($argumentFingerprint)"
+    val resultFingerprint =
+        result.properties.entries
+            .sortedBy { it.key }
+            .joinToString(",") { (name, property) ->
+                val required = if (name in result.required) "!" else ""
+                "$name:${property.type}$required"
+            }
+    return "$id:$schemaVersion($argumentFingerprint)->($resultFingerprint)"
 }
 
 private fun route(

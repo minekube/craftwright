@@ -46,6 +46,7 @@ data class DriverActionDescriptor(
     val id: String,
     val schemaVersion: String,
     val arguments: Map<String, DriverActionArgument> = emptyMap(),
+    val result: DriverActionResultDescriptor = DriverActionResultDescriptor(),
 ) {
     init {
         require(id.isNotBlank()) { "action id is required" }
@@ -54,6 +55,30 @@ data class DriverActionDescriptor(
         arguments.keys.forEach { name ->
             require(name.isCraftlessActionArgumentName()) { "invalid action argument name $name" }
         }
+    }
+}
+
+@Serializable
+data class DriverActionResultDescriptor(
+    val properties: Map<String, DriverActionResultProperty> = defaultDriverActionResultProperties(),
+    val required: List<String> = listOf("action", "status"),
+) {
+    init {
+        properties.keys.forEach { name ->
+            require(name.isCraftlessActionArgumentName()) { "invalid action result property name $name" }
+        }
+        required.forEach { name ->
+            require(properties.containsKey(name)) { "required action result property $name is not declared" }
+        }
+    }
+}
+
+@Serializable
+data class DriverActionResultProperty(
+    val type: String,
+) {
+    init {
+        require(type.isCraftlessActionArgumentType()) { "unsupported action result property type $type" }
     }
 }
 
@@ -308,4 +333,11 @@ private fun fakePlayerChatActionDescriptor(): DriverActionDescriptor =
             mapOf(
                 "message" to DriverActionArgument("string", required = true),
             ),
+    )
+
+private fun defaultDriverActionResultProperties(): Map<String, DriverActionResultProperty> =
+    mapOf(
+        "action" to DriverActionResultProperty("string"),
+        "status" to DriverActionResultProperty("string"),
+        "message" to DriverActionResultProperty("string"),
     )

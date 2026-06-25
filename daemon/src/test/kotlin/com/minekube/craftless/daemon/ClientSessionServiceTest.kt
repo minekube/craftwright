@@ -5,6 +5,8 @@ import com.minekube.craftless.driver.api.DriverActionArgument
 import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
+import com.minekube.craftless.driver.api.DriverActionResultDescriptor
+import com.minekube.craftless.driver.api.DriverActionResultProperty
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
@@ -134,7 +136,7 @@ class ClientSessionServiceTest {
         assertEquals("none", document.extensions["x-craftless-server-feature-fingerprint"])
         assertEquals("local-fake", document.extensions["x-craftless-permissions-fingerprint"])
         assertEquals(
-            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftless-fake;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.chat:1(message:string!),player.move:1(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)",
+            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftless-fake;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.chat:1(message:string!)->(action:string!,message:string,status:string!),player.move:1(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,message:string,status:string!)",
             document.extensions["x-craftless-runtime-fingerprint"],
         )
         assertTrue(document.paths.containsKey("/clients/alice/openapi.json"))
@@ -215,6 +217,9 @@ class ClientSessionServiceTest {
         assertNotNull(chatResponseSchema)
         assertEquals(listOf("action", "status"), chatResponseSchema.required)
         assertEquals("string", chatResponseSchema.properties["message"]?.type)
+        val chatActionMetadata = document.actions.single { it.id == "player.chat" }
+        assertEquals(listOf("action", "status"), chatActionMetadata.result.required)
+        assertEquals("string", chatActionMetadata.result.properties["message"]?.type)
         assertErrorSchema(
             requireNotNull(
                 document.paths["/clients/alice/player:chat"]
@@ -367,7 +372,7 @@ class ClientSessionServiceTest {
         assertEquals("server-features-test", extensions["x-craftless-server-feature-fingerprint"])
         assertEquals("permissions-test", extensions["x-craftless-permissions-fingerprint"])
         assertEquals(
-            "minecraft=1.21.4;loader=FABRIC;loaderVersion=0.16.14;driver=craftless-driver-fabric;driverVersion=0.2.0-test;mappings=mappings-fingerprint-test;mods=mods-test;registries=registries-test;serverFeatures=server-features-test;permissions=permissions-test;actions=player.chat:1(message:string!),player.move:1(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)",
+            "minecraft=1.21.4;loader=FABRIC;loaderVersion=0.16.14;driver=craftless-driver-fabric;driverVersion=0.2.0-test;mappings=mappings-fingerprint-test;mods=mods-test;registries=registries-test;serverFeatures=server-features-test;permissions=permissions-test;actions=player.chat:1(message:string!)->(action:string!,message:string,status:string!),player.move:1(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,message:string,status:string!)",
             extensions["x-craftless-runtime-fingerprint"],
         )
     }
@@ -401,11 +406,11 @@ class ClientSessionServiceTest {
 
         assertEquals(listOf("player.chat", "player.move"), document.actions.map { it.id })
         assertEquals(
-            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftless-fake;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.chat:1(message:string!),player.move:1(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)",
+            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftless-fake;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.chat:1(message:string!)->(action:string!,message:string,status:string!),player.move:1(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,message:string,status:string!)",
             document.extensions["x-craftless-runtime-fingerprint"],
         )
         assertEquals(
-            "player.chat:1(message:string!),player.move:1(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)",
+            "player.chat:1(message:string!)->(action:string!,message:string,status:string!),player.move:1(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,message:string,status:string!)",
             document.extensions["x-craftless-action-fingerprint"],
         )
     }
@@ -526,6 +531,16 @@ private fun testPlayerMoveActionDescriptor(): DriverActionDescriptor =
                 "sneak" to DriverActionArgument("boolean"),
                 "sprint" to DriverActionArgument("boolean"),
                 "ticks" to DriverActionArgument("integer"),
+            ),
+        result =
+            DriverActionResultDescriptor(
+                properties =
+                    mapOf(
+                        "action" to DriverActionResultProperty("string"),
+                        "status" to DriverActionResultProperty("string"),
+                        "message" to DriverActionResultProperty("string"),
+                    ),
+                required = listOf("action", "status"),
             ),
     )
 

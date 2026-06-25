@@ -97,6 +97,7 @@ data class OpenApiAction(
     val schemaVersion: String,
     @SerialName("args")
     val arguments: Map<String, OpenApiActionArgument> = emptyMap(),
+    val result: OpenApiActionResult = OpenApiActionResult(),
 ) {
     init {
         require(id.isCraftlessActionId()) { "invalid action id $id" }
@@ -104,6 +105,30 @@ data class OpenApiAction(
         arguments.keys.forEach { name ->
             require(name.isCraftlessActionArgumentName()) { "invalid action argument name $name" }
         }
+    }
+}
+
+@Serializable
+data class OpenApiActionResult(
+    val properties: Map<String, OpenApiActionSchema> = defaultOpenApiActionResultProperties(),
+    val required: List<String> = listOf("action", "status"),
+) {
+    init {
+        properties.keys.forEach { name ->
+            require(name.isCraftlessActionArgumentName()) { "invalid action result property name $name" }
+        }
+        required.forEach { name ->
+            require(properties.containsKey(name)) { "required action result property $name is not declared" }
+        }
+    }
+}
+
+@Serializable
+data class OpenApiActionSchema(
+    val type: String,
+) {
+    init {
+        require(type.isCraftlessActionArgumentType()) { "unsupported action result property type $type" }
     }
 }
 
@@ -135,7 +160,7 @@ private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenA
     return OpenApiOperation(
         operationId = operationId,
         tags = listOf(tag),
-        responses = route.responses(),
+        responses = route.responses(actionsById),
         requestBody = route.requestBody(actionsById),
         extensions =
             buildMap {
@@ -149,13 +174,13 @@ private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenA
     )
 }
 
-private fun ApiRoute.responses(): Map<String, OpenApiResponse> {
+private fun ApiRoute.responses(actionsById: Map<String, OpenApiAction>): Map<String, OpenApiResponse> {
     val successStatus = if (path == "/clients" && method == "POST") "201" else "200"
     return buildMap {
         put(
             successStatus,
             when {
-                source == "action" && method == "POST" -> actionInvocationResponse()
+                source == "action" && method == "POST" -> actionInvocationResponse(actionId?.let(actionsById::get)?.result)
                 path.endsWith("openapi.json") && method == "GET" -> openApiDocumentResponse()
                 path == "/version" && method == "GET" -> versionResponse()
                 (path == "/events" || path.endsWith("/events")) && method == "GET" -> eventListResponse()
@@ -211,20 +236,11 @@ private fun Map<String, OpenApiActionArgument>.toRequestBody(): OpenApiRequestBo
             ),
     )
 
-private fun actionInvocationResponse(): OpenApiResponse =
+private fun actionInvocationResponse(result: OpenApiActionResult? = null): OpenApiResponse =
     OpenApiResponse(
         content =
             jsonContent(
-                OpenApiSchema(
-                    type = "object",
-                    properties =
-                        mapOf(
-                            "action" to OpenApiSchema(type = "string"),
-                            "status" to OpenApiSchema(type = "string"),
-                            "message" to OpenApiSchema(type = "string"),
-                        ),
-                    required = listOf("action", "status"),
-                ),
+                result?.toOpenApiSchema() ?: OpenApiActionResult().toOpenApiSchema(),
             ),
     )
 
@@ -356,6 +372,7 @@ private fun actionDescriptorSchema(): OpenApiSchema =
                 "id" to OpenApiSchema(type = "string"),
                 "schemaVersion" to OpenApiSchema(type = "string"),
                 "args" to OpenApiSchema(type = "object", additionalProperties = true),
+                "result" to OpenApiSchema(type = "object", additionalProperties = true),
             ),
         required = listOf("id", "schemaVersion"),
     )
@@ -483,3 +500,19 @@ private fun instanceFilesSchema(): OpenApiSchema =
     )
 
 private fun jsonContent(schema: OpenApiSchema): Map<String, OpenApiMediaType> = mapOf("application/json" to OpenApiMediaType(schema))
+
+private fun OpenApiActionResult.toOpenApiSchema(): OpenApiSchema =
+    OpenApiSchema(
+        type = "object",
+        properties = properties.mapValues { (_, schema) -> schema.toOpenApiSchema() },
+        required = required,
+    )
+
+private fun OpenApiActionSchema.toOpenApiSchema(): OpenApiSchema = OpenApiSchema(type = type)
+
+private fun defaultOpenApiActionResultProperties(): Map<String, OpenApiActionSchema> =
+    mapOf(
+        "action" to OpenApiActionSchema("string"),
+        "status" to OpenApiActionSchema("string"),
+        "message" to OpenApiActionSchema("string"),
+    )

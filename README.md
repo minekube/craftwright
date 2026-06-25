@@ -162,6 +162,9 @@ mise run lint-fix
 mise exec -- gradle test
 ```
 
+`mise run lint` runs ktlint, detekt, and Kotlin compilation with warnings
+treated as errors.
+
 Use Bun for Playwright helper tests:
 
 ```sh

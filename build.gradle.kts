@@ -1,5 +1,6 @@
 import org.gradle.api.plugins.JavaPluginExtension
 import dev.detekt.gradle.extensions.DetektExtension
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "2.4.0" apply false
@@ -42,11 +43,19 @@ subprojects {
     tasks.withType<Test>().configureEach {
         useJUnitPlatform()
     }
+
+    tasks.withType<KotlinCompile>().configureEach {
+        compilerOptions {
+            allWarningsAsErrors.set(true)
+        }
+    }
 }
 
 tasks.register("lint") {
     group = "verification"
     description = "Run Kotlin formatting and static-analysis checks"
+    dependsOn(subprojects.map { it.tasks.named("compileKotlin") })
+    dependsOn(subprojects.map { it.tasks.named("compileTestKotlin") })
     dependsOn(subprojects.map { it.tasks.named("ktlintCheck") })
     dependsOn(subprojects.map { it.tasks.named("detekt") })
 }

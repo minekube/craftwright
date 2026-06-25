@@ -155,8 +155,14 @@ class DriverSessionContractTest {
         )
 
         val actions = session.actions()
-        assertEquals("1", actions.single { it.id == "player.move" }.schemaVersion)
-        assertEquals("1", actions.single { it.id == "player.chat" }.schemaVersion)
+        val moveAction = actions.single { it.id == "player.move" }
+        val chatActionDescriptor = actions.single { it.id == "player.chat" }
+        assertEquals("1", moveAction.schemaVersion)
+        assertEquals("1", chatActionDescriptor.schemaVersion)
+        assertEquals(listOf("action", "status"), moveAction.result.required)
+        assertEquals("string", moveAction.result.properties["action"]?.type)
+        assertEquals("string", moveAction.result.properties["status"]?.type)
+        assertEquals("string", moveAction.result.properties["message"]?.type)
 
         val runtime = session.runtimeMetadata()
         assertEquals("none", runtime.loaderVersion)

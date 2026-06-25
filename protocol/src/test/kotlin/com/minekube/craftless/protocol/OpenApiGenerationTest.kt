@@ -9,7 +9,41 @@ import kotlin.test.assertTrue
 class OpenApiGenerationTest {
     @Test
     fun `openapi document includes craftless metadata for generic action route`() {
-        val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
+        val document =
+            OpenApiDocument.from(
+                catalog =
+                    ApiRouteCatalog(
+                        ApiRouteCatalog.sessionDefaults().routes +
+                            ApiRoute(
+                                method = "POST",
+                                path = "/clients/{id}/world:scan",
+                                operationId = "runWorldScan",
+                                tag = "clients",
+                                owner = "clients",
+                                member = "run",
+                                target = "client",
+                                source = "action",
+                                actionId = "world.scan",
+                            ),
+                    ),
+                actions =
+                    listOf(
+                        OpenApiAction(
+                            id = "world.scan",
+                            schemaVersion = "1",
+                            result =
+                                OpenApiActionResult(
+                                    properties =
+                                        mapOf(
+                                            "action" to OpenApiActionSchema("string"),
+                                            "blocks" to OpenApiActionSchema("array"),
+                                            "status" to OpenApiActionSchema("string"),
+                                        ),
+                                    required = listOf("action", "status", "blocks"),
+                                ),
+                        ),
+                    ),
+            )
 
         val operation = document.paths["/clients/{id}:run"]?.post
         assertNotNull(operation)
@@ -42,6 +76,18 @@ class OpenApiGenerationTest {
         assertEquals("string", responseSchema.properties["action"]?.type)
         assertEquals("string", responseSchema.properties["status"]?.type)
         assertEquals("string", responseSchema.properties["message"]?.type)
+
+        val aliasResponseSchema =
+            document.paths["/clients/{id}/world:scan"]
+                ?.post
+                ?.responses
+                ?.get("200")
+                ?.content
+                ?.get("application/json")
+                ?.schema
+        assertNotNull(aliasResponseSchema)
+        assertEquals(listOf("action", "status", "blocks"), aliasResponseSchema.required)
+        assertEquals("array", aliasResponseSchema.properties["blocks"]?.type)
     }
 
     @Test
@@ -213,6 +259,10 @@ class OpenApiGenerationTest {
         assertEquals("string", actionSchema.properties["schemaVersion"]?.type)
         assertEquals("object", actionSchema.properties["args"]?.type)
         assertEquals(true, actionSchema.properties["args"]?.additionalProperties)
+        val resultSchema = actionSchema.properties["result"]
+        assertNotNull(resultSchema)
+        assertEquals("object", resultSchema.type)
+        assertEquals(true, resultSchema.additionalProperties)
     }
 
     @Test
