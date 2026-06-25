@@ -10,7 +10,9 @@ import com.minekube.craftless.driver.runtime.DriverBackendAction
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -274,6 +276,61 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric runtime discovery exposes inventory query only from client state`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = false
+        val backend = FabricDriverBackend.real(gateway)
+
+        val unavailableInventory = backend.actions("alice").single { it.id == "inventory.query" }
+        val unavailableResult = backend.invoke("alice", DriverActionInvocation("inventory.query"))
+
+        assertEquals(DriverActionSource.RUNTIME_PROBE, unavailableInventory.source)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, unavailableInventory.availability)
+        assertEquals("client-not-connected", unavailableInventory.availabilityReason)
+        assertEquals("object", unavailableInventory.result.properties["data"]?.type)
+        assertEquals(DriverActionStatus.UNSUPPORTED, unavailableResult.status)
+        assertEquals("client-not-connected", unavailableResult.message)
+
+        gateway.connected = true
+        gateway.queryResult =
+            buildJsonObject {
+                put("selected-slot", 1)
+                put("slot-count", 46)
+                put(
+                    "slots",
+                    buildJsonArray {
+                        add(
+                            buildJsonObject {
+                                put("slot", 1)
+                                put("empty", false)
+                                put("count", 1)
+                                put("item-name", "Iron Sword")
+                            },
+                        )
+                    },
+                )
+            }
+
+        val inventory = backend.actions("alice").single { it.id == "inventory.query" }
+        val result = backend.invoke("alice", DriverActionInvocation("inventory.query"))
+
+        assertEquals(DriverActionSource.BINDING, inventory.source)
+        assertEquals(DriverActionAvailability.AVAILABLE, inventory.availability)
+        assertEquals(null, inventory.availabilityReason)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertEquals(1, result.data["selected-slot"]?.jsonPrimitive?.int)
+        assertEquals(46, result.data["slot-count"]?.jsonPrimitive?.int)
+        val slot =
+            requireNotNull(
+                result.data["slots"]
+                    ?.jsonArray
+                    ?.single()
+                    ?.jsonObject,
+            )
+        assertEquals("Iron Sword", slot["item-name"]?.jsonPrimitive?.content)
+    }
+
+    @Test
     fun `fabric discovery rejects available actions without execution binding`() {
         val error =
             assertFailsWith<IllegalArgumentException> {
@@ -403,6 +460,11 @@ class FabricDriverModuleTest {
 private class RecordingFabricClientGateway : FabricClientGateway {
     var scheduled = 0
     val actions = mutableListOf<String>()
+    var queryResult =
+        buildJsonObject {
+            put("hit", true)
+            put("target-kind", "block")
+        }
 
     @Volatile
     var connected = false
@@ -429,10 +491,7 @@ private class RecordingFabricClientGateway : FabricClientGateway {
     override fun <T> queryOnClient(query: net.minecraft.client.MinecraftClient.() -> T): T {
         scheduled += 1
         actions += "client-query"
-        return buildJsonObject {
-            put("hit", true)
-            put("target-kind", "block")
-        } as T
+        return queryResult as T
     }
 
     override fun stop() {

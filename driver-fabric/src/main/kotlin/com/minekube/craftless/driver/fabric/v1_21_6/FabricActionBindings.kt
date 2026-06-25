@@ -13,12 +13,15 @@ import com.minekube.craftless.driver.api.intArgument
 import com.minekube.craftless.driver.api.requireChatMessage
 import com.minekube.craftless.driver.api.stringArgument
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.input.Input
+import net.minecraft.item.ItemStack
 import net.minecraft.util.PlayerInput
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.EntityHitResult
@@ -55,6 +58,35 @@ internal fun defaultFabricActionBindings(): List<FabricActionBinding> =
     listOf(
         FabricPlayerMoveActionBinding,
         FabricPlayerChatActionBinding,
+    )
+
+internal object FabricInventoryQueryActionBinding : FabricActionBinding {
+    override val descriptor: DriverActionDescriptor = fabricInventoryQueryDescriptor()
+
+    override fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+        context: FabricActionContext,
+    ): DriverActionResult {
+        val data =
+            context.queryOnClient {
+                val player = requireNotNull(player) { "client is not connected to a server" }
+                player.inventory.toCraftlessInventoryData()
+            }
+        return DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.ACCEPTED,
+            message = "fabric ${context.modeId} action ${invocation.action} queried",
+            data = data,
+        )
+    }
+}
+
+internal fun fabricInventoryQueryDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "inventory.query",
+        schemaVersion = "1",
+        result = fabricObjectDataResultDescriptor(),
     )
 
 internal object FabricPlayerRaycastActionBinding : FabricActionBinding {
@@ -94,16 +126,19 @@ internal fun fabricRaycastDescriptor(): DriverActionDescriptor =
                 "include-fluids" to DriverActionArgument("boolean"),
             ),
         result =
-            DriverActionResultDescriptor(
-                properties =
-                    mapOf(
-                        "action" to DriverActionResultProperty("string"),
-                        "status" to DriverActionResultProperty("string"),
-                        "message" to DriverActionResultProperty("string"),
-                        "data" to DriverActionResultProperty("object"),
-                    ),
-                required = listOf("action", "status"),
+            fabricObjectDataResultDescriptor(),
+    )
+
+private fun fabricObjectDataResultDescriptor(): DriverActionResultDescriptor =
+    DriverActionResultDescriptor(
+        properties =
+            mapOf(
+                "action" to DriverActionResultProperty("string"),
+                "status" to DriverActionResultProperty("string"),
+                "message" to DriverActionResultProperty("string"),
+                "data" to DriverActionResultProperty("object"),
             ),
+        required = listOf("action", "status"),
     )
 
 private object FabricPlayerChatActionBinding : FabricActionBinding {
@@ -245,6 +280,30 @@ private fun movementMultiplier(
         positive == negative -> 0f
         positive -> 1f
         else -> -1f
+    }
+
+private fun net.minecraft.entity.player.PlayerInventory.toCraftlessInventoryData(): JsonObject =
+    buildJsonObject {
+        put("selected-slot", selectedSlot)
+        put("slot-count", size())
+        put(
+            "slots",
+            buildJsonArray {
+                for (slot in 0 until size()) {
+                    add(getStack(slot).toCraftlessSlotData(slot))
+                }
+            },
+        )
+    }
+
+private fun ItemStack.toCraftlessSlotData(slot: Int): JsonObject =
+    buildJsonObject {
+        put("slot", slot)
+        put("empty", isEmpty)
+        if (!isEmpty) {
+            put("count", count)
+            put("item-name", name.string)
+        }
     }
 
 private fun HitResult.toCraftlessRaycastData(): JsonObject =
