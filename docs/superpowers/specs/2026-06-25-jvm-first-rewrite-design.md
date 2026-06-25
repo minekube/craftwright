@@ -195,7 +195,23 @@ Responsibilities:
 - Connect and disconnect through real Minecraft APIs.
 - Send chat and slash commands through real `LocalPlayer`/connection APIs.
 - Expose GUI and input actions through stable Craftwright abstractions.
+- Set player movement intent directly on the client tick: forward, backward,
+  strafe, jump, sneak, and sprint.
+- Set look direction directly through yaw and pitch.
+- Expose player position, velocity, health, game mode, selected hotbar slot, and
+  connection state as structured data.
+- Expose perception primitives such as raycast target, nearby blocks, nearby
+  entities, fluid state, light level, biome, inventory, and current screen.
+- Execute interaction primitives such as use, attack, pick block, hotbar select,
+  drop item, inventory click, and screen click.
 - Emit structured events without requiring external log parsing.
+
+The HeadlessMC/HMC-Specifics bridge PoC proved that keyboard-driven movement can
+work against a real client, but also showed why it is not the final product
+shape. Simulated keys are sensitive to first-run screens, title screens, focus,
+and client state. The Craftwright Fabric driver should operate at the
+Minecraft-client API level instead of relying on `key w`, `key space`, or parsed
+console text.
 
 ### 3. Local Protocol
 
@@ -211,6 +227,12 @@ first transports:
 The public contract should be JSON-RPC-style request/response plus event
 streams. The protocol must be independent of HeadlessMC console text.
 
+The generated local client API direction is specified separately in
+`docs/superpowers/specs/2026-06-25-generated-client-api-design.md`. That spec
+refines this protocol layer toward a per-session OpenAPI surface generated from
+the running Minecraft client, short root paths such as `/player`, object handles
+under `/o/{handle}`, and class metadata under `/c/{className}`.
+
 ### 4. External UX
 
 The same protocol powers:
@@ -223,6 +245,26 @@ The same protocol powers:
 
 CLI remains canonical for human and script usage, but the SDK should not parse
 human CLI text. SDKs speak the daemon/protocol contract.
+
+## Client Management Decision
+
+Client management is specified further in
+`docs/superpowers/specs/2026-06-25-client-management-decisions.md`.
+
+The short version:
+
+- Craftwright's Phase 1 core must be independent of PrismLauncher.
+- PrismLauncher is valuable research and a later optional desktop adapter, not
+  the CI/headless runtime dependency.
+- HeadlessMC/HMC-Specifics are valid bridge-spike tools for proving a real
+  client can be automated, but their console text must not become the final
+  public API.
+- Persistent setup objects and live runtime objects must stay separate:
+  versions, loaders, profiles, and instances are setup state; clients and
+  session APIs are running state.
+
+This keeps the first milestone focused on real client automation and headless
+CI operation before UI integrations.
 
 ## HeadlessMC Learning Plan
 
@@ -382,6 +424,12 @@ Minimum capabilities:
 - connects to offline server;
 - sends chat;
 - observes chat;
+- returns player position;
+- moves the player forward and verifies position changed;
+- jumps or sets jump intent and verifies the client accepted the action;
+- sets yaw/pitch and returns the updated look direction;
+- returns raycast target or an explicit no-target result;
+- returns a bounded nearby-block sample around the player;
 - disconnects/stops cleanly;
 - writes logs and structured events.
 
@@ -476,10 +524,16 @@ Craftwright is complete enough for its original goal when:
   `docs/superpowers/specs/2026-06-24-mcw-cli-design.md`
 - Previous real-client backend design:
   `docs/superpowers/specs/2026-06-25-real-client-backend-design.md`
+- Generated local client API design:
+  `docs/superpowers/specs/2026-06-25-generated-client-api-design.md`
+- Client management decisions:
+  `docs/superpowers/specs/2026-06-25-client-management-decisions.md`
 - HeadlessMC:
   https://github.com/headlesshq/headlessmc
 - HMC-Specifics:
   https://github.com/headlesshq/hmc-specifics
+- PrismLauncher:
+  https://github.com/PrismLauncher/PrismLauncher
 - MC-Runtime-Test:
   https://github.com/headlesshq/mc-runtime-test
 - Fabric Loom:
