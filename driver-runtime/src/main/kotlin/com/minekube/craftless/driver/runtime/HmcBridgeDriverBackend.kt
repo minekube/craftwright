@@ -21,13 +21,13 @@ class HmcBridgeDriverBackend(
 ) : DriverBackend {
     override fun connect(clientId: String, target: ConnectionTarget): DriverBackendResult {
         val result = bridge.connect(clientId, "${target.host}:${target.port}")
-        require(result.action == ClientAction.CONNECT) { "bridge returned ${result.action} for connect" }
+        require(result.action == ClientAction.CONNECT) { "driver backend returned ${result.action} for connect" }
         return DriverBackendResult(DriverBackendAction.CONNECT, result.publicDescription)
     }
 
     override fun stop(clientId: String): DriverBackendResult {
         val result = bridge.stop(clientId)
-        require(result.action == ClientAction.STOP) { "bridge returned ${result.action} for stop" }
+        require(result.action == ClientAction.STOP) { "driver backend returned ${result.action} for stop" }
         return DriverBackendResult(DriverBackendAction.STOP, result.publicDescription)
     }
 
@@ -49,7 +49,7 @@ class HmcBridgeDriverBackend(
                 requireNotNull(invocation.arguments.stringArgument("message")) { "message is required" },
             )
             val result = bridge.chat(clientId, message)
-            require(result.action == ClientAction.CHAT) { "bridge returned ${result.action} for chat" }
+            require(result.action == ClientAction.CHAT) { "driver backend returned ${result.action} for chat" }
             return DriverActionResult(
                 action = invocation.action,
                 status = DriverActionStatus.ACCEPTED,
@@ -72,7 +72,7 @@ class HmcBridgeDriverBackend(
         }
         val ticks = invocation.arguments.intArgument("ticks") ?: 20
         val result = bridge.move(clientId, intent, ticks)
-        require(result.action == ClientAction.MOVE) { "bridge returned ${result.action} for move" }
+        require(result.action == ClientAction.MOVE) { "driver backend returned ${result.action} for move" }
         return DriverActionResult(
             action = invocation.action,
             status = DriverActionStatus.ACCEPTED,

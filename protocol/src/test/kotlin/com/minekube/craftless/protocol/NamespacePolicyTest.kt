@@ -10,6 +10,20 @@ import kotlin.test.assertTrue
 
 class NamespacePolicyTest {
     @Test
+    fun `repository policy scanner sees sibling modules`() {
+        val violations = repositoryContentViolations(
+            include = { path -> path.name == "HmcBridgeDriverBackend.kt" },
+        ) { contents ->
+            contents.contains("class HmcBridgeDriverBackend")
+        }
+
+        assertTrue(
+            violations.contains("driver-runtime/src/main/kotlin/com/minekube/craftless/driver/runtime/HmcBridgeDriverBackend.kt"),
+            "Repository policy scanner must inspect sibling modules from Gradle module test tasks",
+        )
+    }
+
+    @Test
     fun `repository uses minekube com namespace`() {
         val previousPackage = "dev" + ".minekube"
         val previousDomain = "minekube" + ".dev"
@@ -65,7 +79,7 @@ class NamespacePolicyTest {
 
     @Test
     fun `javascript helper sources stay scoped to playwright`() {
-        val root = Path.of("").toAbsolutePath().normalize()
+        val root = repositoryRoot()
         val violations = Files.walk(root).use { paths ->
             paths
                 .filter { path -> path.isJavaScriptHelperFile() }
@@ -90,7 +104,7 @@ class NamespacePolicyTest {
             "yarn.lock",
             "pnpm-lock.yaml",
         )
-        val root = Path.of("").toAbsolutePath().normalize()
+        val root = repositoryRoot()
         val violations = Files.walk(root).use { paths ->
             paths
                 .filter { path -> path.isScannable() && path.name in forbiddenNames }
@@ -105,11 +119,30 @@ class NamespacePolicyTest {
         )
     }
 
+    @Test
+    fun `driver runtime public errors do not expose bridge internals`() {
+        val forbiddenMessage = "bridge" + " returned"
+        val root = repositoryRoot()
+        val violations = repositoryContentViolations(
+            include = { path ->
+                val relative = root.relativize(path).pathString
+                relative.startsWith("driver-runtime/src/main/") && path.name.endsWith(".kt")
+            },
+        ) { contents ->
+            contents.contains(forbiddenMessage)
+        }
+
+        assertTrue(
+            violations.isEmpty(),
+            "Driver runtime public errors must not expose bridge internals:\n${violations.joinToString("\n")}",
+        )
+    }
+
     private fun repositoryContentViolations(
         include: (Path) -> Boolean = { true },
         predicate: (String) -> Boolean,
     ): List<String> {
-        val root = Path.of("").toAbsolutePath().normalize()
+        val root = repositoryRoot()
         return Files.walk(root).use { paths ->
             paths
                 .filter { path -> path.isScannable() && include(path) }
@@ -118,6 +151,14 @@ class NamespacePolicyTest {
                 .sorted()
                 .toList()
         }
+    }
+
+    private fun repositoryRoot(): Path {
+        var current = Path.of("").toAbsolutePath().normalize()
+        while (!Files.exists(current.resolve("settings.gradle.kts"))) {
+            current = requireNotNull(current.parent) { "repository root not found" }
+        }
+        return current
     }
 
     private fun Path.isScannable(): Boolean {
