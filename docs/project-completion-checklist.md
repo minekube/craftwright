@@ -56,9 +56,34 @@ Baseline evidence:
 Verification:
 
 - `git diff --check`
-- `rg -n "minekube\\.dev|dev\\.minekube|player/sendChat|/player/sendChat" README.md docs --glob '!docs/superpowers/**' -S`
+- `rg -n "minekube\\.dev|dev\\.minekube|player/sendChat|/player/sendChat" README.md docs --glob '!docs/superpowers/**' --glob '!docs/AGENTS.md' --glob '!docs/project-completion-checklist.md' -S`
 
-## 2. Runtime Discovery Architecture
+## 2. API Layer Separation
+
+- [x] Root agent rules explicitly separate supervisor API, live per-client
+  generated API, descriptor projections, adaptive consumers, internal driver
+  API, Fabric discovery/projection, and Fabric execution bindings.
+- [ ] README and architecture docs explain those layers without reintroducing
+  stale static action routes.
+- [ ] Supervisor/client-management API remains lifecycle/setup/discovery only;
+  gameplay does not move into the stable kernel route catalog.
+- [ ] Live per-client OpenAPI owns gameplay actions/resources, generated
+  aliases, schemas, handles, availability, and runtime fingerprints.
+- [ ] `/clients/{id}/actions` remains a projection of per-client OpenAPI, not
+  a separate source of truth.
+- [ ] CLI, agents, and generated clients consume OpenAPI/descriptors at
+  runtime instead of hard-coding gameplay commands.
+- [ ] `DriverSession` remains lifecycle/events/runtime metadata plus
+  `actions()` and `invoke(...)`; no static player/world/inventory methods.
+- [ ] Fabric discovery/projection and execution bindings stay internal and
+  client-thread safe.
+
+Verification:
+
+- `git diff --check`
+- `rg -n "fun (sendChat|player|inventory|raycast)\\(|/clients/\\{id\\}/player/sendChat|/player/sendChat|GET /clients/\\{id\\}/player" README.md docs driver-api/src/main driver-runtime/src/main driver-fabric/src/main daemon/src/main cli/src/main protocol/src/main --glob '!docs/superpowers/**' --glob '!docs/AGENTS.md' --glob '!docs/project-completion-checklist.md' -S`
+
+## 3. Runtime Discovery Architecture
 
 - [x] Remove static placeholder action descriptors from product code and tests.
 - [ ] Design the Fabric runtime discovery/projection layer.
@@ -81,7 +106,7 @@ Verification:
 - `mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.NamespacePolicyTest`
 - `mise exec -- gradle :driver-fabric:test --tests com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest`
 
-## 3. Fabric Driver Action Bindings
+## 4. Fabric Driver Action Bindings
 
 - [x] `player.chat` has a real Fabric binding.
 - [x] `player.move` has a real Fabric binding and driver-side event evidence.
@@ -99,7 +124,7 @@ Verification:
 - `mise exec -- gradle :driver-fabric:test`
 - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
 
-## 4. Real Gameplay Vertical Slice
+## 5. Real Gameplay Vertical Slice
 
 - [ ] Define the first useful end-to-end gameplay slice.
 - [ ] Recommended target: obtain/equip an iron sword using real client actions,
@@ -116,7 +141,7 @@ Verification:
 - `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`
 - Add a narrower smoke command when the slice exists.
 
-## 5. Client Runtime And Files
+## 6. Client Runtime And Files
 
 - [x] Craftless-owned instance file layout is modeled.
 - [x] Prism Launcher source was cloned under `/tmp/prismlauncher-source` for
@@ -130,7 +155,7 @@ Verification:
 
 - `mise exec -- gradle :protocol:test :daemon:test`
 
-## 6. Quality Gates
+## 7. Quality Gates
 
 - [x] `mise run lint` exists.
 - [x] `mise run ci` exists.
@@ -150,6 +175,8 @@ Verification:
 Craftless is complete only when all are true:
 
 - [ ] README and docs match the restored product direction.
+- [ ] Public docs and code preserve the API layer separation described in
+  `AGENTS.md`.
 - [ ] Per-client OpenAPI is generated from runtime discovery and real bindings,
   not a static placeholder action list.
 - [ ] Public API names are Craftless-owned and policy tests enforce that.

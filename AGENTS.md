@@ -58,6 +58,38 @@ Generated aliases such as `POST /clients/{id}/player:move` are derived from
 the running client's OpenAPI/action descriptors. Do not create static gameplay
 route families in Kotlin, CLI source, README examples, or tests.
 
+## API Layers
+
+Keep these layers separate. Do not flatten them into one static API:
+
+1. Supervisor/client-management API: stable handwritten lifecycle, setup,
+   artifacts, events, client creation, client lookup, connection/stop, and
+   per-client spec discovery. This layer owns versions, loaders, profiles,
+   instances, mods, Java runtimes, caches, and files.
+2. Live per-client generated API: generated from one running client. Gameplay
+   actions, resources, aliases, handles, schemas, availability, and runtime
+   fingerprints belong here.
+3. Descriptor projections: `/clients/{id}/actions` and future resource indexes
+   are convenience projections of the per-client OpenAPI, not an independent
+   source of truth.
+4. Adaptive consumers: the `craftless` CLI, agents, and generated clients fetch
+   the supervisor spec plus the live client spec/descriptors at runtime. They
+   must not hard-code gameplay command catalogs.
+5. Internal driver API: stable JVM lifecycle/event/runtime metadata plus
+   `actions()` and `invoke(...)`. Do not add static driver methods such as
+   `sendChat()`, `player()`, `inventory()`, `raycast()`, or one method per
+   gameplay action.
+6. Fabric runtime discovery/projection: internal probes inspect
+   Fabric/Minecraft/mod/client state and project it into Craftless-owned
+   descriptors. Raw implementation names are inputs, not public contracts.
+7. Fabric execution bindings: internal client-thread implementations for
+   advertised executable actions.
+
+The source design is
+`docs/superpowers/specs/2026-06-25-generated-client-api-design.md`, especially
+the client-management boundary, route generation rules, and OpenAPI
+requirements sections.
+
 ## HTTP And CLI
 
 - Use Ktor Server for local JVM HTTP/WebSocket surfaces.
