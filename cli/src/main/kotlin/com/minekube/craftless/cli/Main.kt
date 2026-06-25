@@ -282,6 +282,18 @@ object CraftlessCli {
                         stderr("error: action $action is not available for client $clientId")
                         return@runBlocking 1
                     }
+                    val openApiResponse = http.get("${api.trimEnd('/')}/clients/$clientId/openapi.json")
+                    val openApiBody = openApiResponse.bodyAsText()
+                    if (!openApiResponse.status.isSuccess()) {
+                        stderr(openApiBody)
+                        return@runBlocking 1
+                    }
+                    val openApi = json.decodeFromString<OpenApiDocument>(openApiBody)
+                    val runPath = "/clients/$clientId:run"
+                    if (openApi.paths[runPath]?.post == null || openApi.actions.none { it.id == action }) {
+                        stderr("error: action $action is not described by live OpenAPI for client $clientId")
+                        return@runBlocking 1
+                    }
                     val payload = ActionRunRequest(
                         action = action,
                         args = args.optionValues("--arg").associate { argument ->

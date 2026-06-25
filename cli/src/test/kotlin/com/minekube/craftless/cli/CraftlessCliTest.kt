@@ -15,12 +15,21 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.server.application.call
+import io.ktor.server.cio.CIO as ServerCIO
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.net.ServerSocket
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class CraftlessCliTest {
@@ -365,6 +374,35 @@ class CraftlessCliTest {
 
         assertEquals("", output.toString())
         assertTrue(errors.toString().contains("action player.fly is not available for client alice"))
+    }
+
+    @Test
+    fun `clients run rejects actions missing from live openapi`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        InconsistentOpenApiServer().use { server ->
+            val exit = CraftlessCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "run",
+                    "player.chat",
+                    "--api",
+                    server.url,
+                    "--arg",
+                    "message=hello",
+                ),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
+
+            assertEquals(1, exit)
+            assertFalse(server.runCalled)
+        }
+
+        assertEquals("", output.toString())
+        assertTrue(errors.toString().contains("action player.chat is not described by live OpenAPI for client alice"))
     }
 
     @Test
@@ -762,6 +800,66 @@ class CraftlessCliTest {
                 )
             } else {
                 delegate.invoke(invocation)
+            }
+    }
+
+    private class InconsistentOpenApiServer : AutoCloseable {
+        private val port = allocateLoopbackPort()
+        private val server = embeddedServer(ServerCIO, host = "127.0.0.1", port = port) {
+            routing {
+                get("/clients/alice/actions") {
+                    call.respondText(
+                        """
+                        [
+                          {
+                            "id": "player.chat",
+                            "schemaVersion": "1",
+                            "args": { "message": { "type": "string", "required": true } }
+                          }
+                        ]
+                        """.trimIndent(),
+                        ContentType.Application.Json,
+                    )
+                }
+                get("/clients/alice/openapi.json") {
+                    call.respondText(
+                        """
+                        {
+                          "openapi": "3.1.0",
+                          "info": { "title": "Inconsistent test API", "version": "1" },
+                          "paths": {},
+                          "x-craftless": {},
+                          "x-craftless-actions": []
+                        }
+                        """.trimIndent(),
+                        ContentType.Application.Json,
+                    )
+                }
+                post("/clients/alice:run") {
+                    runCalled = true
+                    call.respondText(
+                        """{"action":"player.chat","status":"ACCEPTED","message":"should not run"}""",
+                        ContentType.Application.Json,
+                    )
+                }
+            }
+        }
+        val url = "http://127.0.0.1:$port"
+        var runCalled: Boolean = false
+            private set
+
+        init {
+            server.start()
+        }
+
+        override fun close() {
+            server.stop(gracePeriodMillis = 250, timeoutMillis = 1_000)
+        }
+
+        private fun allocateLoopbackPort(): Int =
+            ServerSocket(0).use { socket ->
+                socket.reuseAddress = true
+                socket.localPort
             }
     }
 }
