@@ -290,7 +290,7 @@ data class RuntimeVersion(
     val driver: String,
     val driverVersion: String,
     val java: String,
-    val mappings: String,
+    val mappingsFingerprint: String,
     val openapiGeneratedAt: String,
 ) {
     companion object {
@@ -302,7 +302,7 @@ data class RuntimeVersion(
                 driver = "craftless-daemon",
                 driverVersion = "0.1.0-SNAPSHOT",
                 java = Runtime.version().feature().toString(),
-                mappings = "none",
+                mappingsFingerprint = "none",
                 openapiGeneratedAt = now.toString(),
             )
     }

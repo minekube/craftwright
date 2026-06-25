@@ -28,8 +28,11 @@ class LocalSessionApiServerTest {
             server.start()
 
             http.get(server.url("/version")).let { version ->
+                val body = version.bodyAsText()
                 assertEquals(HttpStatusCode.OK, version.status)
-                assertTrue(version.bodyAsText().contains("\"driver\":\"craftless-daemon\""))
+                assertTrue(body.contains("\"driver\":\"craftless-daemon\""))
+                assertTrue(body.contains("\"mappingsFingerprint\":\"none\""))
+                assertTrue(!body.contains("\"mappings\""))
             }
 
             http.get(server.url("/openapi.json")).let { openapi ->
