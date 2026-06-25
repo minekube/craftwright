@@ -2,9 +2,11 @@ package com.minekube.craftless.daemon
 
 import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionArgument
+import com.minekube.craftless.driver.api.DriverActionAvailability
 import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
+import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverClientSnapshot
 import com.minekube.craftless.driver.api.DriverEvent
@@ -272,6 +274,51 @@ class LocalSessionApiServerTest {
                         assertTrue(body.contains("\"type\":\"movement\""))
                         assertTrue(body.contains("scanned world radius 4"))
                     }
+                }
+        }
+
+    @Test
+    fun `server rejects unavailable discovered actions before driver invocation`() =
+        withHttpClient { http ->
+            val driver = UnavailableActionDriverSession("alice")
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory =
+                        DriverSessionFactory {
+                            driver
+                        },
+                ).use { server ->
+                    server.start()
+                    createAlice(http, server)
+
+                    http.get(server.url("/clients/alice/actions")).let { response ->
+                        val body = response.bodyAsText()
+                        assertEquals(HttpStatusCode.OK, response.status)
+                        assertTrue(body.contains("\"id\":\"player.raycast\""))
+                        assertTrue(body.contains("\"source\":\"runtime-probe\""))
+                        assertTrue(body.contains("\"availability\":\"unavailable\""))
+                        assertTrue(body.contains("\"availabilityReason\":\"client-not-connected\""))
+                    }
+
+                    http
+                        .post(server.url("/clients/alice:run")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"action":"player.raycast","args":{}}""")
+                        }.let { response ->
+                            assertEquals(HttpStatusCode.NotFound, response.status)
+                            assertError(response.bodyAsText(), "UNSUPPORTED_ACTION", "client-not-connected")
+                        }
+
+                    http
+                        .post(server.url("/clients/alice/player:raycast")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("{}")
+                        }.let { response ->
+                            assertEquals(HttpStatusCode.NotFound, response.status)
+                            assertError(response.bodyAsText(), "UNSUPPORTED_ACTION", "client-not-connected")
+                        }
+
+                    assertEquals(0, driver.invokeCount)
                 }
         }
 
@@ -566,6 +613,38 @@ private class EventMetadataDriverSession(
             message = "scanned world radius 4",
             eventType = DriverEventType.MOVEMENT,
         )
+
+    override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
+
+    override fun events(): List<DriverEvent> = emptyList()
+}
+
+private class UnavailableActionDriverSession(
+    override val clientId: String,
+) : DriverSession {
+    var invokeCount = 0
+
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.CONNECTED)
+
+    override fun actions(): List<DriverActionDescriptor> =
+        listOf(
+            DriverActionDescriptor(
+                id = "player.raycast",
+                schemaVersion = "1",
+                source = DriverActionSource.RUNTIME_PROBE,
+                availability = DriverActionAvailability.UNAVAILABLE,
+                availabilityReason = "client-not-connected",
+            ),
+        )
+
+    override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
+
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult {
+        invokeCount += 1
+        return DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED)
+    }
 
     override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
 

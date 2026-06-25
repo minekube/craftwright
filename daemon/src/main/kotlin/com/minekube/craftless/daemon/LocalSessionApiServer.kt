@@ -2,6 +2,7 @@ package com.minekube.craftless.daemon
 
 import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionArgument
+import com.minekube.craftless.driver.api.DriverActionAvailability
 import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
@@ -172,6 +173,7 @@ class LocalSessionApiServer private constructor(
                     val action =
                         driver.actionDescriptor(request.action)
                             ?: throw UnsupportedAction("action ${request.action} is not available for client $clientId")
+                    action.requireAvailable(clientId)
                     action.requireArguments(request.args)
                     val result =
                         driver.invoke(
@@ -229,6 +231,7 @@ class LocalSessionApiServer private constructor(
                         throw UnsupportedAction("action $actionId is not available for client $clientId")
                     }
                     val arguments = call.receiveActionArguments()
+                    action.requireAvailable(clientId)
                     action.requireArguments(arguments)
                     val result =
                         driver.invoke(
@@ -334,6 +337,12 @@ private fun DriverActionDescriptor.requireArguments(arguments: Map<String, JsonE
     require(missingRequired == null) { "action $id requires argument $missingRequired" }
     arguments.forEach { (name, value) ->
         this.arguments.getValue(name).requireValueType(id, name, value)
+    }
+}
+
+private fun DriverActionDescriptor.requireAvailable(clientId: String) {
+    if (availability == DriverActionAvailability.UNAVAILABLE) {
+        throw UnsupportedAction(availabilityReason ?: "action $id is not available for client $clientId")
     }
 }
 

@@ -98,6 +98,8 @@ Verification:
 - [x] Define the rule for unavailable-but-detected operations: they may appear
   in OpenAPI only when a runtime probe discovered them and produced a
   machine-readable availability reason.
+- [x] Daemon generic and alias action routes reject unavailable action
+  descriptors before driver invocation.
 - [ ] Ensure generated aliases are derived only from the running client's
   OpenAPI/action descriptors.
 - [ ] Ensure public OpenAPI does not expose Fabric/Yarn/intermediary names,

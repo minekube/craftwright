@@ -22,6 +22,8 @@ Craftless currently has:
 - driver and OpenAPI action descriptors now include provenance and availability
   metadata, including machine-readable reasons for unavailable probe-discovered
   operations;
+- daemon generic and generated-alias action routes reject unavailable action
+  descriptors before invoking the driver;
 - Fabric/Loom driver scaffolding with current action evidence;
 - Fabric-generated action descriptors for current chat/move bindings. Broader
   gameplay actions must come from real bindings or runtime discovery probes,
@@ -112,8 +114,7 @@ or static placeholder descriptors.
 - Add runtime fingerprints that include Minecraft version, loader, mappings,
   installed mods, registries, server features, permissions, action schema
   versions, action provenance, and action availability.
-- Add daemon validation that rejects unavailable actions and mismatched
-  argument/result schemas before dispatch.
+- Extend daemon validation for mismatched result schemas before dispatch.
 - Keep generated aliases derived from OpenAPI metadata only.
 
 Verification gate:
