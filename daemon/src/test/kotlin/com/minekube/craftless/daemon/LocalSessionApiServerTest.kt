@@ -1,5 +1,16 @@
 package com.minekube.craftless.daemon
 
+import com.minekube.craftless.driver.api.ConnectionTarget
+import com.minekube.craftless.driver.api.DriverActionArgument
+import com.minekube.craftless.driver.api.DriverActionDescriptor
+import com.minekube.craftless.driver.api.DriverActionInvocation
+import com.minekube.craftless.driver.api.DriverActionResult
+import com.minekube.craftless.driver.api.DriverActionStatus
+import com.minekube.craftless.driver.api.DriverClientSnapshot
+import com.minekube.craftless.driver.api.DriverEvent
+import com.minekube.craftless.driver.api.DriverEventType
+import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
@@ -168,6 +179,33 @@ class LocalSessionApiServerTest {
                 assertEquals(HttpStatusCode.NotFound, response.status)
                 assertTrue(body.contains("\"code\":\"NOT_FOUND\""))
                 assertTrue(body.contains("client missing not found"))
+            }
+        }
+    }
+
+    @Test
+    fun `server records action events from driver result metadata`() = withHttpClient { http ->
+        LocalSessionApiServer.inMemory(
+            driverFactory = DriverSessionFactory { request ->
+                EventMetadataDriverSession(request.id)
+            },
+        ).use { server ->
+            server.start()
+            createAlice(http, server)
+
+            http.post(server.url("/clients/alice:run")) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"action":"world.scan","args":{"radius":4}}""")
+            }.let { response ->
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertTrue(response.bodyAsText().contains("\"action\":\"world.scan\""))
+            }
+
+            http.get(server.url("/clients/alice/events")).let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertTrue(body.contains("\"type\":\"movement\""))
+                assertTrue(body.contains("scanned world radius 4"))
             }
         }
     }
@@ -354,4 +392,40 @@ class LocalSessionApiServerTest {
             assertEquals(HttpStatusCode.Created, created.status)
         }
     }
+}
+
+private class EventMetadataDriverSession(
+    override val clientId: String,
+) : DriverSession {
+    override fun snapshot(): DriverClientSnapshot =
+        DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot =
+        DriverClientSnapshot(clientId, ClientState.CONNECTED)
+
+    override fun actions(): List<DriverActionDescriptor> =
+        listOf(
+            DriverActionDescriptor(
+                id = "world.scan",
+                schemaVersion = "1",
+                arguments = mapOf("radius" to DriverActionArgument("integer")),
+            )
+        )
+
+    override fun runtimeMetadata(): DriverRuntimeMetadata =
+        DriverRuntimeMetadata.fake()
+
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
+        DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.ACCEPTED,
+            message = "scanned world radius 4",
+            eventType = DriverEventType.MOVEMENT,
+        )
+
+    override fun stop(): DriverClientSnapshot =
+        DriverClientSnapshot(clientId, ClientState.STOPPED)
+
+    override fun events(): List<DriverEvent> =
+        emptyList()
 }

@@ -9,6 +9,7 @@ import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
+import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.booleanArgument
 import com.minekube.craftless.driver.api.intArgument
@@ -53,6 +54,7 @@ class HmcBridgeDriverBackend(
                 action = invocation.action,
                 status = DriverActionStatus.ACCEPTED,
                 message = message,
+                eventType = DriverEventType.CHAT,
             )
         }
         if (invocation.action != "player.move") {
@@ -75,6 +77,7 @@ class HmcBridgeDriverBackend(
             action = invocation.action,
             status = DriverActionStatus.ACCEPTED,
             message = result.publicDescription,
+            eventType = DriverEventType.MOVEMENT,
         )
     }
 }

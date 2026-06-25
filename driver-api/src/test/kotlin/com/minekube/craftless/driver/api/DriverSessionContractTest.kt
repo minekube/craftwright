@@ -24,6 +24,9 @@ class DriverSessionContractTest {
                 arguments = mapOf("forward" to DriverActionArgument("")),
             )
         }
+        assertFailsWith<IllegalArgumentException> {
+            DriverActionArgument("minecraft-block-pos")
+        }
     }
 
     @Test

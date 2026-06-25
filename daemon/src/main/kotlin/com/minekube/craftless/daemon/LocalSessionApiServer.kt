@@ -4,6 +4,7 @@ import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
+import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.protocol.ApiRouteCatalog
 import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.CreateClientRequest
@@ -277,18 +278,15 @@ private fun DriverActionResult.toSessionEvent(clientId: String): SessionEvent? {
         )
     }
 
-    val eventType = when (action) {
-        "player.chat" -> "chat"
-        "player.move" -> "movement"
-        else -> return null
-    }
-
     return SessionEvent(
-        type = eventType,
+        type = eventType?.sessionEventType() ?: return null,
         client = clientId,
         message = message,
     )
 }
+
+private fun DriverEventType.sessionEventType(): String =
+    name.lowercase().replace("_", ".")
 
 private class GeneratedActionRouteNotFound(message: String) : RuntimeException(message)
 

@@ -89,6 +89,11 @@ data class DriverActionArgument(
 ) {
     init {
         require(type.isNotBlank()) { "action argument type is required" }
+        require(type in SUPPORTED_TYPES) { "unsupported action argument type $type" }
+    }
+
+    companion object {
+        private val SUPPORTED_TYPES = setOf("boolean", "integer", "number", "string", "object", "array")
     }
 }
 
@@ -122,6 +127,7 @@ data class DriverActionResult(
     val action: String,
     val status: DriverActionStatus,
     val message: String? = null,
+    val eventType: DriverEventType? = null,
 )
 
 @Serializable
@@ -216,6 +222,7 @@ class FakeDriverSession(
                     action = invocation.action,
                     status = DriverActionStatus.ACCEPTED,
                     message = event.message,
+                    eventType = event.type,
                 )
             }
 
@@ -227,6 +234,7 @@ class FakeDriverSession(
                     action = invocation.action,
                     status = DriverActionStatus.ACCEPTED,
                     message = event.message,
+                    eventType = event.type,
                 )
             }
 

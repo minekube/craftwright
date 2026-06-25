@@ -45,7 +45,9 @@ class BackendDriverSessionTest {
 
     @Test
     fun `runtime driver session invokes generic backend actions`() {
-        val backend = RecordingDriverBackend()
+        val backend = RecordingDriverBackend(
+            resultEventType = DriverEventType.MOVEMENT,
+        )
         val session = BackendDriverSession(
             clientId = "alice",
             backend = backend,
@@ -104,6 +106,31 @@ class BackendDriverSessionTest {
     }
 
     @Test
+    fun `runtime driver session records accepted events from driver result metadata`() {
+        val backend = RecordingDriverBackend(
+            resultEventType = DriverEventType.MOVEMENT,
+        )
+        val session = BackendDriverSession(
+            clientId = "alice",
+            backend = backend,
+        )
+
+        val result = session.invoke(
+            DriverActionInvocation(
+                action = "world.scan",
+                arguments = mapOf("radius" to JsonPrimitive(4)),
+            )
+        )
+
+        assertEquals("world.scan", result.action)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertTrue(session.events().any {
+            it.type == DriverEventType.MOVEMENT &&
+                it.message == "action alice world.scan radius=4"
+        })
+    }
+
+    @Test
     fun `hmc bridge backend adapts the temporary bridge to runtime backend actions`() {
         val backend = HmcBridgeDriverBackend(HmcBridgeBackend.dryRun())
 
@@ -142,6 +169,7 @@ class BackendDriverSessionTest {
 
 private class RecordingDriverBackend(
     private val rejectedAction: String? = null,
+    private val resultEventType: DriverEventType? = null,
 ) : DriverBackend {
     val calls = mutableListOf<String>()
 
@@ -181,7 +209,12 @@ private class RecordingDriverBackend(
             invocation.arguments.entries.joinToString(" ") { "${it.key}=${it.value.jsonPrimitive.content}" }
         }"
         calls += message
-        return DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED, message)
+        return DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.ACCEPTED,
+            message = message,
+            eventType = resultEventType,
+        )
     }
 }
 

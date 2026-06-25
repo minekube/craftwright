@@ -6,6 +6,7 @@ import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
+import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.booleanArgument
 import com.minekube.craftless.driver.api.intArgument
@@ -66,6 +67,7 @@ class FabricDriverBackend private constructor(
                 action = invocation.action,
                 status = DriverActionStatus.ACCEPTED,
                 message = invokePlayerChatAction(clientId, message),
+                eventType = DriverEventType.CHAT,
             )
         }
         if (invocation.action != "player.move") {
@@ -93,6 +95,7 @@ class FabricDriverBackend private constructor(
             action = invocation.action,
             status = DriverActionStatus.ACCEPTED,
             message = "fabric ${mode.id} action ${invocation.action} accepted",
+            eventType = DriverEventType.MOVEMENT,
         )
     }
 

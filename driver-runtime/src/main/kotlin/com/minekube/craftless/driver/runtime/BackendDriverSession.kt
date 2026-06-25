@@ -111,14 +111,8 @@ private fun DriverActionResult.toDriverEvent(clientId: String): DriverEvent? {
         )
     }
 
-    val eventType = when (action) {
-        "player.chat" -> DriverEventType.CHAT
-        "player.move" -> DriverEventType.MOVEMENT
-        else -> return null
-    }
-
     return DriverEvent(
-        type = eventType,
+        type = eventType ?: return null,
         client = clientId,
         message = message,
     )
