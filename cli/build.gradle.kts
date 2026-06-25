@@ -12,5 +12,5 @@ dependencies {
 }
 
 application {
-    mainClass.set("dev.minekube.craftwright.cli.MainKt")
+    mainClass.set("com.minekube.craftwright.cli.MainKt")
 }
