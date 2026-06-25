@@ -36,6 +36,26 @@ The project should avoid becoming a large hand-coded SDK with one static method
 or route per possible Minecraft action. The generated API and action
 descriptors are the product contract.
 
+## API Layer Shape
+
+Craftless keeps public API layers separate:
+
+- Stable supervisor API: `/openapi.json`, client lifecycle, events, setup,
+  files, and per-client spec discovery.
+- Live per-client API: `/clients/{id}/openapi.json`, generated from one
+  running client and owning gameplay actions, aliases, schemas, availability,
+  and runtime fingerprints.
+- Descriptor projections: `/clients/{id}/actions` is a convenience view of the
+  per-client action metadata, not another source of truth.
+- Adaptive consumers: the `craftless` CLI, agents, and future generated
+  clients fetch the live specs/descriptors at runtime instead of mirroring
+  Minecraft actions in static source code.
+- Internal driver boundary: `DriverSession` stays lifecycle-oriented and
+  invokes discovered actions generically through `actions()` and `invoke(...)`.
+- Fabric internals: discovery/projection and execution bindings stay inside
+  the driver; raw Minecraft, loader, mapping, mod, and bridge names are inputs,
+  not public contracts.
+
 ## Browserless And CDP Analogy
 
 The closest browser-world analogy is Browserless plus the Chrome DevTools

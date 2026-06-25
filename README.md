@@ -27,6 +27,18 @@ runtime, and protocol layer around that real client.
 
 ![Craftless architecture: generated APIs and control plane driving attached real Minecraft Java clients](docs/assets/craftless-architecture-generated.png)
 
+Craftless keeps the control plane deliberately split:
+
+- `GET /openapi.json` is the stable supervisor API for lifecycle, client
+  creation, events, and per-client spec discovery.
+- `GET /clients/{id}/openapi.json` is the generated live API for one running
+  client. It owns gameplay actions, generated aliases, schemas, availability,
+  and runtime fingerprints for that exact client.
+- `GET /clients/{id}/actions` is a projection of the per-client OpenAPI action
+  metadata for discovery and filtering, not a separate source of truth.
+- `craftless` and future generated clients fetch those specs at runtime. They
+  do not keep a hand-written catalog of Minecraft gameplay commands.
+
 ## Example
 
 Start with the current `craftless` CLI, then use the generated local API it exposes.

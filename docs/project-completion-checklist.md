@@ -46,14 +46,14 @@ Baseline evidence:
 
 ## 1. Product Positioning And README
 
-- [ ] Restore the richer README comparison structure from the earlier approved
+- [x] Restore the richer README comparison structure from the earlier approved
   direction, updated to current truth.
-- [ ] Keep the README comparison focused on Craftless, Mineflayer, and
+- [x] Keep the README comparison focused on Craftless, Mineflayer, and
   Baritone unless another project is useful as clearly labelled evidence.
-- [ ] Do not advertise HeadlessMC/HMC-Specifics, Prism Launcher, removed SDKs,
+- [x] Do not advertise HeadlessMC/HMC-Specifics, Prism Launcher, removed SDKs,
   or bridge internals as active product surfaces.
-- [ ] README must clearly separate implemented features from roadmap.
-- [ ] README must describe Craftless as live generated OpenAPI over real
+- [x] README must clearly separate implemented features from roadmap.
+- [x] README must describe Craftless as live generated OpenAPI over real
   Minecraft Java clients, not a static action SDK.
 
 Verification:
@@ -66,7 +66,7 @@ Verification:
 - [x] Root agent rules explicitly separate supervisor API, live per-client
   generated API, descriptor projections, adaptive consumers, internal driver
   API, Fabric discovery/projection, and Fabric execution bindings.
-- [ ] README and architecture docs explain those layers without reintroducing
+- [x] README and architecture docs explain those layers without reintroducing
   stale static action routes.
 - [x] Supervisor/client-management API remains lifecycle/setup/discovery only;
   gameplay does not move into the stable kernel route catalog.
