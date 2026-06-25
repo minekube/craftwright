@@ -121,9 +121,10 @@ Implemented now:
   provisioning a Minecraft server jar, accepting the EULA, starting the server,
   keeping it running around a caller-supplied smoke action, and collecting
   server log evidence.
-- An opt-in `:driver-fabric:fabricClientSmoke` entrypoint and smoke plan. The
-  executable Fabric client launch/join/action wrapper is still roadmap until it
-  is wired through the testkit server lifecycle API.
+- An opt-in `:driver-fabric:fabricClientSmoke` entrypoint that runs the testkit
+  server lifecycle and can execute a bounded client command while the server is
+  alive. By default, the enabled Fabric smoke command is
+  `mise exec -- gradle :driver-fabric:runClient`.
 
 Still roadmap:
 
@@ -174,6 +175,9 @@ The Fabric client smoke is also opt-in:
 ```sh
 CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke
 ```
+
+Override the client command with `CRAFTLESS_SMOKE_ACTION_COMMAND_JSON`, encoded
+as a JSON string array, when testing a different launch wrapper.
 
 That task is not yet proof of a full real-client run. Completion still requires
 the Fabric client to launch, join the local server, invoke generated actions,

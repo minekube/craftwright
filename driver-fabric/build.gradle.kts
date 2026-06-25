@@ -19,22 +19,35 @@ tasks.processResources {
     }
 }
 
-tasks.register("fabricClientSmoke") {
+val testkitSourceSets = project(":testkit")
+    .extensions
+    .getByType<org.gradle.api.tasks.SourceSetContainer>()
+
+tasks.register<JavaExec>("fabricClientSmoke") {
     group = "verification"
-    description = "Opt-in Fabric real-client smoke entrypoint. Set CRAFTLESS_FABRIC_CLIENT_SMOKE=1 " +
-        "after the command wrapper is wired to testkit runWithServer."
+    description = "Opt-in Fabric real-client smoke. Set CRAFTLESS_FABRIC_CLIENT_SMOKE=1 " +
+        "to keep a local server alive while a client command runs."
+    dependsOn(":testkit:classes")
+    classpath = testkitSourceSets.named("main").get().runtimeClasspath
+    mainClass.set("com.minekube.craftless.testkit.LocalMinecraftServerSmokeKt")
 
-    val enabled = System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE") == "1" ||
+    val fabricSmokeEnabled = System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE") == "1" ||
         System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE").equals("true", ignoreCase = true)
+    environment("CRAFTLESS_FABRIC_CLIENT_SMOKE", System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE").orEmpty())
 
-    doLast {
-        if (enabled) {
+    if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_ACTION_COMMAND_JSON").isNullOrBlank()) {
+        environment(
+            "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON",
+            """["mise","exec","--","gradle",":driver-fabric:runClient"]""",
+        )
+    }
+
+    doFirst {
+        if (fabricSmokeEnabled) {
             println(
-                "Fabric client smoke requested; wire runClient through testkit " +
-                    "LocalMinecraftServerSmoke.runWithServer before treating this as evidence"
+                "Fabric client smoke requested; server lifecycle is owned by testkit " +
+                    "LocalMinecraftServerSmoke.runWithServer"
             )
-        } else {
-            println("set CRAFTLESS_FABRIC_CLIENT_SMOKE=1 to run the Fabric client smoke")
         }
     }
 }
