@@ -21,6 +21,10 @@ mise exec -- bun test ts-sdk
 mise exec -- bun test playwright
 ```
 
+`mise exec -- bun test ts-sdk` includes a live smoke test that starts
+`mcw clients api` through `mise exec -- gradle -q :cli:run --args=clients api`,
+then uses the SDK against the running JVM daemon.
+
 Full repository CI runs through mise as well:
 
 ```sh
@@ -78,7 +82,6 @@ SDK contract.
 
 ## Next Steps
 
-- Wire SDK smoke tests to a live `mcw clients api --once` server.
 - Generate typed SDK methods from `/openapi.json` instead of hand-writing route
   strings.
 - Add Playwright Test peer integration once package publishing shape and CI

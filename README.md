@@ -107,3 +107,6 @@ Use Bun for TypeScript package work when SDK modules are added:
 mise exec -- bun test ts-sdk
 mise exec -- bun test playwright
 ```
+
+The SDK test suite includes a live smoke against `mcw clients api` through the
+Gradle CLI application entrypoint.
