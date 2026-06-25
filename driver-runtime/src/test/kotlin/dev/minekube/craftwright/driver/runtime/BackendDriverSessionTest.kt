@@ -3,6 +3,7 @@ package dev.minekube.craftwright.driver.runtime
 import dev.minekube.craftwright.driver.api.ChatCommand
 import dev.minekube.craftwright.driver.api.ConnectionTarget
 import dev.minekube.craftwright.driver.api.DriverEventType
+import dev.minekube.craftwright.driver.api.PlayerPosition
 import dev.minekube.craftwright.bridge.hmc.HmcBridgeBackend
 import dev.minekube.craftwright.protocol.ClientState
 import kotlin.test.Test
@@ -45,6 +46,7 @@ class BackendDriverSessionTest {
             observedPlayer = DriverBackendPlayer(
                 name = "ObservedAlice",
                 state = ClientState.CONNECTED,
+                position = PlayerPosition(x = 12.5, y = 64.0, z = -8.25),
             )
         )
         val session = BackendDriverSession(
@@ -57,6 +59,7 @@ class BackendDriverSessionTest {
 
         assertEquals("ObservedAlice", player.name)
         assertEquals(ClientState.CONNECTED, player.state)
+        assertEquals(PlayerPosition(x = 12.5, y = 64.0, z = -8.25), player.position)
         assertEquals(listOf("player alice"), backend.calls)
     }
 

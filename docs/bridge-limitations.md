@@ -25,6 +25,6 @@ Known limitations:
   need a Craftwright Fabric driver with direct Minecraft client API access.
 
 The Fabric backend now has a client-thread gateway for connection, chat,
-command, stop, and player name/connection-state observation. The next durable
-milestone is adding player position, direct movement intent, look direction,
+command, stop, player name/connection-state observation, and player position.
+The next durable milestone is adding direct movement intent, look direction,
 raycasts, and perception inside the client.

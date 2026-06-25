@@ -26,6 +26,7 @@ class DriverSessionContractTest {
         assertEquals("alice", player.id)
         assertEquals("Alice", player.name)
         assertEquals(ClientState.CONNECTED, player.state)
+        assertEquals(PlayerPosition(0.0, 0.0, 0.0), player.position)
 
         val stopped = session.stop()
         assertEquals(ClientState.STOPPED, stopped.state)

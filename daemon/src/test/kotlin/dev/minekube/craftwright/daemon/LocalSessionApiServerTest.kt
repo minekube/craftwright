@@ -119,6 +119,14 @@ class LocalSessionApiServerTest {
                 assertTrue(response.bodyAsText().contains("\"name\":\"Alice\""))
             }
 
+            http.get(server.url("/clients/alice/player/position")).let { response ->
+                val body = response.bodyAsText()
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertTrue(body.contains("\"x\":0.0"))
+                assertTrue(body.contains("\"y\":0.0"))
+                assertTrue(body.contains("\"z\":0.0"))
+            }
+
             http.post(server.url("/clients/alice/stop")) {
                 contentType(ContentType.Application.Json)
                 setBody("{}")

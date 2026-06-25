@@ -42,6 +42,7 @@ class FabricDriverBackend private constructor(
             DriverBackendPlayer(
                 name = player.name,
                 state = player.state,
+                position = player.position,
             )
         }
 

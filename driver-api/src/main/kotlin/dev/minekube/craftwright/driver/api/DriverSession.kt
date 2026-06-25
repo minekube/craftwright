@@ -38,10 +38,18 @@ data class ChatCommand(
 )
 
 @Serializable
+data class PlayerPosition(
+    val x: Double,
+    val y: Double,
+    val z: Double,
+)
+
+@Serializable
 data class PlayerSnapshot(
     val id: String,
     val name: String,
     val state: ClientState,
+    val position: PlayerPosition,
 )
 
 @Serializable
@@ -104,6 +112,7 @@ class FakeDriverSession(
             id = clientId,
             name = profileName,
             state = state,
+            position = PlayerPosition(0.0, 0.0, 0.0),
         )
 
     override fun stop(): DriverClientSnapshot {

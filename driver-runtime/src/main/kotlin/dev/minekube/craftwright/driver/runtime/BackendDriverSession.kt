@@ -6,6 +6,7 @@ import dev.minekube.craftwright.driver.api.DriverClientSnapshot
 import dev.minekube.craftwright.driver.api.DriverEvent
 import dev.minekube.craftwright.driver.api.DriverEventType
 import dev.minekube.craftwright.driver.api.DriverSession
+import dev.minekube.craftwright.driver.api.PlayerPosition
 import dev.minekube.craftwright.driver.api.PlayerSnapshot
 import dev.minekube.craftwright.protocol.ClientState
 
@@ -59,11 +60,13 @@ class BackendDriverSession(
                 id = clientId,
                 name = observed.name,
                 state = observed.state,
+                position = observed.position,
             )
         } ?: PlayerSnapshot(
             id = clientId,
             name = profileName,
             state = state,
+            position = PlayerPosition(0.0, 0.0, 0.0),
         )
 
     override fun stop(): DriverClientSnapshot {
@@ -95,6 +98,7 @@ interface DriverBackend {
 data class DriverBackendPlayer(
     val name: String,
     val state: ClientState,
+    val position: PlayerPosition,
 )
 
 data class DriverBackendResult(

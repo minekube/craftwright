@@ -1,6 +1,7 @@
 package dev.minekube.craftwright.driver.fabric.v1_21_6
 
 import dev.minekube.craftwright.driver.api.ConnectionTarget
+import dev.minekube.craftwright.driver.api.PlayerPosition
 import dev.minekube.craftwright.protocol.ClientState
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.screen.TitleScreen
@@ -26,6 +27,7 @@ interface FabricClientGateway {
 data class FabricClientPlayer(
     val name: String,
     val state: ClientState,
+    val position: PlayerPosition,
 )
 
 class MinecraftFabricClientGateway(
@@ -66,15 +68,24 @@ class MinecraftFabricClientGateway(
         networkHandler.sendChatCommand(command)
     }
 
-    override fun player(): FabricClientPlayer =
-        FabricClientPlayer(
-            name = client.player?.name?.string ?: client.session.username,
-            state = if (client.player != null && client.world != null && client.networkHandler != null) {
+    override fun player(): FabricClientPlayer {
+        val player = client.player
+        return FabricClientPlayer(
+            name = player?.name?.string ?: client.session.username,
+            state = if (player != null && client.world != null && client.networkHandler != null) {
                 ClientState.CONNECTED
             } else {
                 ClientState.RUNNING
             },
+            position = player?.let {
+                PlayerPosition(
+                    x = it.x,
+                    y = it.y,
+                    z = it.z,
+                )
+            } ?: PlayerPosition(0.0, 0.0, 0.0),
         )
+    }
 
     override fun stop() {
         client.scheduleStop()

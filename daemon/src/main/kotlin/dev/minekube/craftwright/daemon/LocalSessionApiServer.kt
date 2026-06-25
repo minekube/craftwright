@@ -2,6 +2,7 @@ package dev.minekube.craftwright.daemon
 
 import dev.minekube.craftwright.driver.api.ChatCommand
 import dev.minekube.craftwright.driver.api.ConnectionTarget
+import dev.minekube.craftwright.driver.api.PlayerPosition
 import dev.minekube.craftwright.protocol.ApiRouteCatalog
 import dev.minekube.craftwright.protocol.Client
 import dev.minekube.craftwright.protocol.CreateClientRequest
@@ -131,8 +132,17 @@ class LocalSessionApiServer private constructor(
                             id = player.id,
                             name = player.name,
                             state = player.state.name,
+                            position = player.position,
                         )
                     )
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
+                }
+            }
+            get("/clients/{id}/player/position") {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                runCatching {
+                    call.respondJson(HttpStatusCode.OK, service.driverFor(clientId).player().position)
                 }.getOrElse { error ->
                     call.respondJson(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", error.message ?: "client not found"))
                 }
@@ -233,4 +243,5 @@ data class PlayerSnapshot(
     val id: String,
     val name: String,
     val state: String,
+    val position: PlayerPosition,
 )

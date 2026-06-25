@@ -2,6 +2,7 @@ package dev.minekube.craftwright.driver.fabric.v1_21_6
 
 import dev.minekube.craftwright.driver.api.ChatCommand
 import dev.minekube.craftwright.driver.api.ConnectionTarget
+import dev.minekube.craftwright.driver.api.PlayerPosition
 import dev.minekube.craftwright.driver.runtime.DriverBackendAction
 import dev.minekube.craftwright.protocol.ClientState
 import kotlinx.serialization.json.Json
@@ -79,6 +80,7 @@ class FabricDriverModuleTest {
             observedPlayer = FabricClientPlayer(
                 name = "ObservedAlice",
                 state = ClientState.CONNECTED,
+                position = PlayerPosition(x = 4.5, y = 70.0, z = -11.25),
             )
         )
         val backend = FabricDriverBackend.real(gateway)
@@ -87,6 +89,7 @@ class FabricDriverModuleTest {
 
         assertEquals("ObservedAlice", player?.name)
         assertEquals(ClientState.CONNECTED, player?.state)
+        assertEquals(PlayerPosition(x = 4.5, y = 70.0, z = -11.25), player?.position)
         assertEquals(listOf("player"), gateway.actions)
     }
 

@@ -22,7 +22,8 @@ Craftwright is a Kotlin/JVM-first project with one implementation direction:
   Fabric-style backends without changing daemon routes;
 - a compiled `driver-fabric-1_21_6` Fabric/Loom module with client entrypoint,
   mod metadata, mixin config, and a gateway-backed runtime backend for
-  client-thread connect, chat, command, stop, and player state observation;
+  client-thread connect, chat, command, stop, player state, and player position
+  observation;
 - a temporary HeadlessMC/HMC-Specifics bridge backend for Phase 1 evidence;
 - a real Fabric driver implementation as the durable automation engine;
 - generated OpenAPI for the running client/session;
@@ -66,8 +67,8 @@ Phase 1:
 - implement the CLI and local API surface;
 - route daemon-created clients through an injectable driver runtime boundary;
 - keep the first Fabric 1.21.6 module compiling under Loom;
-- route Fabric connect, chat, command, stop, and player state observation
-  through a real Minecraft client gateway;
+- route Fabric connect, chat, command, stop, player state, and player position
+  observation through a real Minecraft client gateway;
 - add a temporary HeadlessMC/HMC-Specifics bridge backend;
 - add a real integration smoke test that launches a real client, joins a
   server, sends chat, moves forward, and verifies server-side position changed;
@@ -75,8 +76,7 @@ Phase 1:
 
 Phase 2:
 
-- move movement/look/perception from simulated keypresses to direct client
-  APIs;
+- move movement/look/perception from simulated keypresses to direct client APIs;
 - expose `/openapi.json` from the running client/session;
 - add structured endpoints such as `/player`, `/player/position`,
   `/player/move`, `/player/look`, `/player/raycast`,
