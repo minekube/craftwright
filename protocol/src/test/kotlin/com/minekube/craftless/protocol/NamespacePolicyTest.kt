@@ -82,6 +82,29 @@ class NamespacePolicyTest {
         )
     }
 
+    @Test
+    fun `repository does not include non bun package manager artifacts`() {
+        val forbiddenNames = setOf(
+            "package-lock.json",
+            "npm-shrinkwrap.json",
+            "yarn.lock",
+            "pnpm-lock.yaml",
+        )
+        val root = Path.of("").toAbsolutePath().normalize()
+        val violations = Files.walk(root).use { paths ->
+            paths
+                .filter { path -> path.isScannable() && path.name in forbiddenNames }
+                .map { path -> root.relativize(path).pathString }
+                .sorted()
+                .toList()
+        }
+
+        assertTrue(
+            violations.isEmpty(),
+            "Non-Bun package manager artifacts are not allowed:\n${violations.joinToString("\n")}",
+        )
+    }
+
     private fun repositoryContentViolations(
         include: (Path) -> Boolean = { true },
         predicate: (String) -> Boolean,
