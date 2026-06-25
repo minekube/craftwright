@@ -70,7 +70,7 @@ class CraftlessCliTest {
     }
 
     @Test
-    fun `legacy clients api command returns explicit usage error`() {
+    fun `removed clients api command returns explicit usage error`() {
         val output = StringBuilder()
         val errors = StringBuilder()
 
