@@ -45,7 +45,14 @@ data class CreateClientRequest(
     val version: String,
     val loader: Loader,
     val profile: Profile,
-)
+) {
+    init {
+        require(id.isCraftlessClientId()) { "client id must be a route-safe segment" }
+    }
+}
+
+fun String.isCraftlessClientId(): Boolean =
+    matches(Regex("[A-Za-z0-9][A-Za-z0-9_-]{0,63}"))
 
 @Serializable
 data class Client(

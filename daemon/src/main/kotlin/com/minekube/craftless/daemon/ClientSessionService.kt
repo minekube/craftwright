@@ -15,6 +15,7 @@ import com.minekube.craftless.protocol.MinecraftVersion
 import com.minekube.craftless.protocol.OpenApiAction
 import com.minekube.craftless.protocol.OpenApiActionArgument
 import com.minekube.craftless.protocol.OpenApiDocument
+import com.minekube.craftless.protocol.isCraftlessClientId
 
 class ClientSessionService private constructor(
     private val driverFactory: DriverSessionFactory,
@@ -135,9 +136,6 @@ private fun DriverSession.sortedActions(): List<DriverActionDescriptor> {
     }
     return actions.sortedBy { it.id }
 }
-
-private fun String.isCraftlessClientId(): Boolean =
-    matches(Regex("[A-Za-z0-9][A-Za-z0-9_-]{0,63}"))
 
 fun interface DriverSessionFactory {
     fun create(request: CreateClientRequest): DriverSession
