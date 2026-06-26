@@ -52,8 +52,8 @@ permissions, and driver runtime.
 
 ```sh
 # Prepare repeatable cache handles for the Minecraft/Fabric setup state.
-# This resolves and stores Minecraft version metadata under the workspace.
-craftless cache prepare --mc 1.21.6 --loader fabric --workspace .craftless
+# This resolves Minecraft version metadata plus Fabric loader profile metadata.
+craftless cache prepare --mc 1.21.6 --loader fabric --loader-version 0.17.2 --workspace .craftless
 
 # Start the local Craftless supervisor API with a repeatable client workspace.
 craftless server start --port 8080 --workspace .craftless

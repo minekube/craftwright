@@ -578,6 +578,7 @@ private fun cachePrepareResponse(): OpenApiResponse =
                         mapOf(
                             "minecraftVersion" to OpenApiSchema(type = "string"),
                             "loader" to OpenApiSchema(type = "string"),
+                            "loaderVersion" to OpenApiSchema(type = "string", nullable = true),
                             "cacheRoot" to OpenApiSchema(type = "string"),
                             "minecraftVersionRoot" to OpenApiSchema(type = "string"),
                             "loaderRoot" to OpenApiSchema(type = "string"),
@@ -605,6 +606,7 @@ private fun cachePrepareResponse(): OpenApiResponse =
                         listOf(
                             "minecraftVersion",
                             "loader",
+                            "loaderVersion",
                             "cacheRoot",
                             "minecraftVersionRoot",
                             "loaderRoot",
@@ -677,6 +679,7 @@ private fun cachePrepareRequestBody(): OpenApiRequestBody =
                         mapOf(
                             "minecraftVersion" to OpenApiSchema(type = "string"),
                             "loader" to OpenApiSchema(type = "string"),
+                            "loaderVersion" to OpenApiSchema(type = "string", nullable = true),
                         ),
                     required = listOf("minecraftVersion", "loader"),
                 ),

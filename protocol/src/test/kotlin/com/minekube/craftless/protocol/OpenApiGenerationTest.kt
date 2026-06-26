@@ -121,12 +121,15 @@ class OpenApiGenerationTest {
         assertEquals(listOf("minecraftVersion", "loader"), requestSchema.required)
         assertEquals("string", requestSchema.properties["minecraftVersion"]?.type)
         assertEquals("string", requestSchema.properties["loader"]?.type)
+        assertEquals("string", requestSchema.properties["loaderVersion"]?.type)
+        assertEquals(true, requestSchema.properties["loaderVersion"]?.nullable)
 
         val responseSchema = requireNotNull(operation.okSchema())
         assertEquals(
             listOf(
                 "minecraftVersion",
                 "loader",
+                "loaderVersion",
                 "cacheRoot",
                 "minecraftVersionRoot",
                 "loaderRoot",
@@ -138,6 +141,7 @@ class OpenApiGenerationTest {
             responseSchema.required,
         )
         assertEquals("string", responseSchema.properties["cacheRoot"]?.type)
+        assertEquals(true, responseSchema.properties["loaderVersion"]?.nullable)
         assertEquals("string", responseSchema.properties["status"]?.type)
         assertEquals("array", responseSchema.properties["artifacts"]?.type)
         assertErrorSchema(requireNotNull(operation.errorSchema("400")))

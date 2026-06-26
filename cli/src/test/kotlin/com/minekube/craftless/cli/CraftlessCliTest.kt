@@ -9,6 +9,7 @@ import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.CachePrepareResult
+import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
 import com.minekube.craftless.testkit.FakeDriverSession
 import io.ktor.client.HttpClient
@@ -158,6 +159,8 @@ class CraftlessCliTest {
     fun `cache prepare creates cache handles in workspace`() {
         val output = StringBuilder()
         val workspace = Files.createTempDirectory("craftless-cli-cache")
+        val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
+        val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
 
         val exit =
             CraftlessCli.run(
@@ -184,6 +187,13 @@ class CraftlessCliTest {
                                 }
                                 """.trimIndent(),
                             "https://metadata.test/1.21.6.json" to """{"id":"1.21.6"}""",
+                            loaderVersionsUrl to
+                                """
+                                [
+                                  { "loader": { "version": "0.17.2", "stable": true } }
+                                ]
+                                """.trimIndent(),
+                            loaderProfileUrl to """{"id":"fabric-loader-0.17.2-1.21.6"}""",
                         ),
                     ),
             )
@@ -196,6 +206,61 @@ class CraftlessCliTest {
         assertTrue(Files.isDirectory(workspace.resolve(result.loaderRoot)))
         assertTrue(Files.isDirectory(workspace.resolve(result.runtimeRoot)))
         assertTrue(Files.isRegularFile(workspace.resolve(result.manifest)))
+        assertEquals("0.17.2", result.loaderVersion)
+        assertTrue(Files.isRegularFile(workspace.resolve("cache/loaders/fabric/1.21.6/0.17.2/profile.json")))
+    }
+
+    @Test
+    fun `cache prepare accepts pinned loader version`() {
+        val output = StringBuilder()
+        val workspace = Files.createTempDirectory("craftless-cli-cache-loader-pin")
+        val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
+        val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.16.14/profile/json"
+
+        val exit =
+            CraftlessCli.run(
+                listOf(
+                    "cache",
+                    "prepare",
+                    "--mc",
+                    "1.21.6",
+                    "--loader",
+                    "fabric",
+                    "--loader-version",
+                    "0.16.14",
+                    "--workspace",
+                    workspace.toString(),
+                ),
+                stdout = { output.appendLine(it) },
+                cacheMetadataFetcher =
+                    StaticCacheMetadataFetcher(
+                        mapOf(
+                            MINECRAFT_VERSION_INDEX_URL to
+                                """
+                                {
+                                  "versions": [
+                                    { "id": "1.21.6", "url": "https://metadata.test/1.21.6.json" }
+                                  ]
+                                }
+                                """.trimIndent(),
+                            "https://metadata.test/1.21.6.json" to """{"id":"1.21.6"}""",
+                            loaderVersionsUrl to
+                                """
+                                [
+                                  { "loader": { "version": "0.17.2", "stable": true } },
+                                  { "loader": { "version": "0.16.14", "stable": true } }
+                                ]
+                                """.trimIndent(),
+                            loaderProfileUrl to """{"id":"fabric-loader-0.16.14-1.21.6"}""",
+                        ),
+                    ),
+            )
+
+        assertEquals(0, exit)
+        val result = Json.decodeFromString<CachePrepareResult>(output.toString().trim())
+        assertEquals("0.16.14", result.loaderVersion)
+        assertEquals("cache/loaders/fabric/1.21.6/0.16.14", result.loaderRoot)
+        assertTrue(Files.isRegularFile(workspace.resolve("cache/loaders/fabric/1.21.6/0.16.14/profile.json")))
     }
 
     @Test

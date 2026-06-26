@@ -19,6 +19,7 @@ import com.minekube.craftless.protocol.CachePrepareResult
 import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
+import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
 import com.minekube.craftless.protocol.OpenApiAction
@@ -195,6 +196,8 @@ class LocalSessionApiServerTest {
     fun `server prepares cache handles under configured workspace`() =
         withHttpClient { http ->
             val workspace = Files.createTempDirectory("craftless-server-cache")
+            val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
+            val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
             fakeLocalSessionApiServer(
                 workspaceRoot = workspace,
                 cacheMetadataFetcher =
@@ -209,6 +212,13 @@ class LocalSessionApiServerTest {
                                 }
                                 """.trimIndent(),
                             "https://metadata.test/1.21.6.json" to """{"id":"1.21.6"}""",
+                            loaderVersionsUrl to
+                                """
+                                [
+                                  { "loader": { "version": "0.17.2", "stable": true } }
+                                ]
+                                """.trimIndent(),
+                            loaderProfileUrl to """{"id":"fabric-loader-0.17.2-1.21.6"}""",
                         ),
                     ),
             ).use { server ->
@@ -231,11 +241,13 @@ class LocalSessionApiServerTest {
                 val result = json.decodeFromString<CachePrepareResult>(response.bodyAsText())
                 assertEquals("1.21.6", result.minecraftVersion)
                 assertEquals(Loader.FABRIC, result.loader)
+                assertEquals("0.17.2", result.loaderVersion)
                 assertTrue(Files.isDirectory(workspace.resolve(result.cacheRoot)))
                 assertTrue(Files.isDirectory(workspace.resolve(result.minecraftVersionRoot)))
                 assertTrue(Files.isDirectory(workspace.resolve(result.loaderRoot)))
                 assertTrue(Files.isDirectory(workspace.resolve(result.runtimeRoot)))
                 assertTrue(Files.isRegularFile(workspace.resolve(result.manifest)))
+                assertTrue(Files.isRegularFile(workspace.resolve("cache/loaders/fabric/1.21.6/0.17.2/profile.json")))
             }
         }
 

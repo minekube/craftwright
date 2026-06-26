@@ -51,12 +51,14 @@ The CLI wires this store through `craftless server start --workspace <path>`.
 Startup metadata reports the configured workspace path so scripts can record the
 runtime file root alongside the daemon URL and OpenAPI path.
 
-`craftless cache prepare --mc <version> --loader <loader> --workspace <path>`
-prepares the Craftless-owned setup cache handles for a Minecraft version,
-loader, runtime cache, and preparation manifest. The same contract is exposed by
-the supervisor API as `POST /cache:prepare`. Current implementation uses Ktor
-Client to resolve and store Mojang's version index plus the selected Minecraft
-version manifest; client jars, Fabric artifacts, Java runtimes, and integrity
+`craftless cache prepare --mc <version> --loader <loader>
+[--loader-version <version>] --workspace <path>` prepares the Craftless-owned
+setup cache handles for a Minecraft version, loader, runtime cache, and
+preparation manifest. The same contract is exposed by the supervisor API as
+`POST /cache:prepare`. Current implementation uses Ktor Client to resolve and
+store Mojang's version index, the selected Minecraft version manifest, Fabric's
+compatible loader-version list, and the resolved Fabric loader profile JSON.
+Client jars, Fabric runtime artifacts, Java runtimes, and integrity
 verification are still future provisioning work.
 
 ## Prism Source Findings

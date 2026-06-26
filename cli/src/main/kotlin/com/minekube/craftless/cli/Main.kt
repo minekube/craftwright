@@ -140,9 +140,10 @@ object CraftlessCli {
             args.optionValue("--loader")?.let { value ->
                 runCatching { Loader.valueOf(value.uppercase()) }.getOrNull()
             }
+        val loaderVersion = args.optionValue("--loader-version")
         val workspace = args.optionValue("--workspace")?.let(Path::of)
         if (minecraftVersion.isNullOrBlank() || loader == null || workspace == null) {
-            stderr("error: usage is cache prepare --mc <version> --loader <loader> --workspace <path>")
+            stderr("error: usage is cache prepare --mc <version> --loader <loader> [--loader-version <version>] --workspace <path>")
             return 2
         }
         return runCatching {
@@ -152,6 +153,7 @@ object CraftlessCli {
                         CachePrepareRequest(
                             minecraftVersion = minecraftVersion,
                             loader = loader,
+                            loaderVersion = loaderVersion,
                         ),
                     )
                 }

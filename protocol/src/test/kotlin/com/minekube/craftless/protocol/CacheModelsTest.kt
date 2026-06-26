@@ -11,12 +11,17 @@ class CacheModelsTest {
             CachePrepareRequest(
                 minecraftVersion = "1.21.6",
                 loader = Loader.FABRIC,
+                loaderVersion = "0.17.2",
             )
 
         assertEquals("1.21.6", request.minecraftVersion)
         assertEquals(Loader.FABRIC, request.loader)
+        assertEquals("0.17.2", request.loaderVersion)
         assertFailsWith<IllegalArgumentException> {
             request.copy(minecraftVersion = "")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            request.copy(loaderVersion = "../0.17.2")
         }
     }
 
@@ -27,6 +32,7 @@ class CacheModelsTest {
         assertEquals("cache", result.cacheRoot)
         assertEquals("cache/minecraft/versions/1.21.6", result.minecraftVersionRoot)
         assertEquals("cache/loaders/fabric/1.21.6", result.loaderRoot)
+        assertEquals(null, result.loaderVersion)
         assertEquals("cache/runtimes", result.runtimeRoot)
         assertEquals("cache/prepared/1.21.6-fabric.json", result.manifest)
         assertEquals(CachePrepareStatus.PREPARED, result.status)
@@ -43,8 +49,48 @@ class CacheModelsTest {
                     handle = "cache/minecraft/versions/1.21.6/version.json",
                     status = CachePreparedArtifactStatus.RESOLVED,
                 ),
+                CachePreparedArtifact(
+                    kind = CachePreparedArtifactKind.FABRIC_LOADER_VERSIONS,
+                    handle = "cache/loaders/fabric/1.21.6/versions.json",
+                    source = "https://meta.fabricmc.net/v2/versions/loader/1.21.6",
+                    status = CachePreparedArtifactStatus.RESOLVED,
+                ),
+                CachePreparedArtifact(
+                    kind = CachePreparedArtifactKind.FABRIC_LOADER_PROFILE,
+                    handle = "cache/loaders/fabric/1.21.6/profile.json",
+                    status = CachePreparedArtifactStatus.RESOLVED,
+                ),
             ),
             result.artifacts,
+        )
+    }
+
+    @Test
+    fun `cache prepare result records pinned fabric loader metadata handles`() {
+        val result =
+            CachePrepareResult.forRequest(
+                CachePrepareRequest(
+                    minecraftVersion = "1.21.6",
+                    loader = Loader.FABRIC,
+                    loaderVersion = "0.17.2",
+                ),
+            )
+
+        assertEquals("0.17.2", result.loaderVersion)
+        assertEquals("cache/loaders/fabric/1.21.6/0.17.2", result.loaderRoot)
+        assertEquals("cache/prepared/1.21.6-fabric-0.17.2.json", result.manifest)
+        assertEquals(
+            listOf(
+                CachePreparedArtifactKind.MINECRAFT_VERSION_INDEX,
+                CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST,
+                CachePreparedArtifactKind.FABRIC_LOADER_VERSIONS,
+                CachePreparedArtifactKind.FABRIC_LOADER_PROFILE,
+            ),
+            result.artifacts.map { it.kind },
+        )
+        assertEquals(
+            "cache/loaders/fabric/1.21.6/0.17.2/profile.json",
+            result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LOADER_PROFILE }.handle,
         )
     }
 }
