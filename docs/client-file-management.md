@@ -64,9 +64,11 @@ classpath/native-path/java-executable/argument handles made only of
 Craftless-owned handles. It also resolves the Minecraft asset index, downloads
 listed asset objects into opaque Craftless handles, extracts native classifier
 jars into Craftless-owned native directory handles, and writes an internal
-launch argument artifact from the resolved version/profile metadata. Integrity
-verification and explicit cleanup/export flows are still future provisioning
-work.
+launch argument artifact from the resolved version/profile metadata.
+`POST /cache:export`, `POST /cache:cleanup`, `craftless cache export`, and
+`craftless cache cleanup` operate from prepared manifest handles: export writes
+a workspace-local archive handle, while cleanup removes only handles declared
+by that manifest. Integrity verification is still future provisioning work.
 
 ## Prism Source Findings
 

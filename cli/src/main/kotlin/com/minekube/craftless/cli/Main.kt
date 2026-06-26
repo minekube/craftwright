@@ -8,6 +8,8 @@ import com.minekube.craftless.daemon.CacheMetadataFetcher
 import com.minekube.craftless.daemon.CachePreparationService
 import com.minekube.craftless.daemon.KtorCacheMetadataFetcher
 import com.minekube.craftless.daemon.LocalSessionApiServer
+import com.minekube.craftless.protocol.CacheCleanupRequest
+import com.minekube.craftless.protocol.CacheExportRequest
 import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.Loader
@@ -55,6 +57,8 @@ object CraftlessCli {
             ),
             GroupCommand("cache").subcommands(
                 LeafCommand("prepare"),
+                LeafCommand("export"),
+                LeafCommand("cleanup"),
             ),
             GroupCommand("server").subcommands(
                 LeafCommand("start"),
@@ -74,6 +78,8 @@ object CraftlessCli {
             "clients <id> run <action>",
             "clients <id> <resource...> <action>",
             "cache prepare",
+            "cache export",
+            "cache cleanup",
             "server start",
         )
 
@@ -90,6 +96,12 @@ object CraftlessCli {
         }
         if (args.take(2) == listOf("cache", "prepare")) {
             return prepareCache(args.drop(2), stdout, stderr, cacheMetadataFetcher)
+        }
+        if (args.take(2) == listOf("cache", "export")) {
+            return exportCache(args.drop(2), stdout, stderr)
+        }
+        if (args.take(2) == listOf("cache", "cleanup")) {
+            return cleanupCache(args.drop(2), stdout, stderr)
         }
         if (args.take(2) == listOf("clients", "create")) {
             return createClient(args.drop(2), stdout, stderr, env)
@@ -161,6 +173,58 @@ object CraftlessCli {
             0
         }.getOrElse { error ->
             stderr("error: ${error.message ?: "failed to prepare cache"}")
+            2
+        }
+    }
+
+    private fun exportCache(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+    ): Int {
+        val manifest = args.optionValue("--manifest")
+        val archive = args.optionValue("--archive")
+        val workspace = args.optionValue("--workspace")?.let(Path::of)
+        if (manifest.isNullOrBlank() || workspace == null) {
+            stderr("error: usage is cache export --manifest <handle> [--archive <handle>] --workspace <path>")
+            return 2
+        }
+        return runCatching {
+            val result =
+                CachePreparationService(workspace).export(
+                    CacheExportRequest(
+                        manifest = manifest,
+                        archive = archive,
+                    ),
+                )
+            stdout(json.encodeToString(result))
+            0
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to export cache"}")
+            2
+        }
+    }
+
+    private fun cleanupCache(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+    ): Int {
+        val manifest = args.optionValue("--manifest")
+        val workspace = args.optionValue("--workspace")?.let(Path::of)
+        if (manifest.isNullOrBlank() || workspace == null) {
+            stderr("error: usage is cache cleanup --manifest <handle> --workspace <path>")
+            return 2
+        }
+        return runCatching {
+            val result =
+                CachePreparationService(workspace).cleanup(
+                    CacheCleanupRequest(manifest),
+                )
+            stdout(json.encodeToString(result))
+            0
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to cleanup cache"}")
             2
         }
     }

@@ -252,6 +252,10 @@ Verification:
   artifact handles.
 - [x] Cache preparation resolves the Minecraft asset index and downloads listed
   asset objects into opaque Craftless-owned cache handles.
+- [x] Cache export and cleanup operate from prepared manifest handles through
+  `POST /cache:export`, `POST /cache:cleanup`, `craftless cache export`, and
+  `craftless cache cleanup`; export writes a workspace-local archive handle and
+  cleanup removes only manifest-declared handles.
 - [x] Prism Launcher source was cloned under `/tmp/prismlauncher-source` for
   research, outside Minekube repos.
 - [x] Prism findings are captured as design input, not a core dependency.
@@ -261,8 +265,8 @@ Verification:
   Minecraft client jar, Minecraft version libraries, Fabric profile libraries,
   native libraries, Java runtime files, and Minecraft asset objects
   materialized into the workspace plus ordered launch classpath, native-path,
-  Java-executable, and launch-argument handles; explicit cleanup/export flows
-  are still roadmap.
+  Java-executable, and launch-argument handles, with manifest-driven
+  export/cleanup flows.
 - [x] Public APIs expose Craftless-owned file handles only.
 
 Verification:

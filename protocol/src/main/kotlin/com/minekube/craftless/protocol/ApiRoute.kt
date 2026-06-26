@@ -84,6 +84,8 @@ class ApiRouteCatalog(
                     route("GET", "/version", "getVersion", "version", "supervisor", "version", "route"),
                     route("GET", "/events", "getEvents", "events", "supervisor", "events", "route"),
                     route("POST", "/cache:prepare", "prepareCache", "cache", "cache", "prepare", "method"),
+                    route("POST", "/cache:export", "exportCache", "cache", "cache", "export", "method"),
+                    route("POST", "/cache:cleanup", "cleanupCache", "cache", "cache", "cleanup", "method"),
                     route("GET", "/clients", "listClients", "clients", "clients", "list", "route"),
                     route("POST", "/clients", "createClient", "clients", "clients", "create", "route"),
                     route("GET", "/clients/{id}", "getClient", "clients", "clients", "get", "route"),

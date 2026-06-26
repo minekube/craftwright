@@ -1,5 +1,11 @@
 package com.minekube.craftless.daemon
 
+import com.minekube.craftless.protocol.CacheCleanupRequest
+import com.minekube.craftless.protocol.CacheCleanupResult
+import com.minekube.craftless.protocol.CacheCleanupStatus
+import com.minekube.craftless.protocol.CacheExportRequest
+import com.minekube.craftless.protocol.CacheExportResult
+import com.minekube.craftless.protocol.CacheExportStatus
 import com.minekube.craftless.protocol.CacheLaunchPlan
 import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.CachePrepareResult
@@ -30,7 +36,10 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
+import java.util.Comparator
+import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 
 class CachePreparationService(
     workspaceRoot: Path,
@@ -161,6 +170,50 @@ class CachePreparationService(
         return result
     }
 
+    fun export(request: CacheExportRequest): CacheExportResult {
+        val prepared = readPreparedManifest(request.manifest)
+        val archiveHandle = request.archive ?: "exports/${request.manifest.sha256Hex()}.zip"
+        val archive = resolveHandle(archiveHandle)
+        Files.createDirectories(archive.parent)
+        val included = prepared.exportHandles()
+        ZipOutputStream(Files.newOutputStream(archive)).use { zip ->
+            included.forEach { handle ->
+                val source = resolveHandle(handle)
+                require(Files.exists(source)) { "cache export handle does not exist: $handle" }
+                zipHandle(zip, handle, source)
+            }
+        }
+        return CacheExportResult(
+            manifest = request.manifest,
+            archive = archiveHandle,
+            included = included,
+            status = CacheExportStatus.EXPORTED,
+        )
+    }
+
+    fun cleanup(request: CacheCleanupRequest): CacheCleanupResult {
+        val prepared = readPreparedManifest(request.manifest)
+        val deleted = mutableListOf<String>()
+        val missing = mutableListOf<String>()
+        prepared
+            .cleanupHandles()
+            .forEach { handle ->
+                val path = resolveHandle(handle)
+                if (!Files.exists(path)) {
+                    missing += handle
+                } else {
+                    deleteRecursively(path)
+                    deleted += handle
+                }
+            }
+        return CacheCleanupResult(
+            manifest = request.manifest,
+            deleted = deleted,
+            missing = missing,
+            status = CacheCleanupStatus.CLEANED,
+        )
+    }
+
     private suspend fun resolveFabricMetadata(request: CachePrepareRequest): FabricCacheMetadata? {
         if (request.loader != Loader.FABRIC) return null
         val loaderVersionsUrl = fabricLoaderVersionsUrl(request.minecraftVersion)
@@ -196,6 +249,54 @@ class CachePreparationService(
         val resolved = root.resolve(handle).normalize()
         require(resolved.startsWith(root)) { "cache handle must stay under the workspace root" }
         return resolved
+    }
+
+    private fun readPreparedManifest(handle: String): CachePrepareResult {
+        val manifest = resolveHandle(handle)
+        require(Files.isRegularFile(manifest)) { "cache manifest does not exist: $handle" }
+        val prepared = json.decodeFromString<CachePrepareResult>(Files.readString(manifest))
+        require(prepared.manifest == handle) { "cache manifest handle does not match request" }
+        return prepared
+    }
+
+    private fun zipHandle(
+        zip: ZipOutputStream,
+        handle: String,
+        path: Path,
+    ) {
+        if (Files.isDirectory(path)) {
+            Files.walk(path).use { paths ->
+                paths
+                    .filter(Files::isRegularFile)
+                    .forEach { file ->
+                        zipFile(zip, "$handle/${path.relativize(file).toString().replace('\\', '/')}", file)
+                    }
+            }
+        } else {
+            zipFile(zip, handle, path)
+        }
+    }
+
+    private fun zipFile(
+        zip: ZipOutputStream,
+        handle: String,
+        path: Path,
+    ) {
+        zip.putNextEntry(ZipEntry(handle))
+        Files.copy(path, zip)
+        zip.closeEntry()
+    }
+
+    private fun deleteRecursively(path: Path) {
+        if (Files.isDirectory(path)) {
+            Files.walk(path).use { paths ->
+                paths
+                    .sorted(Comparator.reverseOrder())
+                    .forEach(Files::deleteIfExists)
+            }
+        } else {
+            Files.deleteIfExists(path)
+        }
     }
 
     private fun writeBytesArtifact(
@@ -377,6 +478,14 @@ private data class FabricLoaderVersion(
     val version: String,
     val stable: Boolean,
 )
+
+private fun CachePrepareResult.exportHandles(): List<String> = cleanupHandles()
+
+private fun CachePrepareResult.cleanupHandles(): List<String> =
+    (
+        artifacts.map { artifact -> artifact.handle } +
+            manifest
+    ).distinct()
 
 private fun CachePrepareResult.launchArgumentsArtifact(
     versionManifest: String,

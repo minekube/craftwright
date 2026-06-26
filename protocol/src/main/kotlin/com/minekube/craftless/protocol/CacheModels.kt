@@ -15,6 +15,42 @@ data class CachePrepareRequest(
 }
 
 @Serializable
+data class CacheExportRequest(
+    val manifest: String,
+    val archive: String? = null,
+) {
+    init {
+        requireRelativeCacheHandle(manifest, "manifest")
+        archive?.let { requireRelativeCacheHandle(it, "archive") }
+    }
+}
+
+@Serializable
+data class CacheExportResult(
+    val manifest: String,
+    val archive: String,
+    val included: List<String>,
+    val status: CacheExportStatus,
+)
+
+@Serializable
+data class CacheCleanupRequest(
+    val manifest: String,
+) {
+    init {
+        requireRelativeCacheHandle(manifest, "manifest")
+    }
+}
+
+@Serializable
+data class CacheCleanupResult(
+    val manifest: String,
+    val deleted: List<String>,
+    val missing: List<String>,
+    val status: CacheCleanupStatus,
+)
+
+@Serializable
 data class CachePrepareResult(
     val minecraftVersion: String,
     val loader: Loader,
@@ -188,6 +224,16 @@ enum class CachePrepareStatus {
     PREPARED,
 }
 
+@Serializable
+enum class CacheExportStatus {
+    EXPORTED,
+}
+
+@Serializable
+enum class CacheCleanupStatus {
+    CLEANED,
+}
+
 private fun requireFileSafeSegment(
     value: String,
     label: String,
@@ -196,4 +242,14 @@ private fun requireFileSafeSegment(
     require(!value.contains('/')) { "$label must be a file-safe segment" }
     require(!value.contains('\\')) { "$label must use forward slashes" }
     require(!value.contains("..")) { "$label must be a file-safe segment" }
+}
+
+private fun requireRelativeCacheHandle(
+    value: String,
+    label: String,
+) {
+    require(value.isNotBlank()) { "$label is required" }
+    require(!value.startsWith('/')) { "$label must be relative" }
+    require(!value.contains('\\')) { "$label must use forward slashes" }
+    require(!value.split('/').any { it == ".." }) { "$label must stay under the workspace root" }
 }

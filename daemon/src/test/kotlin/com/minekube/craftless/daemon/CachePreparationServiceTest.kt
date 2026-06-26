@@ -1,5 +1,7 @@
 package com.minekube.craftless.daemon
 
+import com.minekube.craftless.protocol.CacheCleanupRequest
+import com.minekube.craftless.protocol.CacheExportRequest
 import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.CachePreparedArtifactKind
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
@@ -11,6 +13,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.file.Files
 import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -359,6 +362,71 @@ class CachePreparationServiceTest {
             assertTrue(Files.readString(workspace.resolve(result.manifest)).contains("0.16.14"))
             assertTrue(Files.readString(workspace.resolve("cache/loaders/fabric/1.21.6/0.16.14/profile.json")).contains("0.16.14"))
         }
+
+    @Test
+    fun `cache export and cleanup operate from prepared manifest handles`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-export-cleanup")
+            val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+            val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
+            val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
+            val service =
+                CachePreparationService(
+                    workspaceRoot = workspace,
+                    metadataFetcher =
+                        StaticCacheMetadataFetcher(
+                            mapOf(
+                                MINECRAFT_VERSION_INDEX_URL to
+                                    """
+                                    { "versions": [{ "id": "1.21.6", "url": "$versionUrl" }] }
+                                    """.trimIndent(),
+                                versionUrl to
+                                    """
+                                    {
+                                      "id": "1.21.6",
+                                      "assetIndex": {
+                                        "id": "1.21.6",
+                                        "url": "$assetIndexUrl"
+                                      },
+                                      "downloads": {
+                                        "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                assetIndexUrl to """{"objects":{}}""",
+                                loaderVersionsUrl to """[{ "loader": { "version": "0.17.2", "stable": true } }]""",
+                                loaderProfileUrl to """{"id":"fabric-loader-0.17.2-1.21.6"}""",
+                            ),
+                            binaryResponses = mapOf(clientJarUrl to "client-jar".encodeToByteArray()),
+                        ),
+                )
+
+            val prepared = service.prepare(CachePrepareRequest("1.21.6", Loader.FABRIC))
+            val exported =
+                service.export(
+                    CacheExportRequest(
+                        manifest = prepared.manifest,
+                        archive = "exports/prepared-cache.zip",
+                    ),
+                )
+
+            assertEquals("exports/prepared-cache.zip", exported.archive)
+            assertTrue(exported.included.contains(prepared.manifest))
+            assertTrue(exported.included.contains("cache/minecraft/versions/1.21.6/client.jar"))
+            assertTrue(zipEntries(workspace.resolve(exported.archive)).contains(prepared.manifest))
+            assertTrue(zipEntries(workspace.resolve(exported.archive)).contains("cache/minecraft/versions/1.21.6/client.jar"))
+
+            val cleaned = service.cleanup(CacheCleanupRequest(prepared.manifest))
+
+            assertTrue(cleaned.deleted.contains(prepared.manifest))
+            assertTrue(cleaned.deleted.contains("cache/minecraft/versions/1.21.6/client.jar"))
+            assertEquals(emptyList(), cleaned.missing)
+            assertTrue(!Files.exists(workspace.resolve(prepared.manifest)))
+            assertTrue(!Files.exists(workspace.resolve("cache/minecraft/versions/1.21.6/client.jar")))
+            assertTrue(Files.exists(workspace.resolve(exported.archive)))
+        }
 }
 
 private fun nativeZipBytes(): ByteArray {
@@ -399,6 +467,14 @@ private fun javaRuntimeIndexJson(manifestUrl: String): String =
       }
     }
     """.trimIndent()
+
+private fun zipEntries(path: java.nio.file.Path): List<String> =
+    ZipInputStream(Files.newInputStream(path)).use { zip ->
+        generateSequence { zip.nextEntry }
+            .map { entry ->
+                entry.name.also { zip.closeEntry() }
+            }.toList()
+    }
 
 private class StaticCacheMetadataFetcher(
     private val responses: Map<String, String>,

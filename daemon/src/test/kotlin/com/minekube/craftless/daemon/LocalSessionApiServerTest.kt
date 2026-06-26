@@ -15,6 +15,8 @@ import com.minekube.craftless.driver.api.DriverEvent
 import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.DriverSession
+import com.minekube.craftless.protocol.CacheCleanupResult
+import com.minekube.craftless.protocol.CacheExportResult
 import com.minekube.craftless.protocol.CachePrepareResult
 import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.ClientState
@@ -254,6 +256,34 @@ class LocalSessionApiServerTest {
                 assertTrue(Files.isRegularFile(workspace.resolve(result.manifest)))
                 assertTrue(Files.isRegularFile(workspace.resolve("cache/minecraft/versions/1.21.6/client.jar")))
                 assertTrue(Files.isRegularFile(workspace.resolve("cache/loaders/fabric/1.21.6/0.17.2/profile.json")))
+
+                val exportResponse =
+                    http.post(server.url("/cache:export")) {
+                        contentType(ContentType.Application.Json)
+                        setBody(
+                            """
+                            {
+                              "manifest": "${result.manifest}",
+                              "archive": "exports/server-cache.zip"
+                            }
+                            """.trimIndent(),
+                        )
+                    }
+                assertEquals(HttpStatusCode.OK, exportResponse.status)
+                val export = json.decodeFromString<CacheExportResult>(exportResponse.bodyAsText())
+                assertEquals("exports/server-cache.zip", export.archive)
+                assertTrue(Files.isRegularFile(workspace.resolve(export.archive)))
+
+                val cleanupResponse =
+                    http.post(server.url("/cache:cleanup")) {
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"manifest":"${result.manifest}"}""")
+                    }
+                assertEquals(HttpStatusCode.OK, cleanupResponse.status)
+                val cleanup = json.decodeFromString<CacheCleanupResult>(cleanupResponse.bodyAsText())
+                assertTrue(cleanup.deleted.contains(result.manifest))
+                assertTrue(!Files.exists(workspace.resolve(result.manifest)))
+                assertTrue(Files.exists(workspace.resolve(export.archive)))
             }
         }
 

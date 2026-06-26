@@ -157,6 +157,51 @@ class OpenApiGenerationTest {
     }
 
     @Test
+    fun `stable supervisor openapi describes cache export and cleanup`() {
+        val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
+
+        val exportOperation = document.paths["/cache:export"]?.post
+        assertNotNull(exportOperation)
+        assertEquals("exportCache", exportOperation.operationId)
+        assertEquals("cache", exportOperation.tags.single())
+        assertEquals("export", exportOperation.extensions["x-craftless-member"])
+        val exportRequestSchema =
+            requireNotNull(
+                exportOperation.requestBody
+                    ?.content
+                    ?.get("application/json")
+                    ?.schema,
+            )
+        assertEquals(listOf("manifest"), exportRequestSchema.required)
+        assertEquals("string", exportRequestSchema.properties["manifest"]?.type)
+        assertEquals("string", exportRequestSchema.properties["archive"]?.type)
+        assertEquals(true, exportRequestSchema.properties["archive"]?.nullable)
+        val exportResponseSchema = requireNotNull(exportOperation.okSchema())
+        assertEquals("string", exportResponseSchema.properties["archive"]?.type)
+        assertEquals("array", exportResponseSchema.properties["included"]?.type)
+        assertErrorSchema(requireNotNull(exportOperation.errorSchema("400")))
+
+        val cleanupOperation = document.paths["/cache:cleanup"]?.post
+        assertNotNull(cleanupOperation)
+        assertEquals("cleanupCache", cleanupOperation.operationId)
+        assertEquals("cache", cleanupOperation.tags.single())
+        assertEquals("cleanup", cleanupOperation.extensions["x-craftless-member"])
+        val cleanupRequestSchema =
+            requireNotNull(
+                cleanupOperation.requestBody
+                    ?.content
+                    ?.get("application/json")
+                    ?.schema,
+            )
+        assertEquals(listOf("manifest"), cleanupRequestSchema.required)
+        assertEquals("string", cleanupRequestSchema.properties["manifest"]?.type)
+        val cleanupResponseSchema = requireNotNull(cleanupOperation.okSchema())
+        assertEquals("array", cleanupResponseSchema.properties["deleted"]?.type)
+        assertEquals("array", cleanupResponseSchema.properties["missing"]?.type)
+        assertErrorSchema(requireNotNull(cleanupOperation.errorSchema("400")))
+    }
+
+    @Test
     fun `openapi document projects resources from discovered actions`() {
         val document =
             OpenApiDocument.from(

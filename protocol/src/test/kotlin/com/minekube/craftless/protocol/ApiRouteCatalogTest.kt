@@ -14,6 +14,8 @@ class ApiRouteCatalogTest {
         assertEquals("GET", catalog.route("/version").method)
         assertEquals("GET", catalog.route("/events").method)
         assertEquals("POST", catalog.route("/cache:prepare").method)
+        assertEquals("POST", catalog.route("/cache:export").method)
+        assertEquals("POST", catalog.route("/cache:cleanup").method)
         assertEquals("GET", catalog.route("GET", "/clients").method)
         assertEquals("POST", catalog.route("POST", "/clients").method)
         assertEquals("GET", catalog.route("GET", "/clients/{id}").method)

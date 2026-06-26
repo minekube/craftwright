@@ -313,6 +313,8 @@ private fun ApiRoute.responses(actionsById: Map<String, OpenApiAction>): Map<Str
                 path.endsWith("/actions") && method == "GET" -> actionListResponse()
                 path.endsWith("/resources") && method == "GET" -> resourceListResponse()
                 path == "/cache:prepare" && method == "POST" -> cachePrepareResponse()
+                path == "/cache:export" && method == "POST" -> cacheExportResponse()
+                path == "/cache:cleanup" && method == "POST" -> cacheCleanupResponse()
                 path == "/clients" && method == "GET" -> clientListResponse()
                 path == "/clients" && method == "POST" -> clientResponse()
                 path.endsWith(":connect") && method == "POST" -> clientResponse()
@@ -331,6 +333,8 @@ private fun ApiRoute.errorStatuses(): List<String> =
     when {
         path == "/clients" && method == "POST" -> listOf("400")
         path == "/cache:prepare" && method == "POST" -> listOf("400")
+        path == "/cache:export" && method == "POST" -> listOf("400")
+        path == "/cache:cleanup" && method == "POST" -> listOf("400")
         path.endsWith(":connect") && method == "POST" -> listOf("400", "404", "409")
         source == "action" && method == "POST" -> listOf("400", "404", "409")
         path.endsWith(":run") && method == "POST" -> listOf("400", "404", "409")
@@ -348,6 +352,8 @@ private fun ApiRoute.requestBody(actionsById: Map<String, OpenApiAction>): OpenA
         method != "POST" -> null
         actionId != null -> actionsById[actionId]?.arguments?.toRequestBody()
         path == "/cache:prepare" -> cachePrepareRequestBody()
+        path == "/cache:export" -> cacheExportRequestBody()
+        path == "/cache:cleanup" -> cacheCleanupRequestBody()
         path == "/clients" -> createClientRequestBody()
         path.endsWith(":connect") -> connectRequestBody()
         path.endsWith(":run") -> genericActionRequestBody()
@@ -640,6 +646,54 @@ private fun cachePrepareResponse(): OpenApiResponse =
             ),
     )
 
+private fun cacheExportResponse(): OpenApiResponse =
+    OpenApiResponse(
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "manifest" to OpenApiSchema(type = "string"),
+                            "archive" to OpenApiSchema(type = "string"),
+                            "included" to
+                                OpenApiSchema(
+                                    type = "array",
+                                    items = OpenApiSchema(type = "string"),
+                                ),
+                            "status" to OpenApiSchema(type = "string"),
+                        ),
+                    required = listOf("manifest", "archive", "included", "status"),
+                ),
+            ),
+    )
+
+private fun cacheCleanupResponse(): OpenApiResponse =
+    OpenApiResponse(
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "manifest" to OpenApiSchema(type = "string"),
+                            "deleted" to
+                                OpenApiSchema(
+                                    type = "array",
+                                    items = OpenApiSchema(type = "string"),
+                                ),
+                            "missing" to
+                                OpenApiSchema(
+                                    type = "array",
+                                    items = OpenApiSchema(type = "string"),
+                                ),
+                            "status" to OpenApiSchema(type = "string"),
+                        ),
+                    required = listOf("manifest", "deleted", "missing", "status"),
+                ),
+            ),
+    )
+
 private fun clientSchema(): OpenApiSchema =
     OpenApiSchema(
         type = "object",
@@ -703,6 +757,37 @@ private fun cachePrepareRequestBody(): OpenApiRequestBody =
                             "loaderVersion" to OpenApiSchema(type = "string", nullable = true),
                         ),
                     required = listOf("minecraftVersion", "loader"),
+                ),
+            ),
+    )
+
+private fun cacheExportRequestBody(): OpenApiRequestBody =
+    OpenApiRequestBody(
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "manifest" to OpenApiSchema(type = "string"),
+                            "archive" to OpenApiSchema(type = "string", nullable = true),
+                        ),
+                    required = listOf("manifest"),
+                ),
+            ),
+    )
+
+private fun cacheCleanupRequestBody(): OpenApiRequestBody =
+    OpenApiRequestBody(
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "manifest" to OpenApiSchema(type = "string"),
+                        ),
+                    required = listOf("manifest"),
                 ),
             ),
     )

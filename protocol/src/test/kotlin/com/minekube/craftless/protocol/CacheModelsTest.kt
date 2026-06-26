@@ -26,6 +26,31 @@ class CacheModelsTest {
     }
 
     @Test
+    fun `cache export and cleanup requests validate handles`() {
+        val export = CacheExportRequest(manifest = "cache/prepared/1.21.6-fabric.json")
+        val cleanup = CacheCleanupRequest(manifest = "cache/prepared/1.21.6-fabric.json")
+
+        assertEquals("cache/prepared/1.21.6-fabric.json", export.manifest)
+        assertEquals(null, export.archive)
+        assertEquals("cache/prepared/1.21.6-fabric.json", cleanup.manifest)
+        assertFailsWith<IllegalArgumentException> {
+            CacheExportRequest(manifest = "/tmp/prepared.json")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            CacheExportRequest(manifest = "../prepared.json")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            CacheExportRequest(
+                manifest = "cache/prepared/1.21.6-fabric.json",
+                archive = "exports/../prepared.zip",
+            )
+        }
+        assertFailsWith<IllegalArgumentException> {
+            CacheCleanupRequest(manifest = "")
+        }
+    }
+
+    @Test
     fun `cache prepare result uses craftless owned relative handles`() {
         val result = CachePrepareResult.forRequest(CachePrepareRequest("1.21.6", Loader.FABRIC))
 

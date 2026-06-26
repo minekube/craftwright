@@ -10,6 +10,8 @@ import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.ApiRouteCatalog
+import com.minekube.craftless.protocol.CacheCleanupRequest
+import com.minekube.craftless.protocol.CacheExportRequest
 import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.ClientState
@@ -88,6 +90,24 @@ class LocalSessionApiServer private constructor(
                     val preparer = cachePreparationService ?: error("cache workspace is not configured")
                     val request = json.decodeFromString<CachePrepareRequest>(call.receiveText())
                     call.respondJson(HttpStatusCode.OK, preparer.prepare(request))
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                }
+            }
+            post("/cache:export") {
+                runCatching {
+                    val preparer = cachePreparationService ?: error("cache workspace is not configured")
+                    val request = json.decodeFromString<CacheExportRequest>(call.receiveText())
+                    call.respondJson(HttpStatusCode.OK, preparer.export(request))
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                }
+            }
+            post("/cache:cleanup") {
+                runCatching {
+                    val preparer = cachePreparationService ?: error("cache workspace is not configured")
+                    val request = json.decodeFromString<CacheCleanupRequest>(call.receiveText())
+                    call.respondJson(HttpStatusCode.OK, preparer.cleanup(request))
                 }.getOrElse { error ->
                     call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
                 }

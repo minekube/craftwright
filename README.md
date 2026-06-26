@@ -141,6 +141,8 @@ Implemented now:
   Fabric loader profile libraries, and Minecraft asset objects into
   Craftless-owned workspace handles, including `launch.javaExecutable`,
   `launch.arguments`, and extracted native-path handles for launch.
+- Cache export and cleanup use prepared manifest handles to zip or remove only
+  Craftless-owned cache artifacts under the configured workspace.
 - Fabric/Loom driver module with internal version-aware bindings and
   gateway-backed runtime hooks for current action evidence.
 - Fabric-generated action descriptors for current chat, movement, player

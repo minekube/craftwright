@@ -8,6 +8,8 @@ import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverSession
+import com.minekube.craftless.protocol.CacheCleanupResult
+import com.minekube.craftless.protocol.CacheExportResult
 import com.minekube.craftless.protocol.CachePrepareResult
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
@@ -53,6 +55,8 @@ class CraftlessCliTest {
         assertTrue(commands.contains("clients <id> run <action>"))
         assertTrue(commands.contains("clients <id> <resource...> <action>"))
         assertTrue(commands.contains("cache prepare"))
+        assertTrue(commands.contains("cache export"))
+        assertTrue(commands.contains("cache cleanup"))
         assertTrue(commands.contains("server start"))
         assertTrue("clients api" !in commands)
         assertTrue("versions" !in commands)
@@ -272,6 +276,85 @@ class CraftlessCliTest {
         assertEquals("0.16.14", result.loaderVersion)
         assertEquals("cache/loaders/fabric/1.21.6/0.16.14", result.loaderRoot)
         assertTrue(Files.isRegularFile(workspace.resolve("cache/loaders/fabric/1.21.6/0.16.14/profile.json")))
+    }
+
+    @Test
+    fun `cache export and cleanup operate on a prepared manifest`() {
+        val prepareOutput = StringBuilder()
+        val exportOutput = StringBuilder()
+        val cleanupOutput = StringBuilder()
+        val workspace = Files.createTempDirectory("craftless-cli-cache-export")
+        val clientJarUrl = "https://metadata.test/client.jar"
+        val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+        val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
+        val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
+
+        val prepareExit =
+            CraftlessCli.run(
+                listOf(
+                    "cache",
+                    "prepare",
+                    "--mc",
+                    "1.21.6",
+                    "--loader",
+                    "fabric",
+                    "--workspace",
+                    workspace.toString(),
+                ),
+                stdout = { prepareOutput.appendLine(it) },
+                cacheMetadataFetcher =
+                    StaticCacheMetadataFetcher(
+                        mapOf(
+                            MINECRAFT_VERSION_INDEX_URL to
+                                """{"versions":[{"id":"1.21.6","url":"https://metadata.test/1.21.6.json"}]}""",
+                            "https://metadata.test/1.21.6.json" to
+                                """{"id":"1.21.6","assetIndex":{"id":"1.21.6","url":"$assetIndexUrl"},"downloads":{"client":{"url":"$clientJarUrl"}}}""",
+                            assetIndexUrl to """{"objects":{}}""",
+                            loaderVersionsUrl to """[{ "loader": { "version": "0.17.2", "stable": true } }]""",
+                            loaderProfileUrl to """{"id":"fabric-loader-0.17.2-1.21.6"}""",
+                        ),
+                        binaryResponses = mapOf(clientJarUrl to "client-jar".encodeToByteArray()),
+                    ),
+            )
+        val prepared = Json.decodeFromString<CachePrepareResult>(prepareOutput.toString().trim())
+
+        val exportExit =
+            CraftlessCli.run(
+                listOf(
+                    "cache",
+                    "export",
+                    "--manifest",
+                    prepared.manifest,
+                    "--archive",
+                    "exports/prepared-cache.zip",
+                    "--workspace",
+                    workspace.toString(),
+                ),
+                stdout = { exportOutput.appendLine(it) },
+            )
+
+        val cleanupExit =
+            CraftlessCli.run(
+                listOf(
+                    "cache",
+                    "cleanup",
+                    "--manifest",
+                    prepared.manifest,
+                    "--workspace",
+                    workspace.toString(),
+                ),
+                stdout = { cleanupOutput.appendLine(it) },
+            )
+
+        assertEquals(0, prepareExit)
+        assertEquals(0, exportExit)
+        assertEquals(0, cleanupExit)
+        val exported = Json.decodeFromString<CacheExportResult>(exportOutput.toString().trim())
+        val cleaned = Json.decodeFromString<CacheCleanupResult>(cleanupOutput.toString().trim())
+        assertEquals("exports/prepared-cache.zip", exported.archive)
+        assertTrue(Files.isRegularFile(workspace.resolve(exported.archive)))
+        assertTrue(cleaned.deleted.contains(prepared.manifest))
+        assertTrue(!Files.exists(workspace.resolve(prepared.manifest)))
     }
 
     @Test
