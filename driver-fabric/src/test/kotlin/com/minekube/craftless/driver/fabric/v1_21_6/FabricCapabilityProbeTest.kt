@@ -128,6 +128,46 @@ class FabricCapabilityProbeTest {
     }
 
     @Test
+    fun `registry summary probe emits generic registry handles from runtime metadata`() {
+        val graph =
+            defaultFabricCapabilityDiscovery(probes = listOf(FabricRegistrySummaryCapabilityProbe))
+                .discover(
+                    FabricCapabilityProbeContext(
+                        clientId = "alice",
+                        modeId = "real-client",
+                        gateway = null,
+                        runtimeMetadata =
+                            DriverRuntimeMetadata(
+                                driver = "craftless-driver-fabric",
+                                registryFingerprint = "registries:test",
+                            ),
+                    ),
+                )
+
+        val registry = graph.resources.single { it.id == "registry" }
+        val handles = graph.handles.associateBy { it.id }
+
+        assertEquals(RuntimeAvailabilityState.AVAILABLE, registry.availability.state)
+        assertEquals(listOf("registry"), registry.sourceEvidence.map { it.kind })
+        assertEquals("registries:test", registry.sourceEvidence.single().fingerprint)
+        assertEquals(
+            setOf(
+                "registry.block",
+                "registry.item",
+                "registry.entity",
+                "registry.screen",
+                "registry.effect",
+                "registry.event",
+            ),
+            handles.keys,
+        )
+        assertTrue(handles.values.all { handle -> handle.resource == "registry" })
+        assertTrue(handles.values.all { handle -> handle.schema.type == "object" })
+        assertTrue(handles.values.all { handle -> handle.sourceEvidence.single().kind == "registry" })
+        assertEquals(emptyList(), graph.operations)
+    }
+
+    @Test
     fun `client state probe queries gateway and emits availability graph nodes`() {
         val gateway =
             RecordingCapabilityGateway(

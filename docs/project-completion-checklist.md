@@ -84,7 +84,10 @@ Verification:
 
 - [~] Fabric probes fill graph nodes from loader/mod metadata, registries,
   callbacks, screens, handlers, world/entity/inventory/client state, and
-  permissions.
+  permissions. Current evidence covers runtime metadata evidence, generic
+  registry-family handles, client/world/player/inventory/entity/screen
+  availability nodes, handles, operation events, and private pathfinder probe
+  evidence; callback/event-source discovery remains incomplete.
 - [x] Minecraft client state access stays on the client thread.
 - [x] Probes emit private evidence and graph nodes, not public OpenAPI
   descriptors directly.

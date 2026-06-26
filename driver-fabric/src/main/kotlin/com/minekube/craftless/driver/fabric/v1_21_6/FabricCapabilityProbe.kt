@@ -50,6 +50,7 @@ internal fun defaultFabricCapabilityDiscovery(
 private fun defaultFabricCapabilityProbes(): List<FabricCapabilityProbe> =
     listOf(
         FabricRuntimeMetadataCapabilityProbe,
+        FabricRegistrySummaryCapabilityProbe,
         FabricClientStateCapabilityProbe,
         FabricNavigationDiscovery(),
     )
@@ -72,6 +73,32 @@ internal object FabricRuntimeMetadataCapabilityProbe : FabricCapabilityProbe {
                     ),
                 ),
         )
+}
+
+internal object FabricRegistrySummaryCapabilityProbe : FabricCapabilityProbe {
+    override fun discover(context: FabricCapabilityProbeContext): FabricCapabilityGraphFragment {
+        val registryEvidence = RuntimeSourceEvidence("registry", context.runtimeMetadata.registryFingerprint)
+        return FabricCapabilityGraphFragment(
+            resources =
+                listOf(
+                    RuntimeResourceNode(
+                        id = "registry",
+                        availability = RuntimeAvailability.available(),
+                        sourceEvidence = listOf(registryEvidence),
+                    ),
+                ),
+            handles =
+                registrySummaryHandles.map { id ->
+                    RuntimeHandleNode(
+                        id = "registry.$id",
+                        resource = "registry",
+                        schema = RuntimeSchema.objectSchema(),
+                        availability = RuntimeAvailability.available(),
+                        sourceEvidence = listOf(registryEvidence),
+                    )
+                },
+        )
+    }
 }
 
 internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
@@ -227,6 +254,16 @@ private fun FabricClientCapabilitySnapshot.entityAvailability(): RuntimeAvailabi
 private fun FabricClientCapabilitySnapshot.blockBreakAvailability(): RuntimeAvailability = availability(blockBreakReason())
 
 private fun FabricClientCapabilitySnapshot.blockInteractAvailability(): RuntimeAvailability = availability(blockInteractReason())
+
+private val registrySummaryHandles =
+    listOf(
+        "block",
+        "item",
+        "entity",
+        "screen",
+        "effect",
+        "event",
+    )
 
 private fun FabricClientCapabilitySnapshot.playerReason(): String? =
     when {

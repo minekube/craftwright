@@ -16,15 +16,15 @@
 - Create: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricCapabilityProbe.kt`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricCapabilityProbeTest.kt`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Assert probes compose graph fragments, reject duplicate node ids, and never output public OpenAPI descriptors directly.
 
-- [ ] **Step 2: Implement probe interfaces**
+- [x] **Step 2: Implement probe interfaces**
 
 Add `FabricCapabilityProbe`, `FabricCapabilityProbeContext`, and graph fragment composition.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `mise exec -- gradle :driver-fabric:test --tests com.minekube.craftless.driver.fabric.v1_21_6.FabricCapabilityProbeTest`
 
@@ -36,15 +36,15 @@ Expected: pass.
 - Modify: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricCapabilityProbe.kt`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricCapabilityProbeTest.kt`
 
-- [ ] **Step 1: Add failing tests for registry/client state graph nodes**
+- [x] **Step 1: Add failing tests for registry/client state graph nodes**
 
 Assert item/block/entity/screen-handler registry summaries, connected state, player/camera/world/interaction availability, and screen state are graph nodes or evidence inputs.
 
-- [ ] **Step 2: Implement probes using existing gateway boundaries**
+- [x] **Step 2: Implement probes using existing gateway boundaries**
 
 Use `queryOnClient` for Minecraft state and Fabric Loader/Registries for registry metadata.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `mise exec -- gradle :driver-fabric:test`
 
