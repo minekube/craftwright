@@ -21,8 +21,8 @@ Craftless currently has:
 - cache preparation that resolves Minecraft metadata, the selected client jar,
   Minecraft version libraries, Java runtime files, native classifier libraries,
   Fabric loader profile libraries, and Minecraft asset objects into
-  Craftless-owned workspace handles with launch classpath, native-path, and
-  Java-executable handles;
+  Craftless-owned workspace handles with launch classpath, native-path,
+  Java-executable, and launch-argument handles;
 - an adaptive JVM `craftless` CLI using Ktor Client;
 - a stable `DriverSession` contract with lifecycle primitives plus generic
   action discovery and invocation;

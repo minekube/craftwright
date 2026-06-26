@@ -117,6 +117,7 @@ data class CacheLaunchPlan(
     val classpath: List<String>,
     val nativePath: List<String> = emptyList(),
     val javaExecutable: String? = null,
+    val arguments: String? = null,
 ) {
     companion object {
         fun fromArtifacts(artifacts: List<CachePreparedArtifact>): CacheLaunchPlan =
@@ -145,6 +146,11 @@ data class CacheLaunchPlan(
                         .singleOrNull { artifact ->
                             artifact.kind == CachePreparedArtifactKind.JAVA_RUNTIME_EXECUTABLE
                         }?.handle,
+                arguments =
+                    artifacts
+                        .singleOrNull { artifact ->
+                            artifact.kind == CachePreparedArtifactKind.LAUNCH_ARGUMENTS
+                        }?.handle,
             )
     }
 }
@@ -163,6 +169,7 @@ enum class CachePreparedArtifactKind {
     MINECRAFT_LIBRARY,
     MINECRAFT_NATIVE_LIBRARY,
     MINECRAFT_NATIVE_DIRECTORY,
+    LAUNCH_ARGUMENTS,
     FABRIC_LOADER_VERSIONS,
     FABRIC_LOADER_PROFILE,
     FABRIC_LIBRARY,

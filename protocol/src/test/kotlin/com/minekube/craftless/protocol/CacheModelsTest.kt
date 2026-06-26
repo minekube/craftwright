@@ -41,6 +41,7 @@ class CacheModelsTest {
             result.launch.classpath,
         )
         assertEquals(null, result.launch.javaExecutable)
+        assertEquals(null, result.launch.arguments)
         assertEquals(
             listOf(
                 CachePreparedArtifact(

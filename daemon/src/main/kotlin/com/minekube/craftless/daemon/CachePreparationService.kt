@@ -17,13 +17,16 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.ByteArrayInputStream
+import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -50,6 +53,11 @@ class CachePreparationService(
         val fabricMetadata = resolveFabricMetadata(request)
         val fabricLibraries = fabricMetadata?.profile?.fabricLibraries().orEmpty()
         val baseResult = CachePrepareResult.forRequest(request, fabricMetadata?.loaderVersion)
+        val launchArgumentsArtifact =
+            baseResult.launchArgumentsArtifact(
+                versionManifest = versionManifest,
+                fabricProfile = fabricMetadata?.profile,
+            )
         val resolvedBaseArtifacts =
             baseResult.artifacts
                 .map { artifact ->
@@ -70,6 +78,7 @@ class CachePreparationService(
         val artifacts =
             coreArtifacts +
                 javaRuntime?.artifacts.orEmpty() +
+                listOfNotNull(launchArgumentsArtifact) +
                 minecraftLibraries.map { it.artifact } +
                 minecraftNativeLibraries.flatMap { native -> listOf(native.libraryArtifact, native.directoryArtifact) } +
                 loaderMetadataArtifacts +
@@ -136,6 +145,15 @@ class CachePreparationService(
         }
         fabricLibraries.forEach { library ->
             writeBytesArtifact(library.artifact, metadataFetcher.fetchBytes(library.source))
+        }
+        launchArgumentsArtifact?.let { artifact ->
+            writeTextArtifact(
+                artifact,
+                result.launchArgumentsJson(
+                    versionManifest = versionManifest,
+                    fabricProfile = fabricMetadata?.profile,
+                ),
+            )
         }
         val manifest = resolveHandle(result.manifest)
         Files.createDirectories(manifest.parent)
@@ -253,6 +271,14 @@ private data class JavaRuntimeCacheMetadata(
     val artifacts: List<CachePreparedArtifact> = listOf(indexArtifact, manifestArtifact) + files.map { it.artifact }
 }
 
+@Serializable
+private data class CacheLaunchArgumentsFile(
+    val schemaVersion: Int = 1,
+    val mainClass: String,
+    val jvm: List<String>,
+    val game: List<String>,
+)
+
 interface CacheMetadataFetcher {
     suspend fun fetchText(url: String): String
 
@@ -351,6 +377,95 @@ private data class FabricLoaderVersion(
     val version: String,
     val stable: Boolean,
 )
+
+private fun CachePrepareResult.launchArgumentsArtifact(
+    versionManifest: String,
+    fabricProfile: String?,
+): CachePreparedArtifact? {
+    val hasLaunchMainClass = fabricProfile?.launchMainClass() != null || versionManifest.launchMainClass() != null
+    if (!hasLaunchMainClass) return null
+    return CachePreparedArtifact(
+        kind = CachePreparedArtifactKind.LAUNCH_ARGUMENTS,
+        handle = manifest.removeSuffix(".json") + ".launch.json",
+        status = CachePreparedArtifactStatus.INDEXED,
+    )
+}
+
+private fun CachePrepareResult.launchArgumentsJson(
+    versionManifest: String,
+    fabricProfile: String?,
+): String {
+    val variables =
+        mapOf(
+            "assets_root" to "cache/assets",
+            "classpath" to launch.classpath.joinToString(File.pathSeparator),
+            "game_directory" to "{{gameRoot}}",
+            "natives_directory" to launch.nativePath.joinToString(File.pathSeparator),
+            "version_name" to minecraftVersion,
+        )
+    val mainClass =
+        fabricProfile?.launchMainClass()
+            ?: versionManifest.launchMainClass()
+            ?: error("cache preparation needs a launch main class")
+    val jvm =
+        versionManifest
+            .launchArgumentValues("jvm")
+            .map { argument -> argument.resolveLaunchVariables(variables) }
+    val game =
+        (
+            versionManifest.launchArgumentValues("game") +
+                fabricProfile.launchArgumentValuesOrEmpty("game")
+        ).map { argument -> argument.resolveLaunchVariables(variables) }
+    return Json.encodeToString(
+        CacheLaunchArgumentsFile(
+            mainClass = mainClass,
+            jvm = jvm,
+            game = game,
+        ),
+    ) + "\n"
+}
+
+private fun String?.launchArgumentValuesOrEmpty(section: String): List<String> = this?.launchArgumentValues(section).orEmpty()
+
+private fun String.launchMainClass(): String? =
+    Json
+        .parseToJsonElement(this)
+        .jsonObject["mainClass"]
+        ?.jsonPrimitive
+        ?.content
+
+private fun String.launchArgumentValues(section: String): List<String> =
+    Json
+        .parseToJsonElement(this)
+        .jsonObject["arguments"]
+        ?.jsonObject
+        ?.get(section)
+        ?.jsonArray
+        .orEmpty()
+        .flatMap { argument -> argument.launchArgumentValues() }
+
+private fun JsonElement.launchArgumentValues(): List<String> {
+    jsonPrimitiveOrNull()?.content?.let { return listOf(it) }
+    val item = jsonObject
+    if (item["rules"]?.jsonArray.orEmpty().any { rule -> rule.jsonObject["action"]?.jsonPrimitive?.content == "disallow" }) {
+        return emptyList()
+    }
+    val value = item["value"] ?: return emptyList()
+    value.jsonPrimitiveOrNull()?.content?.let { return listOf(it) }
+    return value.jsonArray.map { element -> element.jsonPrimitive.content }
+}
+
+private fun JsonElement.jsonPrimitiveOrNull() =
+    runCatching {
+        jsonPrimitive
+    }.getOrNull()
+
+private fun String.resolveLaunchVariables(variables: Map<String, String>): String =
+    LAUNCH_VARIABLE_PATTERN.replace(this) { match ->
+        variables[match.groupValues[1]] ?: "{{${match.groupValues[1]}}}"
+    }
+
+private val LAUNCH_VARIABLE_PATTERN = Regex("""\$\{([^}]+)}""")
 
 private fun String.javaRuntimeComponent(): String? =
     Json

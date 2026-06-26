@@ -244,8 +244,12 @@ Verification:
   selected runtime component manifest, downloads runtime files into
   Craftless-owned handles, and exposes the Java executable through
   `launch.javaExecutable`.
-- [x] Cache preparation emits ordered launch classpath, native-path, and
-  Java-executable handles made only of Craftless-owned artifact handles.
+- [x] Cache preparation assembles JVM/game launch arguments from resolved
+  version/profile metadata into an internal Craftless-owned artifact and
+  exposes it through `launch.arguments`.
+- [x] Cache preparation emits ordered launch classpath, native-path,
+  Java-executable, and launch-argument handles made only of Craftless-owned
+  artifact handles.
 - [x] Cache preparation resolves the Minecraft asset index and downloads listed
   asset objects into opaque Craftless-owned cache handles.
 - [x] Prism Launcher source was cloned under `/tmp/prismlauncher-source` for
@@ -257,8 +261,8 @@ Verification:
   Minecraft client jar, Minecraft version libraries, Fabric profile libraries,
   native libraries, Java runtime files, and Minecraft asset objects
   materialized into the workspace plus ordered launch classpath, native-path,
-  and Java-executable handles; JVM/game argument assembly and explicit
-  cleanup/export flows are still roadmap.
+  Java-executable, and launch-argument handles; explicit cleanup/export flows
+  are still roadmap.
 - [x] Public APIs expose Craftless-owned file handles only.
 
 Verification:

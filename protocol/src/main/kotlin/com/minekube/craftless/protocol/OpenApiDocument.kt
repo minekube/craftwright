@@ -617,8 +617,9 @@ private fun cachePrepareResponse(): OpenApiResponse =
                                                     items = OpenApiSchema(type = "string"),
                                                 ),
                                             "javaExecutable" to OpenApiSchema(type = "string", nullable = true),
+                                            "arguments" to OpenApiSchema(type = "string", nullable = true),
                                         ),
-                                    required = listOf("classpath", "nativePath", "javaExecutable"),
+                                    required = listOf("classpath", "nativePath", "javaExecutable", "arguments"),
                                 ),
                         ),
                     required =
