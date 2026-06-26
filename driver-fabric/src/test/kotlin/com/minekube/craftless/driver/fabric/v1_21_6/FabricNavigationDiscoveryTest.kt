@@ -3,7 +3,14 @@ package com.minekube.craftless.driver.fabric.v1_21_6
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverSession
+import com.minekube.craftless.protocol.NavigationGoal
+import com.minekube.craftless.protocol.NavigationProgressEvent
+import com.minekube.craftless.protocol.NavigationTaskState
+import com.minekube.craftless.protocol.NavigationTaskStatus
 import com.minekube.craftless.protocol.RuntimeAvailabilityState
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -91,6 +98,52 @@ class FabricNavigationDiscoveryTest {
         assertFalse("mine" in driverMethodNames)
         assertFalse("killCow" in driverMethodNames)
     }
+
+    @Test
+    fun `fabric backend navigation adapters invoke pathfinder backend generically`() {
+        val pathfinder = AcceptingPathfinderBackend()
+        val backend = FabricDriverBackend.metadataOnly(pathfinderBackend = pathfinder)
+        val adapters = backend.operationAdapters("alice")
+        val operations = backend.runtimeGraph("alice").operations.associateBy { it.id }
+        val goal =
+            NavigationGoal(
+                kind = "block",
+                position = mapOf("x" to 1.0, "y" to 64.0, "z" to 1.0),
+            )
+
+        val planResult =
+            adapters.invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = operations.getValue("navigation.plan"),
+                    arguments = mapOf("goal" to Json.encodeToJsonElement(NavigationGoal.serializer(), goal)),
+                ),
+            )
+        val followResult =
+            adapters.invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = operations.getValue("navigation.follow"),
+                    arguments = mapOf("plan" to JsonPrimitive("navigation.plan.accepting.0001")),
+                ),
+            )
+        val stopResult =
+            adapters.invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = operations.getValue("navigation.stop"),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.ACCEPTED, planResult.status)
+        assertEquals("navigation.plan", planResult.action)
+        assertEquals("navigation.plan.accepting.0001", planResult.data["plan-id"]?.jsonPrimitive?.content)
+        assertEquals(DriverActionStatus.ACCEPTED, followResult.status)
+        assertEquals("running", followResult.data["state"]?.jsonPrimitive?.content)
+        assertEquals(DriverActionStatus.ACCEPTED, stopResult.status)
+        assertEquals("cancelled", stopResult.data["state"]?.jsonPrimitive?.content)
+        assertEquals(listOf("plan", "follow:navigation.plan.accepting.0001", "stop"), pathfinder.calls)
+    }
 }
 
 private fun navigationContext(): FabricCapabilityProbeContext =
@@ -99,3 +152,44 @@ private fun navigationContext(): FabricCapabilityProbeContext =
         modeId = "real-client",
         gateway = null,
     )
+
+private class AcceptingPathfinderBackend : FabricPathfinderBackend {
+    val calls = mutableListOf<String>()
+
+    override fun available(): Boolean = true
+
+    override fun plan(goal: NavigationGoal): FabricPathfinderPlan {
+        calls += "plan"
+        val status =
+            NavigationTaskStatus(
+                id = "task:navigation:accepting",
+                state = NavigationTaskState.PENDING,
+                message = "planned",
+            )
+        return FabricPathfinderPlan(
+            id = "navigation.plan.accepting.0001",
+            goal = goal,
+            status = status,
+        )
+    }
+
+    override fun follow(planId: String): NavigationTaskStatus {
+        calls += "follow:$planId"
+        return NavigationTaskStatus(
+            id = "task:navigation:accepting",
+            state = NavigationTaskState.RUNNING,
+            message = "following",
+        )
+    }
+
+    override fun stop(): NavigationTaskStatus {
+        calls += "stop"
+        return NavigationTaskStatus(
+            id = "task:navigation:accepting",
+            state = NavigationTaskState.CANCELLED,
+            message = "stopped",
+        )
+    }
+
+    override fun events(): List<NavigationProgressEvent> = emptyList()
+}

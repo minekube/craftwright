@@ -57,14 +57,14 @@ Run the focused test again. Expected: PASS.
 - Modify: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricNavigationDiscoveryTest.kt`
 
-- [ ] **Step 1: Write failing adapter invocation tests**
+- [x] **Step 1: Write failing adapter invocation tests**
 
 Create a backend with a recording pathfinder and invoke `navigation.plan`,
 `navigation.follow`, and `navigation.stop` through `operationAdapters()`.
 Assert the results are `ACCEPTED`, action ids are the graph operation ids, and
 no `DriverSession` method named `goto`, `mine`, or `killCow` exists.
 
-- [ ] **Step 2: Run focused test and verify RED**
+- [x] **Step 2: Run focused test and verify RED**
 
 Run:
 
@@ -75,14 +75,14 @@ mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.f
 Expected: FAIL until adapters call the pathfinder backend instead of the
 unsupported placeholder.
 
-- [ ] **Step 3: Wire adapters**
+- [x] **Step 3: Wire adapters**
 
 Inject `FabricPathfinderBackend` into `FabricDriverBackend`. Keep the default
 backend unavailable unless runtime probing proves executable support. Make
 `navigation.plan`, `navigation.follow`, and `navigation.stop` return
 `DriverActionResult` values with task/plan data.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run the focused test again. Expected: PASS.
 
