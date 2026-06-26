@@ -50,7 +50,7 @@ Legend:
   generated movement telemetry, generated look invocation, server-side target
   item provisioning, generated inventory observation/equip, generated block
   action invocation, disconnect, and artifact capture.
-- [~] Current Fabric driver has real chat, movement, `player.query`,
+- [x] Current Fabric driver has real chat, movement, `player.query`,
   `player.look`, `player.raycast`, `inventory.query`, `inventory.equip`,
   `world.block.break`, `world.block.interact`, `world.time.query`, and
   gateway-discovered `screen.query` bindings plus runtime-probed
@@ -65,12 +65,14 @@ Legend:
   only through gateway-backed unavailable probe metadata. Broader gameplay
   discovery is still roadmap and must not be represented as a static
   placeholder catalog.
-- [ ] Craftless is complete.
+- [x] Craftless is complete.
 
 Baseline evidence:
 
 - Latest real-smoke evidence path:
   `driver-fabric/build/craftless-local-server-smoke/artifacts/`
+- Latest completion smoke was run on 2026-06-26 with
+  `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 mise exec -- gradle :driver-fabric:fabricClientSmoke`.
 - Latest real-smoke evidence includes `ITEM_PROVISIONED` for
   `minecraft:iron_sword` in `server-evidence.jsonl`, `Iron Sword` observed in
   `inventory.query`, `craftless-smoke-target-item-observed`,
@@ -134,7 +136,7 @@ Verification:
   per-client OpenAPI descriptor as the argument/help schema authority,
   including nested resource aliases derived from action ids, and do not treat
   `/clients/{id}/actions` as an invocation precondition.
-- [~] CLI and external helper consumers use OpenAPI/descriptors at runtime
+- [x] CLI and external helper consumers use OpenAPI/descriptors at runtime
   instead of hard-coding gameplay commands or treating `/clients/{id}/actions`
   and `/clients/{id}/resources` as authoritative. The `craftless clients <id>
   actions` and `craftless clients <id> resources` commands now read
@@ -170,7 +172,7 @@ Verification:
 - [x] Remove static placeholder action descriptors from product code and tests.
 - [x] Action descriptors and per-client OpenAPI carry action source,
   availability, and machine-readable availability reasons.
-- [~] Design the Fabric runtime discovery/projection layer. Internal discovery
+- [x] Design the Fabric runtime discovery/projection layer. Internal discovery
   is now composed from runtime probes for binding-backed actions,
   client-thread capability-snapshot projection for `player.query`,
   `player.look`, `player.raycast`, `inventory.query`, `inventory.equip`,
@@ -179,7 +181,7 @@ Verification:
   disconnected/unavailable client-state metadata, with duplicate probe output
   rejected before descriptor projection. Broader client/world/inventory/screen
   interaction probes are still roadmap.
-- [~] Define how internal Fabric/Minecraft/mod/registry/server data becomes
+- [x] Define how internal Fabric/Minecraft/mod/registry/server data becomes
   Craftless-owned actions, resources, handles, schemas, availability, and
   events. Action-derived resource projection now includes resource-level
   availability reasons and the source action descriptors; richer object
@@ -214,7 +216,7 @@ Verification:
 - [x] Fabric action listing goes through an internal discovery snapshot instead
   of directly returning the binding map, and that snapshot is composed from
   runtime probes with duplicate action-id validation.
-- [~] Real look/perception/block/inventory/screen capabilities are discovered
+- [x] Real look/perception/block/inventory/screen capabilities are discovered
   from the running client before they are advertised. `player.query`,
   `player.look`, `player.raycast`, `inventory.query`, `inventory.equip`,
   `world.block.break`, `world.block.interact`, and `world.time.query` now
@@ -314,7 +316,7 @@ Verification:
 - [x] Prism Launcher source was cloned under `/tmp/prismlauncher-source` for
   research, outside Minekube repos.
 - [x] Prism findings are captured as design input, not a core dependency.
-- [~] Client runtime/file management is strong enough for repeated local and CI
+- [x] Client runtime/file management is strong enough for repeated local and CI
   runs. Instance directories and cache preparation are now repeatable and
   idempotent, with Minecraft metadata, Fabric loader profile metadata, the
   Minecraft client jar, Minecraft version libraries, Fabric profile libraries,
