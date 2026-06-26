@@ -14,6 +14,7 @@ import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.Profile
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -45,6 +46,7 @@ data class FabricClientSmokeController(
     val equipItemName: String = "Iron Sword",
     val requireEquipItem: Boolean = false,
     val connectTimeout: Duration = 30_000.milliseconds,
+    val actionTimeout: Duration = 30_000.milliseconds,
     val startupSettleDelay: Duration = 0.milliseconds,
     val holdAfterActions: Duration = 0.milliseconds,
     val artifactsDir: Path? = null,
@@ -53,6 +55,7 @@ data class FabricClientSmokeController(
     init {
         require(!startupSettleDelay.isNegative()) { "fabric smoke startup settle delay must not be negative" }
         require(!holdAfterActions.isNegative()) { "fabric smoke hold after actions delay must not be negative" }
+        require(actionTimeout.isPositive()) { "fabric smoke action timeout must be positive" }
     }
 
     fun start(
@@ -88,7 +91,13 @@ data class FabricClientSmokeController(
                     },
             ).use { api ->
                 api.start()
-                HttpClient(CIO).use { http ->
+                HttpClient(CIO) {
+                    install(HttpTimeout) {
+                        requestTimeoutMillis = actionTimeout.inWholeMilliseconds
+                        connectTimeoutMillis = connectTimeout.inWholeMilliseconds
+                        socketTimeoutMillis = actionTimeout.inWholeMilliseconds
+                    }
+                }.use { http ->
                     http.postJson(
                         api.url("/clients"),
                         CreateClientRequest(
@@ -246,7 +255,21 @@ data class FabricClientSmokeController(
                                             args = mapOf("task" to JsonPrimitive(taskId)),
                                         )
                                     }
-                                listOfNotNull(survivalTaskRunResult, survivalTaskStatusResult)
+                                val postSurvivalInventoryResult =
+                                    survivalTaskStatusResult?.let {
+                                        http.runAvailableAction(
+                                            api = api,
+                                            clientId = SMOKE_CLIENT_ID,
+                                            openApi = connectedOpenApi,
+                                            action = "inventory.query",
+                                        )
+                                    }
+                                listOfNotNull(
+                                    survivalTaskRunResult,
+                                    survivalTaskStatusResult,
+                                    """{"event":"craftless-smoke-post-survival-inventory","message":"queried inventory after survival task"}""",
+                                    postSurvivalInventoryResult,
+                                )
                             } else {
                                 emptyList()
                             }
@@ -259,7 +282,7 @@ data class FabricClientSmokeController(
                             } else {
                                 """{"event":"craftless-smoke-inventory-select","message":"selected slot $equipSlot for $equipItemName"}"""
                             }
-                        val smokeResults =
+                        val generatedGameplayResults =
                             listOfNotNull(
                                 chatResult,
                                 moveResult,
@@ -276,7 +299,16 @@ data class FabricClientSmokeController(
                                 lookResult,
                                 blockBreakResult,
                                 blockInteractResult,
-                            ) + survivalTaskResults
+                            )
+                        writeLinesArtifact(
+                            "public-agent-gameplay-results.jsonl",
+                            publicAgentGameplayResults(generatedGameplayResults),
+                        )
+                        writeLinesArtifact(
+                            "public-agent-state.jsonl",
+                            publicAgentStateResults(connectedOpenApi),
+                        )
+                        val smokeResults = generatedGameplayResults + survivalTaskResults
                         writeLinesArtifact("gameplay-results.jsonl", smokeResults)
                     }
                     val events = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/events"))
@@ -327,6 +359,7 @@ data class FabricClientSmokeController(
         private const val EQUIP_ITEM = "CRAFTLESS_FABRIC_SMOKE_EQUIP_ITEM"
         private const val REQUIRE_EQUIP_ITEM = "CRAFTLESS_FABRIC_SMOKE_REQUIRE_EQUIP_ITEM"
         private const val CONNECT_TIMEOUT = "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS"
+        private const val ACTION_TIMEOUT = "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS"
         private const val STARTUP_SETTLE = "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS"
         private const val HOLD_AFTER_ACTIONS = "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS"
         private const val ARTIFACTS_DIR = "CRAFTLESS_SMOKE_ARTIFACTS_DIR"
@@ -349,6 +382,7 @@ data class FabricClientSmokeController(
                 equipItemName = env[EQUIP_ITEM]?.takeIf { it.isNotBlank() } ?: "Iron Sword",
                 requireEquipItem = env.isEnabled(REQUIRE_EQUIP_ITEM),
                 connectTimeout = (env[CONNECT_TIMEOUT]?.toLongStrict(CONNECT_TIMEOUT) ?: 30_000).milliseconds,
+                actionTimeout = (env[ACTION_TIMEOUT]?.toLongStrict(ACTION_TIMEOUT) ?: 30_000).milliseconds,
                 startupSettleDelay = (env[STARTUP_SETTLE]?.toLongStrict(STARTUP_SETTLE) ?: 0).milliseconds,
                 holdAfterActions = (env[HOLD_AFTER_ACTIONS]?.toLongStrict(HOLD_AFTER_ACTIONS) ?: 0).milliseconds,
                 artifactsDir = env[ARTIFACTS_DIR]?.takeIf { it.isNotBlank() }?.let(Path::of),
@@ -451,6 +485,35 @@ internal fun String.smokeResourceArtifactFromOpenApi(): String =
             .resources,
     )
 
+private fun publicAgentGameplayResults(generatedGameplayResults: List<String>): List<String> =
+    listOf(
+        """{"event":"public-agent-gameplay","message":"invoked generated Craftless actions through POST /clients/{id}:run"}""",
+    ) +
+        generatedGameplayResults.filterNot { result ->
+            result.contains("task.survival") ||
+                result.contains("\"action\":\"task.run\"") ||
+                result.contains("\"action\":\"task.status\"")
+        }
+
+private fun publicAgentStateResults(openApi: String): List<String> {
+    val availableActions =
+        smokeJson
+            .decodeFromString<OpenApiDocument>(openApi)
+            .actions
+            .filter { action -> action.availability == OpenApiActionAvailability.AVAILABLE }
+            .map { action -> action.id }
+            .toSet()
+    val missing = PUBLIC_AGENT_REQUIRED_ACTIONS.filter { action -> action !in availableActions }
+    val availableActionIds = smokeJson.encodeToString(availableActions.sorted())
+    val missingActionIds = smokeJson.encodeToString(missing)
+    return listOf(
+        """{"event":"public-agent-discovery","message":"fetched live per-client OpenAPI and action projection",""" +
+            """"available-actions":$availableActionIds}""",
+        """{"event":"public-agent-missing-generic-primitive-check","message":"validated public-agent primitive set",""" +
+            """"missing-generic-primitives":$missingActionIds}""",
+    )
+}
+
 private fun String.findHotbarSlotForItem(itemName: String): Int? =
     inventorySlots()
         .firstOrNull { slot ->
@@ -502,6 +565,17 @@ private val smokeJson =
         encodeDefaults = true
         ignoreUnknownKeys = true
     }
+
+private val PUBLIC_AGENT_REQUIRED_ACTIONS =
+    listOf(
+        "entity.query",
+        "inventory.query",
+        "navigation.plan",
+        "navigation.follow",
+        "player.look",
+        "player.raycast",
+        "world.block.break",
+    )
 
 private fun FabricClientGateway.awaitConnected(
     timeout: Duration,

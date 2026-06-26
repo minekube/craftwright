@@ -33,6 +33,13 @@ The old provisioned-item smoke is diagnostic only. It must not be used as final
 completion evidence. The final run must start with empty or ordinary survival
 inventory and obtain equipment through normal gameplay.
 
+The internal survival task harness is also diagnostic. It may expose missing
+driver primitives, but it is not the durable product API and must not be the
+only completion proof. Final completion requires an external agent-style run
+that fetches the live per-client OpenAPI/actions/resources, subscribes to
+events, and composes gameplay through generated Craftless actions/handles and
+documented agent skills.
+
 Default evidence path:
 
 ```text
@@ -49,6 +56,9 @@ Required artifacts:
 - `client-events.jsonl`
 - `client-events-stream.sse`
 - `gameplay-results.jsonl`
+- `public-agent-gameplay-results.jsonl`
+- `public-agent-state.jsonl`
+- `survival-task-results.jsonl`
 - `runtime-metadata.json`
 
 ## Invite Robin
@@ -75,6 +85,9 @@ Do not call `update_goal(status = "complete")` until all of these are true:
 - Final gameplay artifacts exist in the evidence path.
 - The gameplay did not bypass the runtime graph with a new static public action
   surface.
+- The survival scenario is reproducible by an external agent or adaptive CLI
+  flow using generated OpenAPI/SSE/JSON-RPC metadata, not only by an internal
+  hard-coded `task.survival.*` scenario.
 - No item was granted through a server command, pre-seeded inventory, or manual
   operator intervention for Craftless.
 - Craftless obtained materials, crafted or otherwise legitimately obtained a

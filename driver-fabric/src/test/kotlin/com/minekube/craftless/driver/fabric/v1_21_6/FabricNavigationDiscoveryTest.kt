@@ -216,6 +216,55 @@ class FabricNavigationDiscoveryTest {
         assertEquals("task.status", statusResult.action)
         assertEquals("task:survival:honest-cow-hunt:0001", statusResult.data["task-id"]?.jsonPrimitive?.content)
     }
+
+    @Test
+    fun `fabric backend task adapters report runtime task failure without marking action unsupported`() {
+        val survival =
+            RecordingSurvivalExecutor(
+                observations =
+                    StaticSurvivalObservationProvider(
+                        FabricSurvivalObservation(
+                            materialSources = emptyList(),
+                            passiveEntities =
+                                listOf(
+                                    FabricSurvivalEntity(
+                                        handle = "resource:survival:entity:cow:0001",
+                                        kind = "cow",
+                                        position = FabricSurvivalBlockPosition(x = 4, y = 64, z = 4),
+                                    ),
+                                ),
+                            inventory = FabricSurvivalInventory(hasWeapon = false),
+                        ),
+                    ),
+                nextTaskId = { "task:survival:honest-cow-hunt:0001" },
+            )
+        val backend = FabricDriverBackend.metadataOnly(survivalTaskExecutor = survival)
+        val adapters = backend.operationAdapters("alice")
+        val operation =
+            backend
+                .runtimeGraph("alice")
+                .operations
+                .associateBy { it.id }
+                .getValue("task.run")
+        val request = NavigationTaskRequest(task = "task.survival.honest-cow-hunt")
+
+        val result =
+            adapters.invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = operation,
+                    arguments =
+                        mapOf(
+                            "request" to Json.encodeToJsonElement(NavigationTaskRequest.serializer(), request),
+                        ),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.FAILED, result.status)
+        assertEquals("task.run", result.action)
+        assertEquals("no-material-source", result.message)
+        assertEquals("failed", result.data["state"]?.jsonPrimitive?.content)
+    }
 }
 
 private fun navigationContext(): FabricCapabilityProbeContext =

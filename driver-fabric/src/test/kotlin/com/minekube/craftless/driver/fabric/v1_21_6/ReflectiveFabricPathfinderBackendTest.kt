@@ -43,12 +43,32 @@ class ReflectiveFabricPathfinderBackendTest {
 
         assertEquals("navigation.plan.reflective.0001", plan.id)
         assertEquals(NavigationTaskState.PENDING, plan.status.state)
-        assertEquals(NavigationTaskState.RUNNING, follow.state)
+        assertEquals(NavigationTaskState.SUCCEEDED, follow.state)
         assertEquals(NavigationTaskState.CANCELLED, stop.state)
         assertEquals(listOf("goal:10:65:-4", "start:goal:10:65:-4", "stop"), probe.calls)
         assertFalse(publicEvidence.contains("baritone", ignoreCase = true))
         assertFalse(publicEvidence.contains("swarmbot", ignoreCase = true))
         assertFalse(publicEvidence.contains("net.minecraft", ignoreCase = true))
+    }
+
+    @Test
+    fun `reflection backend fails follow when path completion cannot be observed`() {
+        val backend =
+            ReflectiveFabricPathfinderBackend(
+                probe = RecordingPathfinderProbe(pathingActive = null),
+                nextPlanId = { "navigation.plan.reflective.0001" },
+            )
+        val goal =
+            NavigationGoal(
+                kind = "block",
+                position = mapOf("x" to 10.0, "y" to 65.0, "z" to -4.0),
+            )
+
+        val plan = backend.plan(goal)
+        val follow = backend.follow(plan.id)
+
+        assertEquals(NavigationTaskState.FAILED, follow.state)
+        assertEquals("navigation-completion-unobservable", follow.message)
     }
 
     @Test
@@ -85,6 +105,7 @@ private data class RecordingPathfinderProbe(
     val stopNavigation: ((Any) -> Unit)? = {
         calls += "stop"
     },
+    val pathingActive: (() -> Boolean)? = alternatingPathingState(),
 ) : ReflectiveFabricPathfinderProbe {
     override fun inspect(): ReflectiveFabricPathfinderHandles =
         ReflectiveFabricPathfinderHandles(
@@ -94,5 +115,14 @@ private data class RecordingPathfinderProbe(
             goalFactory = goalFactory,
             startGoal = startGoal,
             stopNavigation = stopNavigation,
+            pathingActive = pathingActive,
         )
+}
+
+private fun alternatingPathingState(): () -> Boolean {
+    var calls = 0
+    return {
+        calls += 1
+        calls == 1
+    }
 }

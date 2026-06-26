@@ -324,6 +324,8 @@ class FabricDriverModuleTest {
         assertTrue(plan.artifacts.contains("client-resources-connected.json"))
         assertTrue(plan.artifacts.contains("client-events.jsonl"))
         assertTrue(plan.artifacts.contains("gameplay-results.jsonl"))
+        assertTrue(plan.artifacts.contains("public-agent-gameplay-results.jsonl"))
+        assertTrue(plan.artifacts.contains("public-agent-state.jsonl"))
         assertTrue(plan.artifacts.contains("survival-task-results.jsonl"))
         assertTrue(plan.artifacts.contains("server-evidence.jsonl"))
         assertTrue(plan.completionGates.any { it.contains("Robin", ignoreCase = true) && it.contains("Minecraft chat", ignoreCase = true) })
@@ -1234,11 +1236,13 @@ class FabricDriverModuleTest {
                 mapOf(
                     "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
                     "CRAFTLESS_FINAL_GAMEPLAY" to "1",
+                    "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS" to "720000",
                     "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS" to "60000",
                 ),
             )
 
         assertEquals(60_000.milliseconds, controller.holdAfterActions)
+        assertEquals(720_000.milliseconds, controller.actionTimeout)
         assertTrue(controller.runSurvivalTask)
     }
 
@@ -1406,6 +1410,13 @@ class FabricDriverModuleTest {
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("Iron Sword"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("world.block.break"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("world.block.interact"))
+        val publicAgentGameplay = Files.readString(artifactsDir.resolve("public-agent-gameplay-results.jsonl"))
+        assertTrue(publicAgentGameplay.contains("entity.query"))
+        assertTrue(publicAgentGameplay.contains("world.block.break"))
+        assertFalse(publicAgentGameplay.contains("task.survival"))
+        val publicAgentState = Files.readString(artifactsDir.resolve("public-agent-state.jsonl"))
+        assertTrue(publicAgentState.contains("public-agent-discovery"))
+        assertTrue(publicAgentState.contains("missing-generic-primitive"))
         assertTrue(Files.readString(artifactsDir.resolve("runtime-metadata.json")).contains("craftless-driver-fabric"))
         assertTrue(Files.readString(artifactsDir.resolve("client-events.jsonl")).contains("hello from fabric smoke"))
         assertTrue(Files.readString(artifactsDir.resolve("client-events.jsonl")).contains("player.move"))

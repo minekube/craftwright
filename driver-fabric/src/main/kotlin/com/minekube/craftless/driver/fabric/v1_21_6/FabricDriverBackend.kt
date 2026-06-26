@@ -468,7 +468,7 @@ private fun String.toDriverActionStatus(): DriverActionStatus =
         NavigationTaskState.SUCCEEDED,
         -> DriverActionStatus.ACCEPTED
         NavigationTaskState.CANCELLED -> DriverActionStatus.ACCEPTED
-        NavigationTaskState.FAILED -> DriverActionStatus.UNSUPPORTED
+        NavigationTaskState.FAILED -> DriverActionStatus.FAILED
         else -> DriverActionStatus.FAILED
     }
 

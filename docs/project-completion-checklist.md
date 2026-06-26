@@ -53,6 +53,12 @@ Legend:
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-09-pathfinder-backed-execution-plan.md`.
 - [x] Spec exists: `docs/superpowers/specs/2026-06-26-10-survival-task-execution-design.md`.
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-10-survival-task-execution-plan.md`.
+- [x] Spec exists for the public-agent final gameplay path: generated
+  OpenAPI + SSE/JSON-RPC + adaptive CLI + agent skill compose the survival
+  scenario outside the driver, without adding `task.survival.*` as durable
+  product API.
+- [x] Plan exists for the public-agent final gameplay path:
+  `docs/superpowers/plans/2026-06-26-11-public-agent-gameplay-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -166,6 +172,13 @@ Verification:
 - [ ] Craftless joins a server, fetches graph-backed OpenAPI, subscribes to SSE,
   writes chat, observes world/inventory state, equips a tool, mines, places or
   builds a small structure, and records evidence.
+- [ ] A public-agent gameplay runner uses only the generated per-client
+  OpenAPI/actions/resources, SSE/JSON-RPC events, adaptive CLI or HTTP, and
+  repository agent skills/docs to complete the survival scenario. Current
+  implementation evidence exists for a first runner contract and final-harness
+  artifacts `public-agent-gameplay-results.jsonl` and
+  `public-agent-state.jsonl`; the full process-external live survival proof is
+  still open.
 - [ ] Robin joins or observes the server session after a macOS `say` prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
@@ -197,9 +210,16 @@ Verification:
 - [x] Internal honest survival task graph describes observation, navigation,
   collection, inventory, crafting, entity observation, and combat steps without
   server shortcuts or public static gameplay actions.
-- [ ] Craftless obtains weapon materials through ordinary survival gameplay,
+- [!] Craftless obtains weapon materials through ordinary survival gameplay,
   crafts or obtains a weapon legitimately, finds a cow, navigates to it without
   manual movement, kills it, writes chat, and records SSE/artifact evidence.
+  Current evidence rejects the earlier false success: stricter live runs now
+  require inventory proof and currently fail at `material-collect-timeout`, with
+  post-task `inventory.query` showing no collected logs, weapon, beef, or
+  leather.
+- [ ] The final survival proof is reproduced by an external public-agent runner
+  over generated OpenAPI/SSE/CLI/skills, not by hard-coding the scenario as a
+  durable public `task.survival.*` API.
 
 ## Phase 9: Pathfinder-Backed Execution
 

@@ -108,7 +108,7 @@ The source design is
 the client-management boundary, route generation rules, and OpenAPI
 requirements sections.
 
-The active product-completion sequence is the nine spec/plan pairs dated
+The active product-completion sequence is the spec/plan pairs dated
 2026-06-26 under `docs/superpowers/specs/` and `docs/superpowers/plans/`.
 Follow them in order:
 
@@ -121,6 +121,8 @@ Follow them in order:
 7. final gameplay completion.
 8. honest survival navigation correction.
 9. pathfinder-backed execution.
+10. diagnostic survival task execution.
+11. public-agent final gameplay.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -131,6 +133,24 @@ that a provisioned iron sword is not honest completion evidence. Final
 completion must not depend on server-side item provisioning, pre-seeded
 inventory, manual movement for Craftless, or static shortcut actions such as
 `kill.cow`, `find.tree`, or `craft.sword`.
+The Phase 10 diagnostic harness exposed more missing primitives and is not the
+durable completion boundary. Phase 11 is the corrected final completion path.
+
+## Acceptance Scenarios Are Not Product APIs
+
+Survival gameplay such as "collect wood, craft a weapon, find a cow, kill it,
+and show loot" is an acceptance scenario. It is useful only when it proves that
+an external agent can succeed through the live generated OpenAPI, generic
+actions, handles, SSE/JSON-RPC events, adaptive CLI, and agent documentation.
+
+Do not grow `task.survival.*` or similar hard-coded scenario logic into the
+durable public API. If a scenario needs a missing primitive, improve the
+generic runtime graph, generated schema/handle metadata, invocation adapter,
+event stream, CLI, docs, or agent skill that would let a normal agent compose
+the behavior itself. Internal scenario harnesses may exist temporarily as
+evidence, but they are not completion evidence unless the same result is
+reproducible from the public generated API without adding new scenario-specific
+Kotlin actions.
 
 ## HTTP And CLI
 

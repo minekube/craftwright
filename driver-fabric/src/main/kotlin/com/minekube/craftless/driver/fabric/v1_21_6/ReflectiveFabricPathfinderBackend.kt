@@ -63,11 +63,27 @@ internal class ReflectiveFabricPathfinderBackend(
         queryOnClient {
             startGoal(customGoalProcess, plan.goalObject)
         }
+        val pathingActive = handles.pathingActive
+        if (pathingActive == null) {
+            val status =
+                NavigationTaskStatus(
+                    id = plan.taskId,
+                    state = NavigationTaskState.FAILED,
+                    message = "navigation-completion-unobservable",
+                )
+            record(status, "navigation.follow")
+            return status
+        }
+        val completed = waitForPathCompletion(pathingActive)
         val status =
             NavigationTaskStatus(
                 id = plan.taskId,
-                state = NavigationTaskState.RUNNING,
-                message = "following",
+                state =
+                    when (completed) {
+                        false -> NavigationTaskState.FAILED
+                        true -> NavigationTaskState.SUCCEEDED
+                    },
+                message = if (completed == false) "navigation-timeout" else "following",
             )
         record(status, "navigation.follow")
         return status
@@ -142,6 +158,30 @@ internal class ReflectiveFabricPathfinderBackend(
         } else {
             gateway.queryOnClient { query() }
         }
+
+    private fun waitForPathCompletion(pathingActive: () -> Boolean): Boolean {
+        waitUntil(timeoutMillis = PATHING_START_TIMEOUT_MS) {
+            queryOnClient { pathingActive() }
+        }
+        return waitUntil(timeoutMillis = PATHING_COMPLETION_TIMEOUT_MS) {
+            queryOnClient { !pathingActive() }
+        }
+    }
+
+    private fun waitUntil(
+        timeoutMillis: Long,
+        pollMillis: Long = PATHING_POLL_INTERVAL_MS,
+        condition: () -> Boolean,
+    ): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        while (System.currentTimeMillis() < deadline) {
+            if (condition()) {
+                return true
+            }
+            Thread.sleep(pollMillis)
+        }
+        return condition()
+    }
 }
 
 internal fun interface ReflectiveFabricPathfinderProbe {
@@ -155,6 +195,7 @@ internal data class ReflectiveFabricPathfinderHandles(
     val goalFactory: ((Int, Int, Int) -> Any)?,
     val startGoal: ((Any, Any) -> Unit)?,
     val stopNavigation: ((Any) -> Unit)?,
+    val pathingActive: (() -> Boolean)? = null,
 ) {
     val available: Boolean
         get() =
@@ -183,6 +224,7 @@ internal class ClassLoaderReflectiveFabricPathfinderProbe(
                 }
         val startMethod = customGoalProcess?.methodOrNull("setGoalAndPath", parameterCount = 1)
         val stopMethod = pathingBehavior?.methodOrNull("cancelEverything", parameterCount = 0)
+        val pathingMethod = pathingBehavior?.methodOrNull("isPathing", parameterCount = 0)
         return ReflectiveFabricPathfinderHandles(
             provider = provider,
             primaryClient = primaryClient,
@@ -198,6 +240,10 @@ internal class ClassLoaderReflectiveFabricPathfinderProbe(
             stopNavigation =
                 stopMethod?.let { method ->
                     { _: Any -> method.invoke(pathingBehavior) }
+                },
+            pathingActive =
+                pathingMethod?.let { method ->
+                    { method.invoke(pathingBehavior) as Boolean }
                 },
         )
     }
@@ -241,6 +287,9 @@ private fun nextReflectivePathfinderPlanId(): String = "navigation.plan.reflecti
 private val reflectivePlanCounter = AtomicInteger()
 
 internal const val PATHFINDER_PROBE_UNAVAILABLE = "pathfinder-probe-unavailable"
+private const val PATHING_START_TIMEOUT_MS = 2_000L
+private const val PATHING_COMPLETION_TIMEOUT_MS = 45_000L
 
 private const val PATHFINDER_API_CLASS = "baritone.api.BaritoneAPI"
 private const val PATHFINDER_BLOCK_GOAL_CLASS = "baritone.api.pathing.goals.GoalBlock"
+private const val PATHING_POLL_INTERVAL_MS = 50L
