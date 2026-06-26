@@ -43,7 +43,8 @@ Craftless currently has:
 - per-client OpenAPI responses expose the live runtime/action fingerprint in
   `x-craftless-runtime-fingerprint`, `X-Craftless-Runtime-Fingerprint`, and
   HTTP `ETag` metadata so adaptive consumers can revalidate cached specs by
-  the running client's capability fingerprint;
+  the running client's capability fingerprint; action and resource projection
+  endpoints use the same revalidation metadata;
 - protocol policy tests reject public action descriptors and route metadata
   that leak Fabric, Yarn, intermediary, raw Minecraft, bridge, or launcher
   namespace tokens;
@@ -181,6 +182,7 @@ of mirroring the API by hand.
 
 - Cache per-client OpenAPI only by runtime/action fingerprint. The daemon now
   emits HTTP `ETag` revalidation metadata for the live per-client spec;
+  action/resource projections share the same validator;
   the Bun helper revalidates its process-local cached live spec with
   `If-None-Match`; durable generated-client cache implementations remain
   future work.

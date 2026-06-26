@@ -178,6 +178,34 @@ class LocalSessionApiServerTest {
                             assertEquals(HttpStatusCode.NotModified, cachedOpenapi.status)
                             assertEquals("", cachedOpenapi.bodyAsText())
                         }
+
+                    http.get(server.url("/clients/alice/actions")).let { actions ->
+                        assertEquals(HttpStatusCode.OK, actions.status)
+                        assertEquals(runtimeFingerprint, actions.headers["X-Craftless-Runtime-Fingerprint"])
+                        assertEquals("\"$runtimeFingerprint\"", actions.headers[HttpHeaders.ETag])
+                        assertTrue(actions.bodyAsText().contains("\"id\":\"player.chat\""))
+                    }
+                    http
+                        .get(server.url("/clients/alice/actions")) {
+                            header(HttpHeaders.IfNoneMatch, "\"$runtimeFingerprint\"")
+                        }.let { cachedActions ->
+                            assertEquals(HttpStatusCode.NotModified, cachedActions.status)
+                            assertEquals("", cachedActions.bodyAsText())
+                        }
+
+                    http.get(server.url("/clients/alice/resources")).let { resources ->
+                        assertEquals(HttpStatusCode.OK, resources.status)
+                        assertEquals(runtimeFingerprint, resources.headers["X-Craftless-Runtime-Fingerprint"])
+                        assertEquals("\"$runtimeFingerprint\"", resources.headers[HttpHeaders.ETag])
+                        assertTrue(resources.bodyAsText().contains("\"id\":\"player\""))
+                    }
+                    http
+                        .get(server.url("/clients/alice/resources")) {
+                            header(HttpHeaders.IfNoneMatch, "\"$runtimeFingerprint\"")
+                        }.let { cachedResources ->
+                            assertEquals(HttpStatusCode.NotModified, cachedResources.status)
+                            assertEquals("", cachedResources.bodyAsText())
+                        }
                 }
             }
         }

@@ -38,7 +38,8 @@ Legend:
   argument validation, and result payload validation before returning success.
 - [x] Per-client OpenAPI responses expose the live runtime/action fingerprint
   through `x-craftless-runtime-fingerprint`, `X-Craftless-Runtime-Fingerprint`,
-  and HTTP `ETag`/`If-None-Match` revalidation metadata.
+  and HTTP `ETag`/`If-None-Match` revalidation metadata; action/resource
+  projection endpoints use the same fingerprint.
 - [x] Fabric smoke has proven real client launch, server join, generated chat,
   generated movement invocation, generated look invocation, server-side target
   item provisioning, generated inventory observation/equip, generated block
@@ -113,9 +114,11 @@ Verification:
 - [x] Live per-client OpenAPI owns gameplay actions/resources, generated
   aliases, schemas, handles, availability, and runtime fingerprints.
 - [x] `/clients/{id}/actions` remains a projection of per-client OpenAPI, not
-  a separate source of truth.
+  a separate source of truth, and revalidates with the same live OpenAPI
+  fingerprint.
 - [x] `/clients/{id}/resources` remains a live projection derived from the
-  per-client OpenAPI action snapshot, not an independent source of truth.
+  per-client OpenAPI action snapshot, not an independent source of truth, and
+  revalidates with the same live OpenAPI fingerprint.
 - [x] Adaptive CLI generic and generated-alias action paths use the live
   per-client OpenAPI descriptor as the argument/help schema authority,
   including nested resource aliases derived from action ids, and do not treat

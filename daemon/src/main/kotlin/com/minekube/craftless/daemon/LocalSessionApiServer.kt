@@ -191,7 +191,8 @@ class LocalSessionApiServer private constructor(
             get("/clients/{id}/actions") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
-                    call.respondJson(HttpStatusCode.OK, service.openApiFor(clientId).actions)
+                    val openApi = service.openApiFor(clientId)
+                    call.respondLiveClientProjection(openApi, openApi.actions)
                 }.getOrElse { error ->
                     call.respondMissingClient(error)
                 }
@@ -199,7 +200,8 @@ class LocalSessionApiServer private constructor(
             get("/clients/{id}/resources") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
-                    call.respondJson(HttpStatusCode.OK, service.resourcesFor(clientId))
+                    val openApi = service.openApiFor(clientId)
+                    call.respondLiveClientProjection(openApi, openApi.resources)
                 }.getOrElse { error ->
                     call.respondMissingClient(error)
                 }
@@ -340,6 +342,23 @@ class LocalSessionApiServer private constructor(
     }
 
     private suspend fun ApplicationCall.respondClientOpenApi(document: OpenApiDocument) {
+        if (respondNotModifiedWhenFingerprintMatches(document)) {
+            return
+        }
+        respondJson(HttpStatusCode.OK, document)
+    }
+
+    private suspend inline fun <reified T> ApplicationCall.respondLiveClientProjection(
+        document: OpenApiDocument,
+        value: T,
+    ) {
+        if (respondNotModifiedWhenFingerprintMatches(document)) {
+            return
+        }
+        respondJson(HttpStatusCode.OK, value)
+    }
+
+    private suspend fun ApplicationCall.respondNotModifiedWhenFingerprintMatches(document: OpenApiDocument): Boolean {
         val runtimeFingerprint = document.extensions["x-craftless-runtime-fingerprint"]
         if (runtimeFingerprint != null) {
             val etag = "\"$runtimeFingerprint\""
@@ -348,10 +367,10 @@ class LocalSessionApiServer private constructor(
             response.header(HttpHeaders.CacheControl, "no-cache")
             if (request.headers[HttpHeaders.IfNoneMatch] == etag) {
                 respondText("", status = HttpStatusCode.NotModified)
-                return
+                return true
             }
         }
-        respondJson(HttpStatusCode.OK, document)
+        return false
     }
 
     private suspend fun ApplicationCall.respondRouteFailure(error: RouteFailure) {
