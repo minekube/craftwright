@@ -157,6 +157,18 @@ data class FabricClientSmokeController(
                                 openApi = connectedOpenApi,
                                 action = "player.query",
                             )
+                        val entityResult =
+                            http.runAvailableAction(
+                                api = api,
+                                clientId = SMOKE_CLIENT_ID,
+                                openApi = connectedOpenApi,
+                                action = "entity.query",
+                                args =
+                                    mapOf(
+                                        "radius" to JsonPrimitive(16.0),
+                                        "limit" to JsonPrimitive(25),
+                                    ),
+                            )
                         val inventoryResult =
                             http.runInventoryQuery(
                                 api = api,
@@ -218,6 +230,7 @@ data class FabricClientSmokeController(
                                 screenResult,
                                 worldTimeResult,
                                 playerResult,
+                                entityResult,
                                 inventoryResult,
                                 targetItemSlot?.let {
                                     """{"event":"craftless-smoke-target-item-observed","message":"observed $equipItemName in slot $it"}"""

@@ -115,6 +115,7 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                     RuntimeResourceNode("player", playerAvailability),
                     RuntimeResourceNode("inventory", inventoryAvailability),
                     RuntimeResourceNode("world", worldAvailability),
+                    RuntimeResourceNode("entity", capabilities.entityAvailability()),
                     RuntimeResourceNode("screen", RuntimeAvailability.available()),
                 ),
             operations =
@@ -126,6 +127,18 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                     context.operation("player.raycast", "player", "fabric.player-raycast", cameraAvailability),
                     context.operation("inventory.query", "inventory", "fabric.inventory-query", inventoryAvailability),
                     context.operation("inventory.equip", "inventory", "fabric.inventory-equip", inventoryAvailability),
+                    RuntimeOperationNode(
+                        id = "entity.query",
+                        resource = "entity",
+                        adapter = "fabric.entity-query",
+                        arguments =
+                            mapOf(
+                                "radius" to RuntimeSchema("number"),
+                                "limit" to RuntimeSchema("integer"),
+                            ),
+                        result = RuntimeSchema.objectSchema(),
+                        availability = capabilities.entityAvailability(),
+                    ),
                     context.operation("world.time.query", "world", "fabric.world-time-query", worldAvailability),
                     context.operation("world.block.break", "world", "fabric.world-block-break", blockBreakAvailability),
                     context.operation("world.block.interact", "world", "fabric.world-block-interact", blockInteractAvailability),
@@ -183,6 +196,8 @@ private fun FabricClientCapabilitySnapshot.cameraAvailability(): RuntimeAvailabi
 
 private fun FabricClientCapabilitySnapshot.worldAvailability(): RuntimeAvailability = availability(worldReason())
 
+private fun FabricClientCapabilitySnapshot.entityAvailability(): RuntimeAvailability = availability(entityReason())
+
 private fun FabricClientCapabilitySnapshot.blockBreakAvailability(): RuntimeAvailability = availability(blockBreakReason())
 
 private fun FabricClientCapabilitySnapshot.blockInteractAvailability(): RuntimeAvailability = availability(blockInteractReason())
@@ -214,6 +229,10 @@ private fun FabricClientCapabilitySnapshot.worldReason(): String? =
         !world -> "world-unavailable"
         else -> null
     }
+
+private fun FabricClientCapabilitySnapshot.entityReason(): String? =
+    playerReason()
+        ?: worldReason()
 
 private fun FabricClientCapabilitySnapshot.blockBreakReason(): String? =
     worldReason()

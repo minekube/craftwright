@@ -692,7 +692,7 @@ private fun Screen?.toCraftlessScreenData(): JsonObject =
         }
     }
 
-private fun Vec3d.toCraftlessJson(): JsonObject =
+internal fun Vec3d.toCraftlessJson(): JsonObject =
     buildJsonObject {
         put("x", x)
         put("y", y)

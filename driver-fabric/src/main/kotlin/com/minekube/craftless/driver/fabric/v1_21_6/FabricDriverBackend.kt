@@ -17,10 +17,18 @@ import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.entity.Entity
+import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.mob.HostileEntity
+import net.minecraft.entity.passive.PassiveEntity
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
 import java.security.MessageDigest
@@ -153,6 +161,7 @@ class FabricDriverBackend private constructor(
         mapOf(
             "navigation.default" to navigationOperationAdapter(),
             "task.executor" to unsupportedGraphOperationAdapter(),
+            "fabric.entity-query" to entityQueryOperationAdapter(),
         )
 
     private fun navigationOperationAdapter(): DriverOperationAdapter =
@@ -170,6 +179,61 @@ class FabricDriverBackend private constructor(
 
     private fun unsupportedGraphOperationAdapter(): DriverOperationAdapter =
         DriverOperationAdapter { invocation -> unsupportedGraphOperation(invocation) }
+
+    private fun entityQueryOperationAdapter(): DriverOperationAdapter =
+        DriverOperationAdapter { invocation ->
+            if (invocation.operation.id != "entity.query") {
+                return@DriverOperationAdapter unsupportedGraphOperation(invocation)
+            }
+            queryEntities(invocation)
+        }
+
+    private fun queryEntities(invocation: com.minekube.craftless.driver.api.DriverOperationInvocation): DriverActionResult {
+        val radius = invocation.arguments["radius"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_ENTITY_QUERY_RADIUS
+        val limit = invocation.arguments["limit"]?.jsonPrimitive?.intOrNull ?: DEFAULT_ENTITY_QUERY_LIMIT
+        require(radius > 0.0) { "entity query radius must be positive" }
+        require(limit in ENTITY_QUERY_LIMIT_RANGE) { "entity query limit must be between 1 and 100" }
+        val clientGateway = gateway
+        if (clientGateway == null || !clientGateway.isConnected()) {
+            return DriverActionResult(
+                action = invocation.operation.id,
+                status = DriverActionStatus.UNSUPPORTED,
+                message = "client-not-connected",
+            )
+        }
+        val data =
+            clientGateway.queryOnClient {
+                val currentPlayer = requireNotNull(player) { "client is not connected to a server" }
+                val currentWorld = requireNotNull(world) { "client world is unavailable" }
+                val nearby =
+                    currentWorld
+                        .getOtherEntities(currentPlayer, currentPlayer.boundingBox.expand(radius)) { entity ->
+                            !entity.isSpectator
+                        }.asSequence()
+                        .sortedBy { entity -> entity.squaredDistanceTo(currentPlayer) }
+                        .take(limit)
+                        .toList()
+                buildJsonObject {
+                    put("origin", currentPlayer.pos.toCraftlessJson())
+                    put("radius", radius)
+                    put("count", nearby.size)
+                    put(
+                        "entities",
+                        buildJsonArray {
+                            nearby.forEach { entity ->
+                                add(entity.toCraftlessEntityData(currentPlayer))
+                            }
+                        },
+                    )
+                }
+            }
+        return DriverActionResult(
+            action = invocation.operation.id,
+            status = DriverActionStatus.ACCEPTED,
+            message = "fabric ${mode.id} action ${invocation.operation.id} queried",
+            data = data,
+        )
+    }
 
     private fun planNavigation(invocation: com.minekube.craftless.driver.api.DriverOperationInvocation): DriverActionResult {
         val goalElement =
@@ -294,6 +358,26 @@ class FabricDriverBackend private constructor(
     }
 }
 
+private fun Entity.toCraftlessEntityData(origin: Entity): JsonObject =
+    buildJsonObject {
+        put("handle", "entity.handle-$id")
+        put("label", name.string)
+        put("category", toCraftlessEntityCategory())
+        put("distance", distanceTo(origin).toDouble())
+        put("position", pos.toCraftlessJson())
+        if (this@toCraftlessEntityData is LivingEntity) {
+            put("alive", isAlive)
+        }
+    }
+
+private fun Entity.toCraftlessEntityCategory(): String =
+    when (this) {
+        is PassiveEntity -> "passive"
+        is HostileEntity -> "hostile"
+        is LivingEntity -> "living"
+        else -> "object"
+    }
+
 private fun kotlinx.serialization.json.JsonElement.navigationPlanId(): String? =
     when (this) {
         is JsonPrimitive -> content
@@ -306,6 +390,10 @@ private fun kotlinx.serialization.json.JsonElement.navigationPlanId(): String? =
 private fun String.fabricOperationAdapterKey(): String = "fabric.${replace(".", "-")}"
 
 private val fabricBackendJson = Json
+
+private const val DEFAULT_ENTITY_QUERY_RADIUS = 16.0
+private const val DEFAULT_ENTITY_QUERY_LIMIT = 25
+private val ENTITY_QUERY_LIMIT_RANGE = 1..100
 
 private fun String.toDriverActionStatus(): DriverActionStatus =
     when (this) {

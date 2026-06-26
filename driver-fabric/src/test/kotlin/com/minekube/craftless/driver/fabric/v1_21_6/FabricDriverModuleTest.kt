@@ -276,7 +276,7 @@ class FabricDriverModuleTest {
     @Test
     fun `fabric backend schedules generated actions through generic client execution`() {
         val gateway = RecordingFabricClientGateway()
-        val backend = FabricDriverBackend.real(gateway)
+        val backend = smokeBackend(gateway)
 
         backend.connect("alice", ConnectionTarget("127.0.0.1", 25565))
         backend.invoke(
@@ -413,6 +413,61 @@ class FabricDriverModuleTest {
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
         assertEquals(listOf("client-action"), gateway.actions)
         assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
+    fun `fabric backend invokes entity query through runtime graph adapter`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        gateway.queryResult =
+            buildJsonObject {
+                put("origin", buildJsonObject { put("x", 0.0) })
+                put("radius", 16.0)
+                put("count", 1)
+                put(
+                    "entities",
+                    buildJsonArray {
+                        add(
+                            buildJsonObject {
+                                put("handle", "entity.handle-42")
+                                put("label", "Cow")
+                                put("category", "passive")
+                            },
+                        )
+                    },
+                )
+            }
+        val backend = smokeBackend(gateway)
+        val operation = backend.runtimeGraph("alice").operations.single { it.id == "entity.query" }
+
+        val result =
+            backend
+                .operationAdapters("alice")
+                .invoke(
+                    DriverOperationInvocation(
+                        clientId = "alice",
+                        operation = operation,
+                        arguments =
+                            mapOf(
+                                "radius" to JsonPrimitive(16.0),
+                                "limit" to JsonPrimitive(10),
+                            ),
+                    ),
+                )
+
+        assertEquals("entity.query", result.action)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertEquals(1, result.data["count"]?.jsonPrimitive?.int)
+        val entity =
+            requireNotNull(
+                result.data["entities"]
+                    ?.jsonArray
+                    ?.single()
+                    ?.jsonObject,
+            )
+        assertEquals("entity.handle-42", entity["handle"]?.jsonPrimitive?.content)
+        assertEquals("Cow", entity["label"]?.jsonPrimitive?.content)
+        assertEquals(listOf("client-query"), gateway.actions)
     }
 
     @Test
@@ -1130,6 +1185,24 @@ class FabricDriverModuleTest {
             }
         gateway.queryResults +=
             buildJsonObject {
+                put("origin", buildJsonObject { put("x", 0.0) })
+                put("radius", 16.0)
+                put("count", 1)
+                put(
+                    "entities",
+                    buildJsonArray {
+                        add(
+                            buildJsonObject {
+                                put("handle", "entity.handle-42")
+                                put("label", "Cow")
+                                put("category", "passive")
+                            },
+                        )
+                    },
+                )
+            }
+        gateway.queryResults +=
+            buildJsonObject {
                 put("selected-slot", 0)
                 put("slot-count", 46)
                 put(
@@ -1161,11 +1234,12 @@ class FabricDriverModuleTest {
         assertEquals(0.milliseconds, controller.startupSettleDelay)
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
-        gateway.awaitActions(12)
+        gateway.awaitActions(13)
         assertEquals(
             listOf(
                 "connect localhost:25567",
                 "client-action",
+                "client-query",
                 "client-query",
                 "client-query",
                 "client-query",
@@ -1187,12 +1261,14 @@ class FabricDriverModuleTest {
         val connectedOpenApi = Files.readString(artifactsDir.resolve("client-openapi-connected.json"))
         assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/player:query"))
         assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/player:look"))
+        assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/entity:query"))
         assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/screen:query"))
         assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/world/block:break"))
         assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/world/block:interact"))
         assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/world/time:query"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("player.query"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("player.look"))
+        assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("entity.query"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("inventory.query"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("inventory.equip"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("screen.query"))
@@ -1202,6 +1278,7 @@ class FabricDriverModuleTest {
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("\"availability\":\"available\""))
         val connectedResources = Files.readString(artifactsDir.resolve("client-resources-connected.json"))
         assertTrue(connectedResources.contains("\"id\":\"player\""))
+        assertTrue(connectedResources.contains("\"id\":\"entity\""))
         assertTrue(connectedResources.contains("\"id\":\"inventory\""))
         assertTrue(connectedResources.contains("\"id\":\"screen\""))
         assertTrue(connectedResources.contains("\"id\":\"world.block\""))
@@ -1212,6 +1289,8 @@ class FabricDriverModuleTest {
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("screen.query"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("world.time.query"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("player.look"))
+        assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("entity.query"))
+        assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("entity.handle-42"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("inventory.query"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("inventory.equip"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("slot 1"))
@@ -1269,6 +1348,13 @@ class FabricDriverModuleTest {
             }
         gateway.queryResults +=
             buildJsonObject {
+                put("origin", buildJsonObject { put("x", 0.0) })
+                put("radius", 16.0)
+                put("count", 0)
+                put("entities", buildJsonArray {})
+            }
+        gateway.queryResults +=
+            buildJsonObject {
                 put("selected-slot", 0)
                 put("slot-count", 46)
                 put("slots", buildJsonArray {})
@@ -1305,11 +1391,12 @@ class FabricDriverModuleTest {
 
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
-        gateway.awaitActions(13)
+        gateway.awaitActions(14)
         assertEquals(
             listOf(
                 "connect 127.0.0.1:25565",
                 "client-action",
+                "client-query",
                 "client-query",
                 "client-query",
                 "client-query",
@@ -1363,6 +1450,13 @@ class FabricDriverModuleTest {
             }
         gateway.queryResults +=
             buildJsonObject {
+                put("origin", buildJsonObject { put("x", 0.0) })
+                put("radius", 16.0)
+                put("count", 0)
+                put("entities", buildJsonArray {})
+            }
+        gateway.queryResults +=
+            buildJsonObject {
                 put("selected-slot", 0)
                 put("slot-count", 46)
                 put("slots", buildJsonArray {})
@@ -1381,7 +1475,7 @@ class FabricDriverModuleTest {
 
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
-        gateway.awaitActions(12)
+        gateway.awaitActions(13)
         val gameplay = Files.readString(artifactsDir.resolve("gameplay-results.jsonl"))
         assertFalse(gameplay.contains("selected slot 0 for Iron Sword"))
         assertTrue(gameplay.contains("craftless-smoke-inventory-fallback"))
@@ -1472,11 +1566,12 @@ class FabricDriverModuleTest {
         assertEquals(emptyList(), gateway.actions)
 
         gateway.ready = true
-        gateway.awaitActions(12)
+        gateway.awaitActions(13)
         assertEquals(
             listOf(
                 "connect 127.0.0.1:25567",
                 "client-action",
+                "client-query",
                 "client-query",
                 "client-query",
                 "client-query",
