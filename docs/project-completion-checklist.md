@@ -264,9 +264,12 @@ Verification:
 - [x] The public-agent no-hold gameplay run invokes `inventory.query`,
   `world.block.query`, and `entity.query` from the generated action catalog and
   records `publicAgentState=RAN` without calling `task.survival.*`.
-- [ ] A higher-level public agent policy uses these generic primitives to
-  navigate, mine/collect materials, craft/equip, fight, chat, and verify final
-  survival evidence with Robin.
+- [x] A higher-level public agent policy starts using these generic primitives
+  to query log material sources and derive navigation goals without adding
+  scenario actions.
+- [ ] Public-agent policy continues from navigation into mining/collection,
+  inventory/crafting/equip, combat, chat, and final survival evidence with
+  Robin.
 
 Verification:
 
@@ -274,6 +277,26 @@ Verification:
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 - Evidence: `driver-fabric/build/craftless-final-gameplay/artifacts/public-agent-gameplay-results.jsonl`
+
+## Phase 13: Public-Agent Material Navigation
+
+- [x] Spec and plan exist for public-agent material navigation without adding
+  `find.tree`, `mine.log`, `craft.sword`, `kill.cow`, or `task.survival.*`.
+- [x] Public-agent runner queries `world.block.query` with `category = "log"`
+  and records insufficient evidence if no log block position is projected.
+- [x] Public-agent runner derives a generic `navigation.plan` block goal from
+  a returned block position and invokes `navigation.follow` with the returned
+  plan id.
+- [x] Live no-hold evidence shows either navigation plan/follow succeeded from
+  public material discovery or an explicit public-evidence blocker that guides
+  the next generic primitive. Current evidence shows `publicAgentState=RAN`,
+  `world.block.query` with log results, `navigation.plan`, `navigation.follow`,
+  and post-navigation `entity.query`.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 
 Verification:
 

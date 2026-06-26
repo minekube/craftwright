@@ -124,6 +124,7 @@ Follow them in order:
 10. diagnostic survival task execution.
 11. public-agent final gameplay.
 12. runtime block resource query.
+13. public-agent material navigation.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -139,6 +140,9 @@ durable completion boundary. Phase 11 is the corrected final completion path.
 Phase 12 resolves the first public-agent blocker by adding generic block
 resource perception through the runtime graph and graph adapter path, not by
 adding scenario-specific survival actions.
+Phase 13 composes public block perception with navigation through the generated
+API as an external agent policy. It still must not add `find.tree`,
+`mine.log`, or any other scenario-specific product action.
 
 ## Acceptance Scenarios Are Not Product APIs
 

@@ -15,6 +15,8 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
@@ -49,16 +51,81 @@ class PublicAgentGameplayRunner(
             artifactsDir?.let { writeArtifacts(it, result) }
             return result
         }
-        val actionLog =
-            publicAgentProbeInvocations.map { invocation ->
-                val invocationResult =
-                    http
-                        .post("$baseUrl/clients/$clientId:run") {
-                            contentType(ContentType.Application.Json)
-                            setBody(publicAgentInvocation(invocation.action, invocation.args))
-                        }.bodyAsText()
-                PublicAgentActionLog(action = invocation.action, response = invocationResult)
-            }
+        val actionLog = mutableListOf<PublicAgentActionLog>()
+
+        fun blocked(blocker: String): PublicAgentGameplayResult =
+            PublicAgentGameplayResult(
+                state = PublicAgentGameplayState.BLOCKED,
+                blocker = blocker,
+                supervisorSpec = supervisorSpec,
+                clientSpec = clientSpec,
+                actions = actions,
+                eventStream = eventStream,
+                actionLog = actionLog.toList(),
+                availableActions = actionIds.sorted(),
+            )
+
+        suspend fun invokeGenerated(
+            action: String,
+            args: JsonObject = JsonObject(emptyMap()),
+        ): PublicAgentActionLog {
+            val invocationResult =
+                http
+                    .post("$baseUrl/clients/$clientId:run") {
+                        contentType(ContentType.Application.Json)
+                        setBody(publicAgentInvocation(action, args))
+                    }.bodyAsText()
+            return PublicAgentActionLog(action = action, response = invocationResult)
+                .also(actionLog::add)
+        }
+
+        invokeGenerated("inventory.query")
+        val blockQuery =
+            invokeGenerated(
+                action = "world.block.query",
+                args =
+                    buildJsonObject {
+                        put("radius", JsonPrimitive(32.0))
+                        put("limit", JsonPrimitive(16))
+                        put("category", JsonPrimitive("log"))
+                    },
+            )
+        val materialPosition =
+            blockQuery.responseObject()?.firstBlockPosition()
+                ?: return blocked("insufficient-public-evidence:world.block.query.log")
+                    .also { result -> artifactsDir?.let { writeArtifacts(it, result) } }
+        val plan =
+            invokeGenerated(
+                action = "navigation.plan",
+                args =
+                    buildJsonObject {
+                        put(
+                            "goal",
+                            buildJsonObject {
+                                put("kind", JsonPrimitive("block"))
+                                put("position", materialPosition)
+                                put("radius", JsonPrimitive(2.0))
+                            },
+                        )
+                    },
+            )
+        val planId =
+            plan.responseObject()?.planId()
+                ?: return blocked("insufficient-public-evidence:navigation.plan")
+                    .also { result -> artifactsDir?.let { writeArtifacts(it, result) } }
+        invokeGenerated(
+            action = "navigation.follow",
+            args =
+                buildJsonObject {
+                    put(
+                        "plan",
+                        buildJsonObject {
+                            put("id", JsonPrimitive(planId))
+                        },
+                    )
+                },
+        )
+        invokeGenerated("entity.query")
         val result =
             PublicAgentGameplayResult(
                 state = PublicAgentGameplayState.RAN,
@@ -123,22 +190,26 @@ class PublicAgentGameplayRunner(
     private fun gameplayArtifactLines(result: PublicAgentGameplayResult): List<String> =
         when (result.state) {
             PublicAgentGameplayState.BLOCKED ->
-                listOf(
-                    artifactLine(
-                        "event" to JsonPrimitive("public-agent-blocked"),
-                        "clientId" to JsonPrimitive(clientId),
-                        "blocker" to JsonPrimitive(result.blocker ?: "unknown-blocker"),
-                    ),
-                )
-            PublicAgentGameplayState.RAN ->
-                result.actionLog.map { action ->
-                    artifactLine(
-                        "event" to JsonPrimitive("public-agent-action"),
-                        "clientId" to JsonPrimitive(clientId),
-                        "action" to JsonPrimitive(action.action),
-                        "response" to JsonPrimitive(action.response),
+                result.actionLog.toArtifactLines() +
+                    listOf(
+                        artifactLine(
+                            "event" to JsonPrimitive("public-agent-blocked"),
+                            "clientId" to JsonPrimitive(clientId),
+                            "blocker" to JsonPrimitive(result.blocker ?: "unknown-blocker"),
+                        ),
                     )
-                }
+            PublicAgentGameplayState.RAN ->
+                result.actionLog.toArtifactLines()
+        }
+
+    private fun List<PublicAgentActionLog>.toArtifactLines(): List<String> =
+        map { action ->
+            artifactLine(
+                "event" to JsonPrimitive("public-agent-action"),
+                "clientId" to JsonPrimitive(clientId),
+                "action" to JsonPrimitive(action.action),
+                "response" to JsonPrimitive(action.response),
+            )
         }
 
     private fun artifactLine(vararg entries: Pair<String, JsonElement>): String =
@@ -204,11 +275,6 @@ data class PublicAgentActionLog(
     val response: String,
 )
 
-private data class PublicAgentProbeInvocation(
-    val action: String,
-    val args: JsonObject = JsonObject(emptyMap()),
-)
-
 enum class PublicAgentGameplayState {
     RAN,
     BLOCKED,
@@ -235,25 +301,27 @@ private val requiredActions =
         "world.block.break",
     )
 
-private val publicAgentProbeInvocations =
-    listOf(
-        PublicAgentProbeInvocation("inventory.query"),
-        PublicAgentProbeInvocation(
-            action = "world.block.query",
-            args =
-                buildJsonObject {
-                    put("radius", JsonPrimitive(16.0))
-                    put("limit", JsonPrimitive(32))
-                },
-        ),
-        PublicAgentProbeInvocation("entity.query"),
-    )
-
 private val publicAgentJson =
     Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
     }
+
+private fun PublicAgentActionLog.responseObject(): JsonObject? =
+    runCatching { publicAgentJson.parseToJsonElement(response).jsonObject }.getOrNull()
+
+private fun JsonObject.firstBlockPosition(): JsonObject? {
+    val data = this["data"] as? JsonObject ?: return null
+    val blocks = data["blocks"]?.jsonArray ?: return null
+    val block = blocks.firstOrNull() as? JsonObject ?: return null
+    return block["position"] as? JsonObject
+}
+
+private fun JsonObject.planId(): String? {
+    val data = this["data"] as? JsonObject ?: return null
+    return data["plan-id"]?.jsonPrimitive?.contentOrNull
+        ?: data["id"]?.jsonPrimitive?.contentOrNull
+}
 
 fun main() {
     val config = PublicAgentGameplayRunnerConfig.fromEnvironment()
