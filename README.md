@@ -108,7 +108,7 @@ Legend: 🟢 yes, 🟡 partial or limited, 🔵 planned, 🔴 no.
 | Runtime discovery from version, mods, server features, and permissions | 🟢 | 🟡 protocol data | 🟡 in-client state |
 | Stable automation surface for agents and generated clients | 🟢 | 🟡 library API | 🟡 Java API |
 | Movement/pathfinding depth | 🟡 generated movement action; pathfinding roadmap | 🟢 | 🟢 |
-| Inventory, screen, perception, and world queries | 🟡 player query/look, raycast, inventory, and block bindings started | 🟢 | 🟡 pathing-focused |
+| Inventory, screen, perception, and world queries | 🟡 player query/look, screen query, raycast, inventory, and block bindings started | 🟢 | 🟡 pathing-focused |
 | Multi-client local supervisor | 🟡 in-memory API now | 🔴 | 🔴 |
 | Minecraft version support model | 🔵 stable API; Fabric driver/mappings paced | 🟡 protocol matrix | 🟡 versioned builds |
 | Best fit | Real-client automation infrastructure | Fast bot scripts | In-game pathfinding |
@@ -147,10 +147,10 @@ Implemented now:
 - Fabric/Loom driver module with internal version-aware bindings and
   gateway-backed runtime hooks for current action evidence.
 - Fabric-generated action descriptors for current chat, movement, player
-  query/look, raycast, inventory query/equip, and block-break bindings, routed
-  through an internal discovery projection. Broader gameplay actions are not
-  advertised until they come from real bindings or runtime discovery probes
-  with machine-readable availability reasons.
+  query/look, screen query, raycast, inventory query/equip, and block-break
+  bindings, routed through an internal discovery projection. Broader gameplay
+  actions are not advertised until they come from real bindings or runtime
+  discovery probes with machine-readable availability reasons.
 - Testkit helpers and an opt-in `:testkit:localMinecraftServerSmoke` task for
   provisioning a Minecraft server jar, accepting the EULA, starting the server,
   keeping it running around a caller-supplied smoke action, and collecting
@@ -159,8 +159,8 @@ Implemented now:
   Minecraft `1.21.6` Fabric client, keeps a local testkit Minecraft server
   alive, starts the in-client daemon API, fetches per-client OpenAPI/action
   metadata and resource projections, invokes generated `player.chat`,
-  `player.move`, `player.query`, `player.look`, `inventory.query`,
-  `inventory.equip`, and `world.block.break` through
+  `player.move`, `screen.query`, `player.query`, `player.look`,
+  `inventory.query`, `inventory.equip`, and `world.block.break` through
   `POST /clients/{id}:run`, provisions an `Iron Sword` through the server
   fixture as smoke setup, waits until the live inventory action observes it,
   equips the discovered slot, and verifies server-side join, target-item

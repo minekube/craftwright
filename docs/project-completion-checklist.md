@@ -41,11 +41,12 @@ Legend:
 - [~] Current Fabric driver has real chat, movement, connected-client
   `player.query`, connected-client `player.look`, connected-client
   `player.raycast`, connected-client `inventory.query`, connected-client
-  `inventory.equip`, and connected-client `world.block.break` bindings. When
-  the client is disconnected, player query, look, raycast, inventory query,
-  inventory equip, and block break are exposed only through gateway-backed
-  unavailable probe metadata. Broader gameplay discovery is not implemented yet
-  and must not be represented as a static placeholder catalog.
+  `inventory.equip`, connected-client `world.block.break`, and
+  gateway-discovered `screen.query` bindings. When the client is disconnected,
+  player query, look, raycast, inventory query, inventory equip, and block
+  break are exposed only through gateway-backed unavailable probe metadata.
+  Broader gameplay discovery is not implemented yet and must not be
+  represented as a static placeholder catalog.
 - [ ] Craftless is complete.
 
 Baseline evidence:
@@ -133,9 +134,9 @@ Verification:
   `player.query`, connected-client `player.look`, connected-client
   `player.raycast`, connected-client `inventory.query`, connected-client
   `inventory.equip`,
-  connected-client `world.block.break`, and
+  connected-client `world.block.break`, gateway-discovered `screen.query`, and
   disconnected-client unavailable probe metadata; broader
-  client/world/inventory/screen probes are still roadmap.
+  client/world/inventory/screen interaction probes are still roadmap.
 - [~] Define how internal Fabric/Minecraft/mod/registry/server data becomes
   Craftless-owned actions, resources, handles, schemas, availability, and
   events. Action-derived resource projection now includes the source action
@@ -171,7 +172,8 @@ Verification:
   from the running client before they are advertised. `player.query`,
   `player.look`, `player.raycast`, `inventory.query`, `inventory.equip`, and
   `world.block.break` now change from unavailable probe metadata to available
-  bindings based on connected-client state; broader block/inventory/screen
+  bindings based on connected-client state, and `screen.query` is discovered
+  from the live client gateway; broader block/inventory/screen interaction
   discovery is still missing.
 - [x] Each advertised gameplay action has either a real Fabric execution
   binding or probe-backed unavailable metadata.
@@ -197,8 +199,8 @@ Verification:
   through generated action metadata.
 - [x] The slice uses generated OpenAPI/action metadata as the client contract.
   The smoke controller now re-fetches connected client OpenAPI and gates
-  `player.query`, `player.look`, `inventory.query`, `inventory.equip`, and
-  `world.block.break` invocations on available actions from
+  `screen.query`, `player.query`, `player.look`, `inventory.query`,
+  `inventory.equip`, and `world.block.break` invocations on available actions from
   `x-craftless-actions` before calling generic `POST /clients/{id}:run`;
   `/clients/{id}/actions` remains an evidence/projection artifact.
 - [x] The slice discovers the needed actions/resources from the running client;
@@ -210,7 +212,9 @@ Verification:
   telemetry, or both. Current smoke artifacts include connected
   OpenAPI/actions/resources, server-side item provisioning, target-item
   observation, equip slot selection, generated inventory equip, generated look,
-  and generated block break telemetry.
+  and generated block break telemetry. `screen.query` is covered by the
+  daemon-backed smoke controller test and will appear in the next opt-in real
+  smoke artifact refresh.
 
 Verification:
 

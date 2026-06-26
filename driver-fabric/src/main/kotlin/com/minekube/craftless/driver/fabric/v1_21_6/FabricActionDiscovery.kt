@@ -55,7 +55,19 @@ internal fun defaultFabricActionDiscovery(): FabricActionDiscovery =
                     binding = binding,
                 )
             }
-        bindingBackedActions + context.probeUnavailableActions()
+        bindingBackedActions + context.probeScreenActions() + context.probeUnavailableActions()
+    }
+
+private fun FabricActionDiscoveryContext.probeScreenActions(): List<FabricDiscoveredAction> =
+    if (gateway == null) {
+        emptyList()
+    } else {
+        listOf(
+            FabricDiscoveredAction(
+                descriptor = FabricScreenQueryActionBinding.descriptor,
+                binding = FabricScreenQueryActionBinding,
+            ),
+        )
     }
 
 private fun FabricActionDiscoveryContext.probeUnavailableActions(): List<FabricDiscoveredAction> {

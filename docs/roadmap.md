@@ -73,8 +73,9 @@ Craftless currently has:
   controller starts a local daemon API backed by the Fabric driver, fetches
   per-client OpenAPI/action metadata and resource projections, connects to the
   smoke server, invokes generated `player.chat`, `player.move`,
-  `player.query`, `player.look`, `inventory.query`, `inventory.equip`, and
-  `world.block.break` through `POST /clients/{id}:run` after connection,
+  `screen.query`, `player.query`, `player.look`, `inventory.query`,
+  `inventory.equip`, and `world.block.break` through
+  `POST /clients/{id}:run` after connection,
   provisions `minecraft:iron_sword` through the server fixture as setup,
   waits until live `inventory.query` observes `Iron Sword`, equips the
   discovered slot, writes client artifacts next to server artifacts, and
@@ -140,7 +141,7 @@ or static placeholder descriptors.
 - Current discovery has connected-client bindings with disconnected-client
   unavailable probe metadata for `player.query`, `player.look`,
   `player.raycast`, `inventory.query`, `inventory.equip`, and
-  `world.block.break`.
+  `world.block.break`, plus gateway-discovered `screen.query`.
 - Current resource projection groups discovered action ids into live resources
   such as `player`, `inventory`, and `world.block`, and includes the action
   descriptor schemas that produced each resource. Richer object handles,

@@ -21,6 +21,7 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import net.minecraft.client.MinecraftClient
+import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.input.Input
 import net.minecraft.item.ItemStack
 import net.minecraft.util.Hand
@@ -300,6 +301,34 @@ internal fun fabricRaycastDescriptor(): DriverActionDescriptor =
             fabricObjectDataResultDescriptor(),
     )
 
+internal object FabricScreenQueryActionBinding : FabricActionBinding {
+    override val descriptor: DriverActionDescriptor = fabricScreenQueryDescriptor()
+
+    override fun invoke(
+        clientId: String,
+        invocation: DriverActionInvocation,
+        context: FabricActionContext,
+    ): DriverActionResult {
+        val data =
+            context.queryOnClient {
+                currentScreen.toCraftlessScreenData()
+            }
+        return DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.ACCEPTED,
+            message = "fabric ${context.modeId} action ${invocation.action} queried",
+            data = data,
+        )
+    }
+}
+
+internal fun fabricScreenQueryDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "screen.query",
+        schemaVersion = "1",
+        result = fabricObjectDataResultDescriptor(),
+    )
+
 private fun fabricObjectDataResultDescriptor(): DriverActionResultDescriptor =
     DriverActionResultDescriptor(
         properties =
@@ -500,6 +529,14 @@ private fun HitResult.toCraftlessRaycastData(): JsonObject =
             is EntityHitResult -> {
                 put("entity-id", entity.id)
             }
+        }
+    }
+
+private fun Screen?.toCraftlessScreenData(): JsonObject =
+    buildJsonObject {
+        put("open", this@toCraftlessScreenData != null)
+        this@toCraftlessScreenData?.let { screen ->
+            put("title", screen.title.string)
         }
     }
 

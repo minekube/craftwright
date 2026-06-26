@@ -542,6 +542,33 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric runtime discovery exposes screen query only from live client state`() {
+        val metadataOnly = FabricDriverBackend.metadataOnly()
+        assertTrue(metadataOnly.actions("alice").none { it.id == "screen.query" })
+
+        val gateway = RecordingFabricClientGateway()
+        val backend = FabricDriverBackend.real(gateway)
+        gateway.queryResult =
+            buildJsonObject {
+                put("open", true)
+                put("title", "Inventory")
+            }
+
+        val screen = backend.actions("alice").single { it.id == "screen.query" }
+        val result = backend.invoke("alice", DriverActionInvocation("screen.query"))
+
+        assertEquals(DriverActionSource.BINDING, screen.source)
+        assertEquals(DriverActionAvailability.AVAILABLE, screen.availability)
+        assertEquals(null, screen.availabilityReason)
+        assertEquals("object", screen.result.properties["data"]?.type)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertEquals(true, result.data["open"]?.jsonPrimitive?.boolean)
+        assertEquals("Inventory", result.data["title"]?.jsonPrimitive?.content)
+        assertEquals(listOf("client-query"), gateway.actions)
+        assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric discovery rejects available actions without execution binding`() {
         val error =
             assertFailsWith<IllegalArgumentException> {
@@ -607,6 +634,10 @@ class FabricDriverModuleTest {
             )
         gateway.queryResults +=
             buildJsonObject {
+                put("open", false)
+            }
+        gateway.queryResults +=
+            buildJsonObject {
                 put(
                     "position",
                     buildJsonObject {
@@ -644,12 +675,13 @@ class FabricDriverModuleTest {
         assertEquals(0.milliseconds, controller.startupSettleDelay)
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
-        gateway.awaitActions(9)
+        gateway.awaitActions(10)
         assertEquals(
             listOf(
                 "connect localhost:25567",
                 "client-action",
                 "client-action",
+                "client-query",
                 "client-query",
                 "client-query",
                 "client-action",
@@ -667,19 +699,23 @@ class FabricDriverModuleTest {
         val connectedOpenApi = Files.readString(artifactsDir.resolve("client-openapi-connected.json"))
         assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/player:query"))
         assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/player:look"))
+        assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/screen:query"))
         assertTrue(connectedOpenApi.contains("/clients/fabric-smoke/world/block:break"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("player.query"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("player.look"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("inventory.query"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("inventory.equip"))
+        assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("screen.query"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("world.block.break"))
         assertTrue(Files.readString(artifactsDir.resolve("client-actions-connected.json")).contains("\"availability\":\"available\""))
         val connectedResources = Files.readString(artifactsDir.resolve("client-resources-connected.json"))
         assertTrue(connectedResources.contains("\"id\":\"player\""))
         assertTrue(connectedResources.contains("\"id\":\"inventory\""))
+        assertTrue(connectedResources.contains("\"id\":\"screen\""))
         assertTrue(connectedResources.contains("\"id\":\"world.block\""))
         assertTrue(connectedResources.contains("\"availability\":\"available\""))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("player.query"))
+        assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("screen.query"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("player.look"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("inventory.query"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("inventory.equip"))
@@ -706,6 +742,10 @@ class FabricDriverModuleTest {
                     "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
                 ),
             )
+        gateway.queryResults +=
+            buildJsonObject {
+                put("open", false)
+            }
         gateway.queryResults +=
             buildJsonObject {
                 put("selected-slot", 0)
@@ -742,12 +782,13 @@ class FabricDriverModuleTest {
 
         assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
 
-        gateway.awaitActions(10)
+        gateway.awaitActions(11)
         assertEquals(
             listOf(
                 "connect 127.0.0.1:25565",
                 "client-action",
                 "client-action",
+                "client-query",
                 "client-query",
                 "client-query",
                 "client-query",
@@ -813,12 +854,13 @@ class FabricDriverModuleTest {
         assertEquals(emptyList(), gateway.actions)
 
         gateway.ready = true
-        gateway.awaitActions(9)
+        gateway.awaitActions(10)
         assertEquals(
             listOf(
                 "connect 127.0.0.1:25567",
                 "client-action",
                 "client-action",
+                "client-query",
                 "client-query",
                 "client-query",
                 "client-action",

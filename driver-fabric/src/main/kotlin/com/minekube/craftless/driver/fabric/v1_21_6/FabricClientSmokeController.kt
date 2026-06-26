@@ -136,6 +136,13 @@ data class FabricClientSmokeController(
                                         "ticks" to JsonPrimitive(20),
                                     ),
                             )
+                        val screenResult =
+                            http.runAvailableAction(
+                                api = api,
+                                clientId = SMOKE_CLIENT_ID,
+                                openApi = connectedOpenApi,
+                                action = "screen.query",
+                            )
                         val playerResult =
                             http.runAvailableAction(
                                 api = api,
@@ -187,6 +194,7 @@ data class FabricClientSmokeController(
                             listOfNotNull(
                                 chatResult,
                                 moveResult,
+                                screenResult,
                                 playerResult,
                                 inventoryResult,
                                 targetItemSlot?.let {
