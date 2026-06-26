@@ -117,9 +117,9 @@ class CachePreparationService(
             result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST },
             versionManifest,
         )
-        writeBytesArtifact(
+        writeFetchedBytesArtifact(
             result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_CLIENT_JAR },
-            metadataFetcher.fetchBytes(clientJarUrl),
+            clientJarUrl,
         )
         writeTextArtifact(
             result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_ASSET_INDEX },
@@ -136,26 +136,25 @@ class CachePreparationService(
             )
         }
         assetObjects.forEach { asset ->
-            writeBytesArtifact(asset.artifact, metadataFetcher.fetchBytes(asset.source))
+            writeFetchedBytesArtifact(asset.artifact, asset.source)
         }
         javaRuntime?.let { runtime ->
             writeTextArtifact(runtime.indexArtifact, runtime.index)
             writeTextArtifact(runtime.manifestArtifact, runtime.manifest)
             runtime.files.forEach { file ->
-                val target = writeBytesArtifact(file.artifact, metadataFetcher.fetchBytes(file.source))
+                val target = writeFetchedBytesArtifact(file.artifact, file.source)
                 if (file.executable) target.toFile().setExecutable(true, true)
             }
         }
         minecraftLibraries.forEach { library ->
-            writeBytesArtifact(library.artifact, metadataFetcher.fetchBytes(library.source))
+            writeFetchedBytesArtifact(library.artifact, library.source)
         }
         minecraftNativeLibraries.forEach { native ->
-            val bytes = metadataFetcher.fetchBytes(native.source)
-            writeBytesArtifact(native.libraryArtifact, bytes)
-            extractNativeLibrary(native, bytes)
+            val library = writeFetchedBytesArtifact(native.libraryArtifact, native.source)
+            extractNativeLibrary(native, Files.readAllBytes(library))
         }
         fabricLibraries.forEach { library ->
-            writeBytesArtifact(library.artifact, metadataFetcher.fetchBytes(library.source))
+            writeFetchedBytesArtifact(library.artifact, library.source)
         }
         launchArgumentsArtifact?.let { artifact ->
             writeTextArtifact(
@@ -370,6 +369,17 @@ class CachePreparationService(
         Files.createDirectories(target.parent)
         Files.write(target, bytes)
         return target
+    }
+
+    private suspend fun writeFetchedBytesArtifact(
+        artifact: CachePreparedArtifact,
+        source: String,
+    ): Path {
+        val target = resolveHandle(artifact.handle)
+        if (Files.isRegularFile(target)) {
+            return target
+        }
+        return writeBytesArtifact(artifact, metadataFetcher.fetchBytes(source))
     }
 
     private fun writeTextArtifact(

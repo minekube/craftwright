@@ -19,6 +19,7 @@ import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class CachePreparationServiceTest {
@@ -373,6 +374,127 @@ class CachePreparationServiceTest {
         }
 
     @Test
+    fun `cache preparation reuses existing binary artifacts and fetches missing files`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-resume")
+            val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+            val fetcher =
+                CountingCacheMetadataFetcher(
+                    responses =
+                        mapOf(
+                            MINECRAFT_VERSION_INDEX_URL to
+                                """
+                                { "versions": [{ "id": "1.21.6", "url": "$versionUrl" }] }
+                                """.trimIndent(),
+                            versionUrl to
+                                """
+                                {
+                                  "id": "1.21.6",
+                                  "assetIndex": {
+                                    "id": "1.21.6",
+                                    "url": "$assetIndexUrl"
+                                  },
+                                  "mainClass": "test.minecraft.Main",
+                                  "arguments": {
+                                    "jvm": [],
+                                    "game": ["--gameDir", "${'$'}{game_directory}"]
+                                  },
+                                  "downloads": {
+                                    "client": { "url": "$clientJarUrl" }
+                                  }
+                                }
+                                """.trimIndent(),
+                            assetIndexUrl to """{"objects":{}}""",
+                        ),
+                    binaryResponses = mapOf(clientJarUrl to "downloaded-client".encodeToByteArray()),
+                )
+            val cachedClient = workspace.resolve("cache/minecraft/versions/1.21.6/client.jar")
+            Files.createDirectories(cachedClient.parent)
+            Files.writeString(cachedClient, "cached-client")
+            val service = CachePreparationService(workspaceRoot = workspace, metadataFetcher = fetcher)
+
+            service.prepare(CachePrepareRequest("1.21.6", Loader.VANILLA))
+
+            assertEquals("cached-client", Files.readString(cachedClient))
+            assertEquals(0, fetcher.binaryFetchCount(clientJarUrl))
+
+            Files.delete(cachedClient)
+            service.prepare(CachePrepareRequest("1.21.6", Loader.VANILLA))
+
+            assertEquals("downloaded-client", Files.readString(cachedClient))
+            assertEquals(1, fetcher.binaryFetchCount(clientJarUrl))
+        }
+
+    @Test
+    fun `cache preparation resumes after per-file artifact fetch failure`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-retry")
+            val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+            val assetObjectUrl = "https://resources.download.minecraft.net/ab/abcdef0123456789abcdef0123456789abcdef01"
+            val fetcher =
+                CountingCacheMetadataFetcher(
+                    responses =
+                        mapOf(
+                            MINECRAFT_VERSION_INDEX_URL to
+                                """
+                                { "versions": [{ "id": "1.21.6", "url": "$versionUrl" }] }
+                                """.trimIndent(),
+                            versionUrl to
+                                """
+                                {
+                                  "id": "1.21.6",
+                                  "assetIndex": {
+                                    "id": "1.21.6",
+                                    "url": "$assetIndexUrl"
+                                  },
+                                  "mainClass": "test.minecraft.Main",
+                                  "arguments": {
+                                    "jvm": [],
+                                    "game": ["--gameDir", "${'$'}{game_directory}"]
+                                  },
+                                  "downloads": {
+                                    "client": { "url": "$clientJarUrl" }
+                                  }
+                                }
+                                """.trimIndent(),
+                            assetIndexUrl to
+                                """
+                                {
+                                  "objects": {
+                                    "minecraft/sounds/random/test.ogg": {
+                                      "hash": "abcdef0123456789abcdef0123456789abcdef01",
+                                      "size": 10
+                                    }
+                                  }
+                                }
+                                """.trimIndent(),
+                        ),
+                    binaryResponses = mapOf(clientJarUrl to "downloaded-client".encodeToByteArray()),
+                )
+            val service = CachePreparationService(workspaceRoot = workspace, metadataFetcher = fetcher)
+
+            assertFailsWith<IllegalArgumentException> {
+                service.prepare(CachePrepareRequest("1.21.6", Loader.VANILLA))
+            }
+            val clientJar = workspace.resolve("cache/minecraft/versions/1.21.6/client.jar")
+            assertEquals("downloaded-client", Files.readString(clientJar))
+            assertEquals(1, fetcher.binaryFetchCount(clientJarUrl))
+
+            fetcher.addBinaryResponse(assetObjectUrl, "asset-bytes".encodeToByteArray())
+            val result = service.prepare(CachePrepareRequest("1.21.6", Loader.VANILLA))
+
+            assertEquals(1, fetcher.binaryFetchCount(clientJarUrl))
+            assertEquals(2, fetcher.binaryFetchCount(assetObjectUrl))
+            val assetObject = result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_ASSET_OBJECT }
+            assertEquals("asset-bytes", Files.readString(workspace.resolve(assetObject.handle)))
+            assertTrue(Files.isRegularFile(workspace.resolve(result.manifest)))
+        }
+
+    @Test
     fun `cache export and cleanup operate from prepared manifest handles`() =
         runBlocking {
             val workspace = Files.createTempDirectory("craftless-cache-export-cleanup")
@@ -503,4 +625,30 @@ private class StaticCacheMetadataFetcher(
         requireNotNull(binaryResponses[url]) {
             "missing test binary response for $url"
         }
+}
+
+private class CountingCacheMetadataFetcher(
+    private val responses: Map<String, String>,
+    binaryResponses: Map<String, ByteArray> = emptyMap(),
+) : CacheMetadataFetcher {
+    private val binaryResponses = binaryResponses.toMutableMap()
+    private val binaryFetches = linkedMapOf<String, Int>()
+
+    override suspend fun fetchText(url: String): String = requireNotNull(responses[url]) { "missing test response for $url" }
+
+    override suspend fun fetchBytes(url: String): ByteArray {
+        binaryFetches[url] = binaryFetchCount(url) + 1
+        return requireNotNull(binaryResponses[url]) {
+            "missing test binary response for $url"
+        }
+    }
+
+    fun addBinaryResponse(
+        url: String,
+        bytes: ByteArray,
+    ) {
+        binaryResponses[url] = bytes
+    }
+
+    fun binaryFetchCount(url: String): Int = binaryFetches[url] ?: 0
 }

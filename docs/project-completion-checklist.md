@@ -614,8 +614,10 @@ Verification:
   runtime instead of failing with an unavailable driver factory. Evidence:
   `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.server prepares and launches workspace client runtime without injected driver factory*' --tests '*LocalSessionApiServerTest.process client runtime launcher starts prepared command*'`
   plus `mise exec -- gradle :daemon:test :daemon:detekt :daemon:ktlintCheck`.
-- [ ] Cache preparation for large Minecraft/mod artifact sets is resumable and
-  idempotent with retryable per-file failures and progress evidence.
+- [x] Cache preparation for large Minecraft/mod artifact sets is resumable and
+  idempotent with retryable per-file failures and progress evidence. Evidence:
+  `mise exec -- gradle :daemon:test --tests '*CachePreparationServiceTest.cache preparation reuses existing binary artifacts and fetches missing files*' --tests '*CachePreparationServiceTest.cache preparation resumes after per-file artifact fetch failure*'`
+  plus `mise exec -- gradle :daemon:test :daemon:detekt :daemon:ktlintCheck`.
 
 Verification:
 
