@@ -129,8 +129,9 @@ Verification:
   action client that fetches `/clients/{id}/openapi.json` before invoking
   `POST /clients/{id}:run` or reading `x-craftless-resources`. The daemon
   exposes per-client OpenAPI `ETag` revalidation keyed by the live
-  runtime/action fingerprint; generated clients and agent-tool packaging
-  remain roadmap.
+  runtime/action fingerprint, and the Playwright helper revalidates its
+  process-local cached live spec with `If-None-Match`; generated clients and
+  agent-tool packaging remain roadmap.
 - [x] `DriverSession` remains lifecycle/events/runtime metadata plus
   `actions()` and `invoke(...)`; no static player/world/inventory methods.
 - [x] Fabric discovery/projection and execution bindings stay internal and

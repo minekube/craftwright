@@ -181,7 +181,9 @@ of mirroring the API by hand.
 
 - Cache per-client OpenAPI only by runtime/action fingerprint. The daemon now
   emits HTTP `ETag` revalidation metadata for the live per-client spec;
-  durable generated-client cache implementations remain future work.
+  the Bun helper revalidates its process-local cached live spec with
+  `If-None-Match`; durable generated-client cache implementations remain
+  future work.
 - Render dynamic CLI help from `/clients/{id}/openapi.json`, using
   `/clients/{id}/actions` only as a descriptor projection/availability view.
 - Keep static CLI commands limited to daemon lifecycle, client lifecycle,

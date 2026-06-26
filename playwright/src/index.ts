@@ -34,6 +34,7 @@ export interface CraftlessOpenApiResource {
 
 export interface CraftlessOpenApiDocument {
   paths?: Record<string, unknown>;
+  "x-craftless"?: Record<string, string>;
   "x-craftless-actions"?: CraftlessOpenApiAction[];
   "x-craftless-resources"?: CraftlessOpenApiResource[];
 }
@@ -53,21 +54,35 @@ export function createOpenApiActionClient(options: OpenApiActionClientOptions): 
   const fetchImpl = options.fetch ?? fetch;
   const baseUrl = options.baseUrl.replace(/\/+$/, "");
   const clientId = options.clientId;
+  let cachedOpenApi: { etag: string; document: CraftlessOpenApiDocument } | undefined;
+
+  async function loadOpenApi(): Promise<CraftlessOpenApiDocument> {
+    const headers = cachedOpenApi ? new Headers({ "if-none-match": cachedOpenApi.etag }) : undefined;
+    const response = await fetchImpl(`${baseUrl}/clients/${clientId}/openapi.json`, headers ? { headers } : undefined);
+    if (response.status === 304 && cachedOpenApi) {
+      return cachedOpenApi.document;
+    }
+    if (!response.ok) {
+      throw new Error(`Craftless API request failed with ${response.status}: ${await response.text()}`);
+    }
+    const document = (await response.json()) as CraftlessOpenApiDocument;
+    const etag = response.headers.get("etag");
+    if (etag) {
+      cachedOpenApi = { etag, document };
+    } else {
+      cachedOpenApi = undefined;
+    }
+    return document;
+  }
 
   return {
     async resources(): Promise<CraftlessOpenApiResource[]> {
-      const openApi = await fetchJson<CraftlessOpenApiDocument>(
-        fetchImpl,
-        `${baseUrl}/clients/${clientId}/openapi.json`,
-      );
+      const openApi = await loadOpenApi();
       return openApi["x-craftless-resources"] ?? [];
     },
 
     async invoke(action: string, args: Record<string, unknown> = {}): Promise<unknown> {
-      const openApi = await fetchJson<CraftlessOpenApiDocument>(
-        fetchImpl,
-        `${baseUrl}/clients/${clientId}/openapi.json`,
-      );
+      const openApi = await loadOpenApi();
       const actionDescriptor = openApi["x-craftless-actions"]?.find((descriptor) => descriptor.id === action);
       if (!actionDescriptor || actionDescriptor.availability === "unavailable") {
         throw new Error(`action ${action} is not available for client ${clientId}`);
