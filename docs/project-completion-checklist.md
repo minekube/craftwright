@@ -75,6 +75,8 @@ Legend:
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-21-public-agent-drop-perception-plan.md`.
 - [x] Spec exists: `docs/superpowers/specs/2026-06-26-22-bounded-material-exploration-design.md`.
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-22-bounded-material-exploration-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-27-java-runtime-resolution-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-27-java-runtime-resolution-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -598,6 +600,33 @@ Verification:
 - `mise exec -- gradle :protocol:test :driver-api:test :driver-fabric:test`
 - `mise run architecture-check`
 - No-cheat live gameplay run with empty or ordinary survival inventory.
+
+## Phase 27: Java Runtime Resolution
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-26-27-java-runtime-resolution-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-26-27-java-runtime-resolution-plan.md`.
+- [ ] Java runtime requirements are derived from Minecraft version metadata,
+  including Java 25 for Minecraft `26.2`.
+- [ ] A Craftless-owned resolver validates and selects explicit, managed,
+  mise-discovered, and system Java candidates through one internal interface.
+- [ ] `mise` is an optional Java provider for product runtime selection, not
+  the only way users can run compatible Minecraft clients.
+- [ ] Cache manifests and launch plans record selected Java runtime evidence
+  and use the selected executable.
+- [ ] Supervisor API and CLI can list or resolve Java runtimes without adding
+  gameplay action catalogs.
+- [ ] Testkit/server smoke consumes resolver output and records Java selection
+  evidence instead of depending only on `CRAFTLESS_SMOKE_JAVA_EXECUTABLE`.
+- [ ] Minecraft `26.2` server smoke proves Java 25 selection; Fabric client
+  compatibility remains gated by Phase 26 driver-lane selection.
+
+Verification:
+
+- `mise exec -- gradle :protocol:test :daemon:test :cli:test :testkit:test`
+- `CRAFTLESS_LOCAL_SERVER_SMOKE=1 CRAFTLESS_SMOKE_MINECRAFT_VERSION=26.2 mise exec java@temurin-25.0.3+9.0.LTS gradle@9.6.0 -- gradle :testkit:localMinecraftServerSmoke`
+- `git diff --check`
 
 ## Final Completion Gate
 

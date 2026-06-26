@@ -138,6 +138,7 @@ Follow them in order:
 24. targetable block interact.
 25. distribution usability.
 26. version-agnostic driver architecture.
+27. Java runtime resolution.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -201,6 +202,13 @@ version. Version-specific code belongs behind internal runtime/provider
 facades, compatibility matrix evidence, and private probe metadata. Do not add
 new version support by expanding public action catalogs, public route families,
 or scenario shortcuts.
+Phase 27 makes Java runtime selection an explicit supervisor/runtime concern.
+Minecraft version metadata determines Java requirements, and Craftless selects
+or prepares a validated compatible runtime through configured, managed, mise,
+or system providers. `mise` remains mandatory for repository tooling but must
+not be the only product runtime provider. Do not paper over Java-version
+failures with ad hoc environment overrides or by silently using the repository
+build JVM.
 
 ## Acceptance Scenarios Are Not Product APIs
 
