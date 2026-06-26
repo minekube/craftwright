@@ -79,6 +79,8 @@ Legend:
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-27-java-runtime-resolution-plan.md`.
 - [x] Spec exists: `docs/superpowers/specs/2026-06-26-28-generic-recipe-crafting-design.md`.
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-28-generic-recipe-crafting-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-29-legacy-survival-task-api-removal-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-29-legacy-survival-task-api-removal-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -238,9 +240,8 @@ Verification:
   OpenAPI remains Craftless-owned.
 - [x] A no-cheat final gameplay harness rejects server-side item provisioning
   as completion evidence.
-- [x] Internal honest survival task graph describes observation, navigation,
-  collection, inventory, crafting, entity observation, and combat steps without
-  server shortcuts or public static gameplay actions.
+- [x] The old internal honest survival task graph was diagnostic only and has
+  been removed from active product behavior by Phase 29.
 - [!] Craftless obtains weapon materials through ordinary survival gameplay,
   crafts or obtains a weapon legitimately, finds a cow, navigates to it without
   manual movement, kills it, writes chat, and records SSE/artifact evidence.
@@ -728,6 +729,30 @@ Verification:
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest*'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
+- `mise run ci`
+
+## Phase 29: Legacy Survival Task API Removal
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-26-29-legacy-survival-task-api-removal-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-26-29-legacy-survival-task-api-removal-plan.md`.
+- [x] The active Fabric driver no longer contains `SurvivalTaskGraph`,
+  `FabricSurvivalTaskExecutor`, survival observation ports, or survival
+  resource handles.
+- [x] `task.run` and `task.status` remain generic future affordances only and
+  are unavailable with `task-executor-unavailable` until a generic task graph
+  executor exists.
+- [x] The final gameplay smoke controller no longer invokes
+  `task.survival.honest-cow-hunt` or writes `survival-task-results.jsonl`.
+- [ ] Final live gameplay still must prove the scenario through generated
+  public actions, SSE events, adaptive consumers, and Robin's Minecraft chat
+  confirmation.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricNavigationDiscoveryTest.fabric backend task adapter refuses legacy survival tasks*'`
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest*' --tests '*FabricNavigationDiscoveryTest*'`
 - `mise run ci`
 
 ## Final Completion Gate

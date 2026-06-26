@@ -27,6 +27,7 @@ internal class FabricNavigationDiscovery(
                 pathfinderAvailable -> RuntimeAvailability.available()
                 else -> RuntimeAvailability.unavailable(PATHFINDER_PROBE_UNAVAILABLE)
             }
+        val taskAvailability = RuntimeAvailability.unavailable("task-executor-unavailable")
         val sourceEvidence =
             detectedPathfinders
                 .takeIf { it.isNotEmpty() }
@@ -49,7 +50,7 @@ internal class FabricNavigationDiscovery(
                     ),
                     RuntimeResourceNode(
                         id = "task",
-                        availability = navigationAvailability,
+                        availability = taskAvailability,
                         sourceEvidence = sourceEvidence,
                     ),
                 ),
@@ -72,12 +73,12 @@ internal class FabricNavigationDiscovery(
                     taskOperation(
                         id = "task.run",
                         arguments = mapOf("request" to RuntimeSchema("object", required = true)),
-                        availability = operationAvailability,
+                        availability = taskAvailability,
                     ),
                     taskOperation(
                         id = "task.status",
                         arguments = mapOf("task" to RuntimeSchema("string", required = true)),
-                        availability = operationAvailability,
+                        availability = taskAvailability,
                     ),
                 ),
             events =
@@ -86,7 +87,7 @@ internal class FabricNavigationDiscovery(
                         id = "task.progress",
                         resource = "task",
                         payload = RuntimeSchema.objectSchema(),
-                        availability = operationAvailability,
+                        availability = taskAvailability,
                     ),
                 ),
         )

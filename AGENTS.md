@@ -140,6 +140,7 @@ Follow them in order:
 26. version-agnostic driver architecture.
 27. Java runtime resolution.
 28. generic recipe and crafting.
+29. legacy survival task API removal.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -218,6 +219,11 @@ recipe, inventory, screen, handler, and permission state. It must not add
 macro. Until a real live recipe probe and executor exist, recipe graph nodes
 must remain unavailable with machine-readable reasons instead of returning
 placeholder recipes or placeholder crafting success.
+Phase 29 removes the diagnostic `task.survival.*` product path. The final
+survival acceptance scenario must be composed outside the driver through the
+generated public API, adaptive CLI, SSE events, and agent skills. Do not keep
+`task.survival.honest-cow-hunt`, survival resource handles, cow-hunt task
+executors, or smoke-run invocations as active product behavior.
 
 ## Acceptance Scenarios Are Not Product APIs
 

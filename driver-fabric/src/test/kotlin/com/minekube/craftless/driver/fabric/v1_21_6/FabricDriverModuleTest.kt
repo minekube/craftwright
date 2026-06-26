@@ -370,7 +370,7 @@ class FabricDriverModuleTest {
         assertTrue(plan.artifacts.contains("gameplay-results.jsonl"))
         assertTrue(plan.artifacts.contains("public-agent-gameplay-results.jsonl"))
         assertTrue(plan.artifacts.contains("public-agent-state.jsonl"))
-        assertTrue(plan.artifacts.contains("survival-task-results.jsonl"))
+        assertFalse(plan.artifacts.contains("survival-task-results.jsonl"))
         assertTrue(plan.artifacts.contains("server-evidence.jsonl"))
         assertTrue(plan.completionGates.any { it.contains("Robin", ignoreCase = true) && it.contains("Minecraft chat", ignoreCase = true) })
         assertTrue(plan.completionGates.any { it.contains("SSE", ignoreCase = true) })
@@ -1765,7 +1765,7 @@ class FabricDriverModuleTest {
 
         assertEquals(60_000.milliseconds, controller.holdAfterActions)
         assertEquals(720_000.milliseconds, controller.actionTimeout)
-        assertTrue(controller.runSurvivalTask)
+        assertFalse(controller.toString().contains("runSurvivalTask"))
     }
 
     @Test

@@ -17,6 +17,7 @@ import com.minekube.craftless.driver.runtime.DriverBackendResult
 import com.minekube.craftless.protocol.NavigationGoal
 import com.minekube.craftless.protocol.NavigationTaskRequest
 import com.minekube.craftless.protocol.NavigationTaskState
+import com.minekube.craftless.protocol.RuntimeAvailabilityState
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -53,7 +54,7 @@ class FabricDriverBackend private constructor(
     private val capabilityDiscovery: FabricCapabilityDiscovery = defaultFabricCapabilityDiscovery(),
     private val runtimeMetadataProvider: FabricRuntimeMetadataProvider = staticFabricRuntimeMetadataProvider(),
     private val pathfinderBackend: FabricPathfinderBackend = UnavailableFabricPathfinderBackend,
-    private val survivalTaskExecutor: FabricSurvivalTaskExecutor = RecordingSurvivalExecutor(),
+    private val taskExecutor: FabricTaskExecutor = UnavailableFabricTaskExecutor,
 ) : DriverBackend {
     private val events = mutableListOf<String>()
     private val actionBindingsById = actionBindings.associateBy { it.descriptor.id }
@@ -207,6 +208,9 @@ class FabricDriverBackend private constructor(
 
     private fun taskOperationAdapter(): DriverOperationAdapter =
         DriverOperationAdapter { invocation ->
+            if (invocation.operation.availability.state == RuntimeAvailabilityState.UNAVAILABLE) {
+                return@DriverOperationAdapter unsupportedGraphOperation(invocation)
+            }
             when (invocation.operation.id) {
                 "task.run" -> runTask(invocation)
                 "task.status" -> queryTaskStatus(invocation)
@@ -553,14 +557,13 @@ class FabricDriverBackend private constructor(
                     message = "missing-request",
                 )
         val request = fabricBackendJson.decodeFromJsonElement(NavigationTaskRequest.serializer(), requestElement)
-        val status = survivalTaskExecutor.run(request)
+        val status = taskExecutor.run(request)
         return DriverActionResult(
             action = invocation.operation.id,
             status = status.state.toDriverActionStatus(),
             message = status.message,
             data =
                 buildJsonObject {
-                    put("task", request.task)
                     put("task-id", status.id)
                     put("state", status.state)
                 },
@@ -575,7 +578,7 @@ class FabricDriverBackend private constructor(
                     status = DriverActionStatus.FAILED,
                     message = "missing-task",
                 )
-        val status = survivalTaskExecutor.status(taskId)
+        val status = taskExecutor.status(taskId)
         return DriverActionResult(
             action = invocation.operation.id,
             status = status.state.toDriverActionStatus(),
@@ -611,14 +614,14 @@ class FabricDriverBackend private constructor(
         internal fun metadataOnly(
             actionDiscovery: FabricActionDiscovery = defaultFabricActionDiscovery(),
             pathfinderBackend: FabricPathfinderBackend = UnavailableFabricPathfinderBackend,
-            survivalTaskExecutor: FabricSurvivalTaskExecutor = RecordingSurvivalExecutor(),
+            taskExecutor: FabricTaskExecutor = UnavailableFabricTaskExecutor,
         ): FabricDriverBackend =
             FabricDriverBackend(
                 mode = Mode.METADATA_ONLY,
                 gateway = null,
                 actionDiscovery = actionDiscovery,
                 pathfinderBackend = pathfinderBackend,
-                survivalTaskExecutor = survivalTaskExecutor,
+                taskExecutor = taskExecutor,
             )
 
         fun real(gateway: FabricClientGateway = MinecraftFabricClientGateway()): FabricDriverBackend =
@@ -646,12 +649,7 @@ class FabricDriverBackend private constructor(
                 actionDiscovery = actionDiscovery,
                 runtimeMetadataProvider = runtimeMetadataProvider,
                 pathfinderBackend = pathfinderBackend,
-                survivalTaskExecutor =
-                    RecordingSurvivalExecutor(
-                        observations = FabricClientSurvivalObservationProvider(gateway),
-                        pathfinderBackend = pathfinderBackend,
-                        executionPorts = FabricClientSurvivalExecutionPorts(gateway),
-                    ),
+                taskExecutor = UnavailableFabricTaskExecutor,
             )
         }
 

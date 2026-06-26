@@ -8,7 +8,6 @@ import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.runtime.BackendDriverSession
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.Loader
-import com.minekube.craftless.protocol.NavigationTaskRequest
 import com.minekube.craftless.protocol.OpenApiActionAvailability
 import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.Profile
@@ -29,7 +28,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -51,7 +49,6 @@ data class FabricClientSmokeController(
     val startupSettleDelay: Duration = 0.milliseconds,
     val holdAfterActions: Duration = 0.milliseconds,
     val artifactsDir: Path? = null,
-    val runSurvivalTask: Boolean = false,
     val publicAgentCommand: List<String> = emptyList(),
 ) {
     init {
@@ -232,53 +229,6 @@ data class FabricClientSmokeController(
                                 action = "world.block.interact",
                                 args = mapOf("max-distance" to JsonPrimitive(4.0)),
                             )
-                        val survivalTaskResults =
-                            if (runSurvivalTask) {
-                                val survivalTaskRunResult =
-                                    http.runAvailableAction(
-                                        api = api,
-                                        clientId = SMOKE_CLIENT_ID,
-                                        openApi = connectedOpenApi,
-                                        action = "task.run",
-                                        args =
-                                            mapOf(
-                                                "request" to
-                                                    smokeJson.encodeToJsonElement(
-                                                        NavigationTaskRequest(task = "task.survival.honest-cow-hunt"),
-                                                    ),
-                                            ),
-                                    )
-                                val survivalTaskStatusResult =
-                                    survivalTaskRunResult.taskIdFromActionResult()?.let { taskId ->
-                                        http.runAvailableAction(
-                                            api = api,
-                                            clientId = SMOKE_CLIENT_ID,
-                                            openApi = connectedOpenApi,
-                                            action = "task.status",
-                                            args = mapOf("task" to JsonPrimitive(taskId)),
-                                        )
-                                    }
-                                val postSurvivalInventoryResult =
-                                    survivalTaskStatusResult?.let {
-                                        http.runAvailableAction(
-                                            api = api,
-                                            clientId = SMOKE_CLIENT_ID,
-                                            openApi = connectedOpenApi,
-                                            action = "inventory.query",
-                                        )
-                                    }
-                                listOfNotNull(
-                                    survivalTaskRunResult,
-                                    survivalTaskStatusResult,
-                                    """{"event":"craftless-smoke-post-survival-inventory","message":"queried inventory after survival task"}""",
-                                    postSurvivalInventoryResult,
-                                )
-                            } else {
-                                emptyList()
-                            }
-                        if (survivalTaskResults.isNotEmpty()) {
-                            writeLinesArtifact("survival-task-results.jsonl", survivalTaskResults)
-                        }
                         val inventorySelectionEvidence =
                             if (targetItemSlot == null) {
                                 """{"event":"craftless-smoke-inventory-fallback","message":"target item $equipItemName was not observed; selected slot $equipSlot"}"""
@@ -312,8 +262,7 @@ data class FabricClientSmokeController(
                             publicAgentStateResults(connectedOpenApi),
                         )
                         runPublicAgentCommand(api.url(""))
-                        val smokeResults = generatedGameplayResults + survivalTaskResults
-                        writeLinesArtifact("gameplay-results.jsonl", smokeResults)
+                        writeLinesArtifact("gameplay-results.jsonl", generatedGameplayResults)
                     }
                     val events = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/events"))
                     writeJsonArrayLinesArtifact("client-events.jsonl", events)
@@ -393,7 +342,6 @@ data class FabricClientSmokeController(
         private const val STARTUP_SETTLE = "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS"
         private const val HOLD_AFTER_ACTIONS = "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS"
         private const val ARTIFACTS_DIR = "CRAFTLESS_SMOKE_ARTIFACTS_DIR"
-        private const val FINAL_GAMEPLAY = "CRAFTLESS_FINAL_GAMEPLAY"
         private const val PUBLIC_AGENT_COMMAND_JSON = "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON"
         private const val SMOKE_CLIENT_ID = "fabric-smoke"
         private const val SMOKE_PROFILE = "CraftlessSmoke"
@@ -417,7 +365,6 @@ data class FabricClientSmokeController(
                 startupSettleDelay = (env[STARTUP_SETTLE]?.toLongStrict(STARTUP_SETTLE) ?: 0).milliseconds,
                 holdAfterActions = (env[HOLD_AFTER_ACTIONS]?.toLongStrict(HOLD_AFTER_ACTIONS) ?: 0).milliseconds,
                 artifactsDir = env[ARTIFACTS_DIR]?.takeIf { it.isNotBlank() }?.let(Path::of),
-                runSurvivalTask = env.isEnabled(FINAL_GAMEPLAY),
                 publicAgentCommand =
                     env[PUBLIC_AGENT_COMMAND_JSON]
                         ?.takeIf { it.isNotBlank() }
@@ -570,15 +517,6 @@ private fun String.selectedInventorySlot(): Int? =
         ?.content
         ?.toIntOrNull()
         ?.takeIf { it in 0..8 }
-
-private fun String.taskIdFromActionResult(): String? =
-    smokeJson
-        .parseToJsonElement(this)
-        .jsonObject["data"]
-        ?.jsonObject
-        ?.get("task-id")
-        ?.jsonPrimitive
-        ?.content
 
 private fun String.inventorySlots(): List<kotlinx.serialization.json.JsonObject> =
     smokeJson

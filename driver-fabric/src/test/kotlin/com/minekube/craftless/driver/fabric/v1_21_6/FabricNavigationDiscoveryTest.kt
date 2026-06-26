@@ -10,7 +10,6 @@ import com.minekube.craftless.protocol.NavigationTaskState
 import com.minekube.craftless.protocol.NavigationTaskStatus
 import com.minekube.craftless.protocol.RuntimeAvailabilityState
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -74,9 +73,12 @@ class FabricNavigationDiscoveryTest {
             ).discover(navigationContext())
 
         val operation = graph.operations.single { it.id == "navigation.plan" }
+        val taskRun = graph.operations.single { it.id == "task.run" }
 
         assertEquals(RuntimeAvailabilityState.AVAILABLE, operation.availability.state)
         assertEquals(null, operation.availability.reason)
+        assertEquals(RuntimeAvailabilityState.UNAVAILABLE, taskRun.availability.state)
+        assertEquals("task-executor-unavailable", taskRun.availability.reason)
         assertFalse(graph.toString().contains("baritone", ignoreCase = true))
         assertFalse(graph.toString().contains("swarmbot", ignoreCase = true))
     }
@@ -181,9 +183,8 @@ class FabricNavigationDiscoveryTest {
     }
 
     @Test
-    fun `fabric backend task adapters invoke survival executor generically`() {
-        val survival = RecordingSurvivalExecutor(nextTaskId = { "task:survival:honest-cow-hunt:0001" })
-        val backend = FabricDriverBackend.metadataOnly(survivalTaskExecutor = survival)
+    fun `fabric backend task adapter refuses legacy survival tasks`() {
+        val backend = FabricDriverBackend.metadataOnly()
         val adapters = backend.operationAdapters("alice")
         val operations = backend.runtimeGraph("alice").operations.associateBy { it.id }
         val request = NavigationTaskRequest(task = "task.survival.honest-cow-hunt")
@@ -199,71 +200,10 @@ class FabricNavigationDiscoveryTest {
                         ),
                 ),
             )
-        val statusResult =
-            adapters.invoke(
-                DriverOperationInvocation(
-                    clientId = "alice",
-                    operation = operations.getValue("task.status"),
-                    arguments = mapOf("task" to JsonPrimitive("task:survival:honest-cow-hunt:0001")),
-                ),
-            )
-
-        assertEquals(DriverActionStatus.ACCEPTED, runResult.status)
+        assertEquals(DriverActionStatus.UNSUPPORTED, runResult.status)
         assertEquals("task.run", runResult.action)
-        assertEquals("task.survival.honest-cow-hunt", runResult.data["task"]?.jsonPrimitive?.content)
-        assertEquals("succeeded", runResult.data["state"]?.jsonPrimitive?.content)
-        assertEquals(DriverActionStatus.ACCEPTED, statusResult.status)
-        assertEquals("task.status", statusResult.action)
-        assertEquals("task:survival:honest-cow-hunt:0001", statusResult.data["task-id"]?.jsonPrimitive?.content)
-    }
-
-    @Test
-    fun `fabric backend task adapters report runtime task failure without marking action unsupported`() {
-        val survival =
-            RecordingSurvivalExecutor(
-                observations =
-                    StaticSurvivalObservationProvider(
-                        FabricSurvivalObservation(
-                            materialSources = emptyList(),
-                            passiveEntities =
-                                listOf(
-                                    FabricSurvivalEntity(
-                                        handle = "resource:survival:entity:cow:0001",
-                                        kind = "cow",
-                                        position = FabricSurvivalBlockPosition(x = 4, y = 64, z = 4),
-                                    ),
-                                ),
-                            inventory = FabricSurvivalInventory(hasWeapon = false),
-                        ),
-                    ),
-                nextTaskId = { "task:survival:honest-cow-hunt:0001" },
-            )
-        val backend = FabricDriverBackend.metadataOnly(survivalTaskExecutor = survival)
-        val adapters = backend.operationAdapters("alice")
-        val operation =
-            backend
-                .runtimeGraph("alice")
-                .operations
-                .associateBy { it.id }
-                .getValue("task.run")
-        val request = NavigationTaskRequest(task = "task.survival.honest-cow-hunt")
-
-        val result =
-            adapters.invoke(
-                DriverOperationInvocation(
-                    clientId = "alice",
-                    operation = operation,
-                    arguments =
-                        mapOf(
-                            "request" to Json.encodeToJsonElement(NavigationTaskRequest.serializer(), request),
-                        ),
-                ),
-            )
-
-        assertEquals(DriverActionStatus.FAILED, result.status)
-        assertEquals("task.run", result.action)
-        assertEquals("no-material-source", result.message)
-        assertEquals("failed", result.data["state"]?.jsonPrimitive?.content)
+        assertEquals("task-executor-unavailable", runResult.message)
+        assertFalse(runResult.data.toString().contains("task.survival", ignoreCase = true))
     }
 }
 

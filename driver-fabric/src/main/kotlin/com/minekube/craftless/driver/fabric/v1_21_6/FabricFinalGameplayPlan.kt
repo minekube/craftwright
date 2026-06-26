@@ -68,7 +68,6 @@ data class FabricFinalGameplayPlan(
                         "gameplay-results.jsonl",
                         "public-agent-gameplay-results.jsonl",
                         "public-agent-state.jsonl",
-                        "survival-task-results.jsonl",
                         "runtime-metadata.json",
                     ),
                 completionGates =
