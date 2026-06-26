@@ -5,6 +5,8 @@ import com.minekube.craftless.protocol.CacheExportRequest
 import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.CachePreparedArtifactKind
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
+import com.minekube.craftless.protocol.JavaRuntimeProviderKind
+import com.minekube.craftless.protocol.JavaRuntimeSelectionStatus
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.MINECRAFT_JAVA_RUNTIME_INDEX_URL
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
@@ -181,7 +183,7 @@ class CachePreparationServiceTest {
                                     clientJarUrl to "client-jar".encodeToByteArray(),
                                     minecraftLibraryUrl to "minecraft-library".encodeToByteArray(),
                                     nativeLibraryUrl to nativeZipBytes(),
-                                    javaExecutableUrl to "java-binary".encodeToByteArray(),
+                                    javaExecutableUrl to fakeJavaBytes("21.0.11"),
                                     javaRuntimeFileUrl to "runtime-file".encodeToByteArray(),
                                     assetObjectUrl to "asset-bytes".encodeToByteArray(),
                                     fabricLoaderJarUrl to "fabric-loader-jar".encodeToByteArray(),
@@ -262,12 +264,18 @@ class CachePreparationServiceTest {
             assertEquals(listOf(nativeDirectory.handle), result.launch.nativePath)
             assertEquals(javaExecutable.handle, result.launch.javaExecutable)
             assertEquals(launchArguments.handle, result.launch.arguments)
+            assertEquals(21, result.javaSelection?.requirement?.majorVersion)
+            assertEquals("java-runtime-gamma", result.javaSelection?.requirement?.component)
+            assertEquals(JavaRuntimeSelectionStatus.SELECTED, result.javaSelection?.status)
+            assertEquals(JavaRuntimeProviderKind.MANAGED, result.javaSelection?.selected?.provider)
+            assertEquals(21, result.javaSelection?.selected?.majorVersion)
+            assertEquals(javaExecutable.handle, result.javaSelection?.selected?.executable)
             assertTrue(Files.readString(workspace.resolve("cache/minecraft/version_manifest_v2.json")).contains("1.21.6"))
             assertTrue(Files.readString(workspace.resolve("cache/minecraft/versions/1.21.6/version.json")).contains("client.jar"))
             assertEquals("client-jar", Files.readString(workspace.resolve("cache/minecraft/versions/1.21.6/client.jar")))
             assertTrue(Files.readString(workspace.resolve("cache/runtimes/index.json")).contains("java-runtime-gamma"))
             assertTrue(Files.readString(workspace.resolve(javaRuntimeManifest.handle)).contains("bin/java"))
-            assertEquals("java-binary", Files.readString(workspace.resolve(javaExecutable.handle)))
+            assertTrue(Files.readString(workspace.resolve(javaExecutable.handle)).contains("openjdk version"))
             assertEquals("runtime-file", Files.readString(workspace.resolve(javaRuntimeFile.handle)))
             assertTrue(Files.isExecutable(workspace.resolve(javaExecutable.handle)))
             val launchArgumentsJson = Files.readString(workspace.resolve(launchArguments.handle))
@@ -300,6 +308,7 @@ class CachePreparationServiceTest {
             assertTrue(Files.readString(workspace.resolve(result.manifest)).contains("MINECRAFT_LIBRARY"))
             assertTrue(Files.readString(workspace.resolve(result.manifest)).contains("MINECRAFT_NATIVE_DIRECTORY"))
             assertTrue(Files.readString(workspace.resolve(result.manifest)).contains("FABRIC_LIBRARY"))
+            assertTrue(Files.readString(workspace.resolve(result.manifest)).contains("\"javaSelection\""))
         }
 
     @Test
@@ -441,6 +450,14 @@ private fun nativeZipBytes(): ByteArray {
     }
     return output.toByteArray()
 }
+
+private fun fakeJavaBytes(version: String): ByteArray =
+    """
+    #!/usr/bin/env sh
+    echo 'openjdk version "$version" 2026-04-21 LTS' >&2
+    echo 'Eclipse Temurin Runtime Environment' >&2
+    echo '    os.arch = aarch64' >&2
+    """.trimIndent().encodeToByteArray()
 
 private fun javaRuntimeIndexJson(manifestUrl: String): String =
     """

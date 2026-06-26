@@ -13,6 +13,8 @@ import com.minekube.craftless.protocol.CachePreparedArtifact
 import com.minekube.craftless.protocol.CachePreparedArtifactKind
 import com.minekube.craftless.protocol.CachePreparedArtifactStatus
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
+import com.minekube.craftless.protocol.JavaRuntimeSelection
+import com.minekube.craftless.protocol.JavaRuntimeSelectionStatus
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.MINECRAFT_JAVA_RUNTIME_INDEX_URL
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
@@ -164,10 +166,19 @@ class CachePreparationService(
                 ),
             )
         }
-        val manifest = resolveHandle(result.manifest)
+        val javaSelection = selectJavaRuntime(request, versionManifest, result)
+        val finalResult =
+            result.copy(
+                javaSelection = javaSelection,
+                launch =
+                    result.launch.copy(
+                        javaExecutable = javaSelection?.selected?.executable ?: result.launch.javaExecutable,
+                    ),
+            )
+        val manifest = resolveHandle(finalResult.manifest)
         Files.createDirectories(manifest.parent)
-        Files.writeString(manifest, json.encodeToString(result) + "\n")
-        return result
+        Files.writeString(manifest, json.encodeToString(finalResult) + "\n")
+        return finalResult
     }
 
     fun export(request: CacheExportRequest): CacheExportResult {
@@ -242,6 +253,58 @@ class CachePreparationService(
             manifest = manifest,
             files = manifest.javaRuntimeFiles(platform, component),
         )
+    }
+
+    private fun selectJavaRuntime(
+        request: CachePrepareRequest,
+        versionManifest: String,
+        result: CachePrepareResult,
+    ): JavaRuntimeSelection? {
+        val requirement =
+            request.java
+                ?: if (versionManifest.hasJavaRuntimeMetadata()) {
+                    MinecraftJavaRuntimeRequirementResolver().derive(versionManifest, request.minecraftVersion)
+                } else {
+                    return null
+                }
+        val selection =
+            JavaRuntimeResolver()
+                .resolve(
+                    requirement = requirement,
+                    context =
+                        JavaRuntimeDiscoveryContext(
+                            managedRuntimeRoot = resolveHandle(result.runtimeRoot),
+                        ),
+                )
+                .withWorkspaceHandles()
+        require(selection.status == JavaRuntimeSelectionStatus.SELECTED) {
+            "Java runtime selection failed for Minecraft ${request.minecraftVersion}: ${selection.reason}"
+        }
+        return selection
+    }
+
+    private fun JavaRuntimeSelection.withWorkspaceHandles(): JavaRuntimeSelection =
+        selected
+            ?.let { descriptor ->
+                copy(
+                    selected =
+                        descriptor.copy(
+                            javaHome = descriptor.javaHome?.let(::cacheHandleOrPath),
+                            executable = cacheHandleOrPath(descriptor.executable),
+                        ),
+                )
+            }
+            ?: this
+
+    private fun cacheHandleOrPath(value: String): String {
+        val path = Path.of(value)
+        if (!path.isAbsolute) return value
+        val normalized = path.normalize()
+        return if (normalized.startsWith(root)) {
+            root.relativize(normalized).toString().replace('\\', '/')
+        } else {
+            value
+        }
     }
 
     private fun resolveHandle(handle: String): Path {
@@ -585,6 +648,13 @@ private fun String.javaRuntimeComponent(): String? =
         ?.jsonPrimitive
         ?.content
         ?.also { component -> requireFileSafeCacheSegment(component, "Java runtime component") }
+
+private fun String.hasJavaRuntimeMetadata(): Boolean =
+    Json
+        .parseToJsonElement(this)
+        .jsonObject["javaVersion"]
+        ?.jsonObject
+        ?.get("majorVersion") != null
 
 private fun String.javaRuntimeManifestUrl(
     platform: String,

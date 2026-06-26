@@ -617,8 +617,9 @@ Verification:
   the only way users can run compatible Minecraft clients. Evidence:
   `JavaRuntimeResolverTest` covers configured, managed-cache, mise, and system
   candidate paths without requiring `mise` on `PATH`.
-- [ ] Cache manifests and launch plans record selected Java runtime evidence
-  and use the selected executable.
+- [x] Cache manifests and launch plans record selected Java runtime evidence
+  and use the selected executable. Evidence:
+  `mise exec -- gradle :daemon:test --tests '*CachePreparationServiceTest.cache preparation resolves and stores minecraft version metadata*'`.
 - [ ] Supervisor API and CLI can list or resolve Java runtimes without adding
   gameplay action catalogs.
 - [ ] Testkit/server smoke consumes resolver output and records Java selection
