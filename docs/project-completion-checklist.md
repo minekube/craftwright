@@ -573,8 +573,11 @@ Verification:
   lane, internal provider, runtime evidence, fixture, or public-facing debt.
   Evidence:
   `docs/superpowers/evidence/2026-06-26-version-agnostic-driver-audit.md`.
-- [ ] Stable internal runtime/provider facades exist before adding more
+- [x] Stable internal runtime/provider facades exist before adding more
   Minecraft version breadth.
+  Evidence:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricRuntimeProviderTest*'`
+  and `mise exec -- gradle :driver-fabric:detekt :driver-fabric:ktlintCheck`.
 - [ ] Compatibility matrix and provider-selection tests cover the current lane
   plus at least one simulated or additional lane.
 - [ ] Runtime probe metadata records version/provider support and unavailable
