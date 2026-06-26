@@ -51,6 +51,7 @@ import io.ktor.http.contentType
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -538,6 +539,99 @@ class LocalSessionApiServerTest {
                     assertTrue(!body.contains("client.created"))
                 }
             }
+        }
+
+    @Test
+    fun `server answers json rpc query from live per client openapi projections`() =
+        withHttpClient { http ->
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory =
+                        DriverSessionFactory { request ->
+                            GenericGraphQueryDriverSession(request.id)
+                        },
+                ).use { server ->
+                    server.start()
+                    createAlice(http, server)
+
+                    http
+                        .post(server.url("/clients/alice:rpc")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "jsonrpc": "2.0",
+                                  "id": "rpc:alice:openapi-1",
+                                  "method": "query",
+                                  "params": {
+                                    "target": "openapi"
+                                  }
+                                }
+                                """.trimIndent(),
+                            )
+                        }.let { response ->
+                            val body = json.decodeFromString<JsonRpcResponse>(response.bodyAsText())
+                            val document = requireNotNull(body.result?.jsonObject)
+                            assertEquals(HttpStatusCode.OK, response.status)
+                            assertEquals("rpc:alice:openapi-1", body.id)
+                            assertTrue(
+                                document["x-craftless-actions"]?.jsonArray?.any {
+                                    it.jsonObject["id"]?.jsonPrimitive?.content == "player.query"
+                                } == true,
+                            )
+                            assertTrue(
+                                document["x-craftless-resources"]?.jsonArray?.any {
+                                    it.jsonObject["id"]?.jsonPrimitive?.content == "player"
+                                } == true,
+                            )
+                        }
+
+                    http
+                        .post(server.url("/clients/alice:rpc")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "jsonrpc": "2.0",
+                                  "id": "rpc:alice:actions-1",
+                                  "method": "query",
+                                  "params": {
+                                    "target": "actions"
+                                  }
+                                }
+                                """.trimIndent(),
+                            )
+                        }.let { response ->
+                            val body = json.decodeFromString<JsonRpcResponse>(response.bodyAsText())
+                            val actions = requireNotNull(body.result?.jsonArray)
+                            assertEquals(HttpStatusCode.OK, response.status)
+                            assertEquals("rpc:alice:actions-1", body.id)
+                            assertEquals(listOf("player.query"), actions.map { it.jsonObject["id"]?.jsonPrimitive?.content })
+                        }
+
+                    http
+                        .post(server.url("/clients/alice:rpc")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "jsonrpc": "2.0",
+                                  "id": "rpc:alice:resources-1",
+                                  "method": "query",
+                                  "params": {
+                                    "target": "resources"
+                                  }
+                                }
+                                """.trimIndent(),
+                            )
+                        }.let { response ->
+                            val body = json.decodeFromString<JsonRpcResponse>(response.bodyAsText())
+                            val resources = requireNotNull(body.result?.jsonArray)
+                            assertEquals(HttpStatusCode.OK, response.status)
+                            assertEquals("rpc:alice:resources-1", body.id)
+                            assertEquals(listOf("player"), resources.map { it.jsonObject["id"]?.jsonPrimitive?.content })
+                        }
+                }
         }
 
     @Test

@@ -12,6 +12,9 @@ import com.minekube.craftless.protocol.CacheCleanupRequest
 import com.minekube.craftless.protocol.CacheExportRequest
 import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.CreateClientRequest
+import com.minekube.craftless.protocol.JsonRpcMethod
+import com.minekube.craftless.protocol.JsonRpcRequest
+import com.minekube.craftless.protocol.JsonRpcResponse
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.OpenApiAction
 import com.minekube.craftless.protocol.OpenApiActionArgument
@@ -37,7 +40,9 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.put
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -86,6 +91,7 @@ object CraftlessCli {
             "clients <id> openapi",
             "clients <id> actions",
             "clients <id> resources",
+            "clients <id> query <target>",
             "clients <id> events",
             "clients <id> tools",
             "clients <id> run <action>",
@@ -139,6 +145,9 @@ object CraftlessCli {
         }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "resources") {
             return getClientResources(args.drop(1), stdout, stderr, env)
+        }
+        if (args.size >= 3 && args[0] == "clients" && args[2] == "query") {
+            return queryClient(args.drop(1), stdout, stderr, env)
         }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "events") {
             return getClientEvents(args.drop(1), stdout, stderr, env)
@@ -549,6 +558,57 @@ object CraftlessCli {
             }
         }.getOrElse { error ->
             stderr("error: ${error.message ?: "failed to fetch actions"}")
+            2
+        }
+    }
+
+    private fun queryClient(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+        env: Map<String, String>,
+    ): Int {
+        val clientId = args.getOrNull(0).orEmpty()
+        val target = args.getOrNull(2).orEmpty()
+        if (clientId.isBlank() || target.isBlank()) {
+            stderr("error: usage is clients <id> query <target> [--api <url>]")
+            return 2
+        }
+        val api = args.apiBaseUrl(env)
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    val response =
+                        http.post("${api.trimEnd('/')}/clients/$clientId:rpc") {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                json.encodeToString(
+                                    JsonRpcRequest(
+                                        method = JsonRpcMethod.QUERY,
+                                        params =
+                                            buildJsonObject {
+                                                put("target", target)
+                                            },
+                                    ),
+                                ),
+                            )
+                        }
+                    val body = response.bodyAsText()
+                    if (!response.status.isSuccess()) {
+                        stderr(body)
+                        return@runBlocking 1
+                    }
+                    val rpc = json.decodeFromString<JsonRpcResponse>(body)
+                    if (rpc.error != null) {
+                        stderr(body)
+                        return@runBlocking 1
+                    }
+                    stdout(json.encodeToString(requireNotNull(rpc.result) { "json rpc query returned no result" }))
+                    0
+                }
+            }
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to query client"}")
             2
         }
     }

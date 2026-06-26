@@ -308,7 +308,6 @@ class LocalSessionApiServer private constructor(
 
                             JsonRpcMethod.SUBSCRIBE,
                             JsonRpcMethod.UNSUBSCRIBE,
-                            JsonRpcMethod.QUERY,
                             ->
                                 JsonRpcResponse.result(
                                     id = request.id,
@@ -318,6 +317,8 @@ class LocalSessionApiServer private constructor(
                                             put("method", request.method)
                                         },
                                 )
+
+                            JsonRpcMethod.QUERY -> queryJsonRpc(clientId, request)
 
                             else -> error("unsupported json rpc method ${request.method}")
                         }
@@ -389,6 +390,26 @@ class LocalSessionApiServer private constructor(
             }
         }
     }
+
+    private fun queryJsonRpc(
+        clientId: String,
+        request: JsonRpcRequest,
+    ): JsonRpcResponse {
+        val target = request.params["target"]?.jsonPrimitive?.content ?: "openapi"
+        val openApi by lazy { service.openApiFor(clientId) }
+        val result =
+            when (target) {
+                "openapi" -> jsonElement(openApi)
+                "actions" -> jsonElement(openApi.actions)
+                "resources" -> jsonElement(openApi.resources)
+                "handles" -> jsonElement(openApi.handles)
+                "events" -> jsonElement(events.filter { event -> event.client == clientId }.toLiveEvents())
+                else -> error("unsupported json rpc query target $target")
+            }
+        return JsonRpcResponse.result(id = request.id, result = result)
+    }
+
+    private inline fun <reified T> jsonElement(value: T): JsonElement = json.parseToJsonElement(json.encodeToString(value))
 
     companion object {
         fun inMemory(

@@ -21,8 +21,8 @@ Legend:
 - [x] Per-client OpenAPI exists at `GET /clients/{id}/openapi.json`.
 - [x] Generic invocation exists at `POST /clients/{id}:run`.
 - [x] Current CLI and helper consumers use live per-client OpenAPI metadata for
-  existing action dispatch, generated help, tools export, resources, and cache
-  revalidation.
+  existing action dispatch, generated help, tools export, resources, JSON-RPC
+  query, and cache revalidation.
 - [x] Current Fabric smoke proves a real client can launch, join a local
   server, chat, move, observe inventory, equip an iron sword, invoke block
   interactions, and write evidence artifacts. This is diagnostic smoke only:
@@ -132,13 +132,13 @@ Verification:
 
 - [x] Daemon exposes SSE streams for supervisor and per-client live events.
 - [~] Daemon exposes HTTP POST JSON-RPC-style control for invoke, subscribe,
-  unsubscribe, and query. Current evidence covers invoke correlation and
-  generic acknowledgements for the non-invoke methods; persistent subscription
-  state remains future hardening.
+  unsubscribe, and query. Current evidence covers invoke correlation and live
+  projection query for OpenAPI/actions/resources/handles/events; persistent
+  subscription state remains future hardening.
 - [x] Event filters work server-side and client-side.
-- [~] CLI can watch live events and invoke/query using live OpenAPI/stream
-  metadata. Current evidence covers live event watching and invocation; query
-  remains a generic RPC follow-up.
+- [x] CLI can watch live events and invoke/query using live OpenAPI/stream
+  metadata. Current evidence covers live event watching, invocation, and
+  JSON-RPC query over live projections.
 - [x] Bun helper can subscribe to events without npm, npx, yarn, pnpm, or local
   Node tooling.
 

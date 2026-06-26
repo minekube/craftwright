@@ -61,6 +61,7 @@ class CraftlessCliTest {
         assertTrue(commands.contains("clients <id> openapi"))
         assertTrue(commands.contains("clients <id> actions"))
         assertTrue(commands.contains("clients <id> resources"))
+        assertTrue(commands.contains("clients <id> query <target>"))
         assertTrue(commands.contains("clients <id> events"))
         assertTrue(commands.contains("clients <id> tools"))
         assertTrue(commands.contains("clients <id> run <action>"))
@@ -1233,6 +1234,34 @@ class CraftlessCliTest {
         assertEquals(firstOutput.toString(), secondOutput.toString())
         val resources = Json.parseToJsonElement(secondOutput.toString().trim()).jsonArray
         assertEquals(listOf("player"), resources.map { it.jsonObject["id"]?.jsonPrimitive?.content })
+    }
+
+    @Test
+    fun `clients query fetches live projection through json rpc`() {
+        val output = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "query",
+                        "actions",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
+
+            assertEquals(0, exit)
+        }
+
+        val actions = Json.parseToJsonElement(output.toString().trim()).jsonArray
+        assertTrue(actions.any { it.jsonObject["id"]?.jsonPrimitive?.content == "player.chat" })
+        assertTrue(actions.any { it.jsonObject["id"]?.jsonPrimitive?.content == "player.move" })
     }
 
     @Test
