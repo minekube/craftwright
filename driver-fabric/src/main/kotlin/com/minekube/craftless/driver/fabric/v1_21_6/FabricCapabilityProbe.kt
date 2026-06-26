@@ -51,6 +51,7 @@ private fun defaultFabricCapabilityProbes(): List<FabricCapabilityProbe> =
     listOf(
         FabricRuntimeMetadataCapabilityProbe,
         FabricRegistrySummaryCapabilityProbe,
+        FabricEventSourceCapabilityProbe,
         FabricClientStateCapabilityProbe,
         FabricNavigationDiscovery(),
     )
@@ -95,6 +96,32 @@ internal object FabricRegistrySummaryCapabilityProbe : FabricCapabilityProbe {
                         schema = RuntimeSchema.objectSchema(),
                         availability = RuntimeAvailability.available(),
                         sourceEvidence = listOf(registryEvidence),
+                    )
+                },
+        )
+    }
+}
+
+internal object FabricEventSourceCapabilityProbe : FabricCapabilityProbe {
+    override fun discover(context: FabricCapabilityProbeContext): FabricCapabilityGraphFragment {
+        val eventSourceEvidence = RuntimeSourceEvidence("event-source", "driver:${context.runtimeMetadata.driverVersion}")
+        return FabricCapabilityGraphFragment(
+            resources =
+                listOf(
+                    RuntimeResourceNode(
+                        id = "event",
+                        availability = RuntimeAvailability.available(),
+                        sourceEvidence = listOf(eventSourceEvidence),
+                    ),
+                ),
+            events =
+                eventSourceIds.map { id ->
+                    RuntimeEventNode(
+                        id = "event.$id",
+                        resource = "event",
+                        payload = RuntimeSchema.objectSchema(),
+                        availability = RuntimeAvailability.available(),
+                        sourceEvidence = listOf(eventSourceEvidence),
                     )
                 },
         )
@@ -263,6 +290,13 @@ private val registrySummaryHandles =
         "screen",
         "effect",
         "event",
+    )
+
+private val eventSourceIds =
+    listOf(
+        "lifecycle",
+        "action",
+        "capability",
     )
 
 private fun FabricClientCapabilitySnapshot.playerReason(): String? =

@@ -168,6 +168,38 @@ class FabricCapabilityProbeTest {
     }
 
     @Test
+    fun `event source probe emits generic event stream nodes without gameplay operations`() {
+        val graph =
+            defaultFabricCapabilityDiscovery(probes = listOf(FabricEventSourceCapabilityProbe))
+                .discover(
+                    FabricCapabilityProbeContext(
+                        clientId = "alice",
+                        modeId = "real-client",
+                        gateway = null,
+                        runtimeMetadata =
+                            DriverRuntimeMetadata(
+                                driver = "craftless-driver-fabric",
+                                driverVersion = "0.2.0-test",
+                            ),
+                    ),
+                )
+
+        val event = graph.resources.single { it.id == "event" }
+        val events = graph.events.associateBy { it.id }
+
+        assertEquals(RuntimeAvailabilityState.AVAILABLE, event.availability.state)
+        assertEquals("event-source", event.sourceEvidence.single().kind)
+        assertEquals(
+            setOf("event.lifecycle", "event.action", "event.capability"),
+            events.keys,
+        )
+        assertTrue(events.values.all { node -> node.resource == "event" })
+        assertTrue(events.values.all { node -> node.payload.type == "object" })
+        assertTrue(events.values.all { node -> node.sourceEvidence.single().kind == "event-source" })
+        assertEquals(emptyList(), graph.operations)
+    }
+
+    @Test
     fun `client state probe queries gateway and emits availability graph nodes`() {
         val gateway =
             RecordingCapabilityGateway(
