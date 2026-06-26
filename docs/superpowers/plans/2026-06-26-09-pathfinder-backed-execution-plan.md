@@ -159,13 +159,13 @@ Expected: PASS and the preparation task is listed.
 **Files:**
 - Modify: `docs/project-completion-checklist.md`
 
-- [ ] **Step 1: Update checklist**
+- [x] **Step 1: Update checklist**
 
 Mark pathfinder-backed execution as implemented. Keep final live survival
 gameplay unchecked until the Phase 10 live run succeeds and Robin confirms in
 Minecraft chat.
 
-- [ ] **Step 2: Run verification**
+- [x] **Step 2: Run verification**
 
 Run:
 
@@ -179,7 +179,7 @@ git diff --check
 
 Expected: all pass.
 
-- [ ] **Step 3: Commit and push**
+- [x] **Step 3: Commit and push**
 
 Run:
 
