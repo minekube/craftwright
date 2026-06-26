@@ -8,11 +8,13 @@
 
 **Tech Stack:** Kotlin/JVM, Gradle Kotlin DSL, kotlinx.serialization JSON, Fabric client-thread gateway, Ktor-backed testkit HTTP fakes, mise.
 
-**Current slice status:** The graph/action names are generic and the
-public-agent policy composition is covered by fake-server evidence, but the
-Fabric live recipe probe and executor are not implemented yet. Until those
-exist, `driver-fabric` must mark recipe graph nodes unavailable and return
-machine-readable unsupported results instead of placeholder recipe data.
+**Current slice status:** The graph/action names are generic, `recipe.query`
+projects live Fabric recipe-book display entries into Craftless-owned records,
+and `recipe.craft` can invoke a discovered live recipe handle through the
+client recipe-click path when the runtime graph reports a craft context. Public
+agent policy composition is covered by fake-server evidence. Final live
+survival evidence, broader screen/handler coverage, and post-server inventory
+confirmation still remain open.
 
 ---
 
@@ -22,11 +24,11 @@ machine-readable unsupported results instead of placeholder recipe data.
 - Modify: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricCapabilityProbe.kt`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt`
 
-- [ ] Write a failing test named `fabric runtime discovery exposes recipe operations only from live client state`.
-- [ ] Run `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric runtime discovery exposes recipe operations only from live client state*'` and confirm it fails because `recipe.query` is missing.
-- [ ] Add resource `recipe`, handle `recipe.handle`, and operations `recipe.query` and `recipe.craft` from `FabricClientStateCapabilityProbe` using runtime availability derived from player, inventory, world, and screen/handler state.
-- [ ] Keep operation adapters as `fabric.recipe-query` and `fabric.recipe-craft`.
-- [ ] Run the focused test and confirm it passes.
+- [x] Write a failing test named `fabric runtime discovery exposes recipe operations only from live client state`.
+- [x] Run `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric runtime discovery exposes recipe operations only from live client state*'` and confirm it fails because `recipe.query` is missing.
+- [x] Add resource `recipe`, handle `recipe.handle`, and operations `recipe.query` and `recipe.craft` from `FabricClientStateCapabilityProbe` using runtime availability derived from player, inventory, world, and screen/handler state.
+- [x] Keep operation adapters as `fabric.recipe-query` and `fabric.recipe-craft`.
+- [x] Run the focused test and confirm it passes.
 
 ### Task 2: Generic Recipe Query Adapter
 
@@ -34,12 +36,12 @@ machine-readable unsupported results instead of placeholder recipe data.
 - Modify: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt`
 
-- [ ] Write a failing test named `fabric backend queries generic recipe handles through runtime graph adapter`.
-- [ ] Run the focused test and confirm it fails because `fabric.recipe-query` has no adapter.
-- [ ] Add `fabric.recipe-query` to `navigationTaskOperationAdapters`.
-- [ ] Implement `queryRecipes(invocation)` on the client thread. It must return Craftless-owned handles, category, craftable state, required public ingredients, and produced public outputs. Until that real probe exists, keep the adapter unavailable rather than returning placeholder data.
-- [ ] Ensure public recipe records do not expose raw registry ids or Minecraft/Fabric/Yarn names.
-- [ ] Run the focused test and confirm it passes.
+- [x] Write a failing test named `fabric backend queries generic recipe handles through runtime graph adapter`.
+- [x] Run the focused test and confirm it fails because `fabric.recipe-query` has no adapter.
+- [x] Add `fabric.recipe-query` to `navigationTaskOperationAdapters`.
+- [x] Implement `queryRecipes(invocation)` on the client thread. It returns Craftless-owned handles, category, craftable state, required public ingredients, and produced public outputs.
+- [x] Ensure public recipe records do not expose raw registry ids or Minecraft/Fabric/Yarn names.
+- [x] Run the focused test and confirm it passes.
 
 ### Task 3: Generic Recipe Craft Adapter
 
@@ -47,12 +49,12 @@ machine-readable unsupported results instead of placeholder recipe data.
 - Modify: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt`
 
-- [ ] Write a failing test named `fabric backend crafts a discovered recipe handle through runtime graph adapter`.
-- [ ] Run the focused test and confirm it fails because `fabric.recipe-craft` has no adapter.
-- [ ] Add `fabric.recipe-craft` to `navigationTaskOperationAdapters`.
-- [ ] Implement `craftRecipe(invocation)` by validating a public recipe handle from `recipe.query`, count bounds, live craftability, and inventory change evidence. Until that real executor exists, keep the adapter unavailable rather than returning placeholder success.
-- [ ] Return machine-readable failure results for missing target, stale handle, unavailable crafting context, and unchanged inventory.
-- [ ] Run the focused test and confirm it passes.
+- [x] Write a failing test named `fabric backend crafts a discovered recipe handle through runtime graph adapter`.
+- [x] Run the focused test and confirm it fails because `fabric.recipe-craft` has no adapter.
+- [x] Add `fabric.recipe-craft` to `navigationTaskOperationAdapters`.
+- [x] Implement `craftRecipe(invocation)` by validating a public recipe handle from `recipe.query`, count bounds, live craftability, and inventory fingerprint evidence.
+- [x] Return machine-readable failure results for missing target, stale handle, unavailable crafting context, and unchanged inventory.
+- [x] Run the focused test and confirm it passes.
 
 ### Task 4: Public-Agent Composition
 
@@ -60,12 +62,12 @@ machine-readable unsupported results instead of placeholder recipe data.
 - Modify: `testkit/src/main/kotlin/com/minekube/craftless/testkit/PublicAgentGameplayRunner.kt`
 - Modify: `testkit/src/test/kotlin/com/minekube/craftless/testkit/PublicAgentGameplayRunnerTest.kt`
 
-- [ ] Write a failing public-agent test named `runner crafts useful inventory output through generated recipe actions when available`.
-- [ ] Run `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest.runner crafts useful inventory output through generated recipe actions when available*'` and confirm it fails because the runner does not use recipe actions.
-- [ ] Query `recipe.query` only if the generated action catalog advertises it.
-- [ ] Select a useful craftable public recipe by category/output evidence, invoke `recipe.craft` by handle, and verify with `inventory.query`.
-- [ ] Keep policy generic; do not add material-specific or weapon-specific product actions.
-- [ ] Run the focused test and the full `PublicAgentGameplayRunnerTest` class.
+- [x] Write a failing public-agent test named `runner crafts useful inventory output through generated recipe actions when available`.
+- [x] Run `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest.runner crafts useful inventory output through generated recipe actions when available*'` and confirm it fails because the runner does not use recipe actions.
+- [x] Query `recipe.query` only if the generated action catalog advertises it.
+- [x] Select a useful craftable public recipe by category/output evidence, invoke `recipe.craft` by handle, and verify with `inventory.query`.
+- [x] Keep policy generic; do not add material-specific or weapon-specific product actions.
+- [x] Run the focused test and the full `PublicAgentGameplayRunnerTest` class.
 
 ### Task 5: Checklist, Live Evidence, And Push
 

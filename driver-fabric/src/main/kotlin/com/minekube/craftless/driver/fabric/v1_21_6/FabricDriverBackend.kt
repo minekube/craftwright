@@ -23,11 +23,13 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import net.fabricmc.loader.api.FabricLoader
@@ -36,6 +38,8 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.mob.HostileEntity
 import net.minecraft.entity.passive.PassiveEntity
+import net.minecraft.item.ItemStack
+import net.minecraft.recipe.NetworkRecipeId
 import net.minecraft.recipe.RecipeFinder
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
@@ -340,6 +344,13 @@ class FabricDriverBackend private constructor(
                     message = "missing-target",
                 )
         require(handle.startsWith("recipe.handle:")) { "recipe target handle must use recipe.handle:<id>" }
+        val recipeIndex =
+            handle.recipeHandleIndex()
+                ?: return DriverActionResult(
+                    action = invocation.operation.id,
+                    status = DriverActionStatus.FAILED,
+                    message = "invalid-recipe-handle",
+                )
         val count = invocation.arguments["count"]?.jsonPrimitive?.intOrNull ?: 1
         require(count in RECIPE_CRAFT_COUNT_RANGE) { "recipe craft count must be between 1 and 64" }
         invocation.unavailableRecipeOperationResult()?.let { result -> return result }
@@ -351,10 +362,69 @@ class FabricDriverBackend private constructor(
                 message = "client-not-connected",
             )
         }
+        val data =
+            clientGateway.queryOnClient {
+                val currentPlayer = requireNotNull(player) { "client is not connected to a server" }
+                val currentInteractionManager =
+                    requireNotNull(interactionManager) { "client interaction manager is unavailable" }
+                val currentScreenHandler =
+                    currentPlayer.currentScreenHandler
+                        ?: return@queryOnClient recipeCraftFailure(
+                            handle = handle,
+                            reason = "screen-handler-unavailable",
+                        )
+                val recipeId = NetworkRecipeId(recipeIndex)
+                val recipeBook = currentPlayer.recipeBook
+                val finder = RecipeFinder()
+                currentPlayer.inventory.populateRecipeFinder(finder)
+                recipeBook.refresh()
+                val features = networkHandler?.enabledFeatures
+                val matchingCollection =
+                    recipeBook
+                        .orderedResults
+                        .asSequence()
+                        .onEach { collection ->
+                            collection.populateRecipes(finder) { display ->
+                                features == null || display.isEnabled(features)
+                            }
+                        }.firstOrNull { collection ->
+                            collection.allRecipes.any { entry -> entry.id() == recipeId }
+                        }
+                        ?: return@queryOnClient recipeCraftFailure(
+                            handle = handle,
+                            reason = "stale-recipe-handle",
+                        )
+                if (!matchingCollection.isCraftable(recipeId)) {
+                    return@queryOnClient recipeCraftFailure(
+                        handle = handle,
+                        reason = "recipe-not-craftable",
+                    )
+                }
+                val before = currentScreenHandler.stacks.toCraftlessInventoryFingerprint()
+                currentInteractionManager.clickRecipe(currentScreenHandler.syncId, recipeId, count > 1)
+                currentPlayer.onRecipeDisplayed(recipeId)
+                currentScreenHandler.sendContentUpdates()
+                val after = currentScreenHandler.stacks.toCraftlessInventoryFingerprint()
+                val changed = before != after
+                buildJsonObject {
+                    put("handle", handle)
+                    put("accepted", true)
+                    put("changed", changed)
+                    put("requested-count", count)
+                    put("crafted-count", if (changed && count == 1) 1 else 0)
+                    put("inventory-before", before)
+                    put("inventory-after", after)
+                    put("sync-id", currentScreenHandler.syncId)
+                }
+            }
+        val accepted = data.jsonObject["accepted"]?.jsonPrimitive?.booleanOrNull == true
         return DriverActionResult(
             action = invocation.operation.id,
-            status = DriverActionStatus.UNSUPPORTED,
-            message = "recipe-execution-unavailable",
+            status = if (accepted) DriverActionStatus.ACCEPTED else DriverActionStatus.FAILED,
+            message =
+                data.jsonObject["reason"]?.jsonPrimitive?.contentOrNull
+                    ?: "fabric ${mode.id} action ${invocation.operation.id} accepted",
+            data = data,
         )
     }
 
@@ -869,6 +939,11 @@ private fun String.entityHandleId(): Int? =
         .takeIf { it != this }
         ?.toIntOrNull()
 
+private fun String.recipeHandleIndex(): Int? =
+    removePrefix("recipe.handle:")
+        .takeIf { it != this }
+        ?.toIntOrNull()
+
 private fun String.fabricOperationAdapterKey(): String = "fabric.${replace(".", "-")}"
 
 private fun DriverOperationInvocation.unavailableRecipeOperationResult(): DriverActionResult? {
@@ -880,6 +955,30 @@ private fun DriverOperationInvocation.unavailableRecipeOperationResult(): Driver
         status = DriverActionStatus.UNSUPPORTED,
         message = operation.availability.reason ?: "operation-unavailable",
     )
+}
+
+private fun recipeCraftFailure(
+    handle: String,
+    reason: String,
+): JsonObject =
+    buildJsonObject {
+        put("handle", handle)
+        put("accepted", false)
+        put("changed", false)
+        put("crafted-count", 0)
+        put("reason", reason)
+    }
+
+private fun Iterable<ItemStack>.toCraftlessInventoryFingerprint(): String {
+    val entries =
+        mapIndexedNotNull { index, stack ->
+            if (stack.isEmpty) {
+                null
+            } else {
+                "$index:${stack.item.translationKey}:${stack.count}"
+            }
+        }
+    return fingerprint("inventory.fingerprint", entries)
 }
 
 private val fabricBackendJson = Json

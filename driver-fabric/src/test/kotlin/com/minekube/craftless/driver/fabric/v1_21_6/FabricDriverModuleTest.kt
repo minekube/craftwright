@@ -1425,7 +1425,24 @@ class FabricDriverModuleTest {
         assertEquals(RuntimeAvailabilityState.AVAILABLE, availableRecipeHandle.availability.state)
         assertEquals(RuntimeAvailabilityState.AVAILABLE, availableQuery.availability.state)
         assertEquals(RuntimeAvailabilityState.UNAVAILABLE, executionUnavailableCraft.availability.state)
-        assertEquals("recipe-execution-unavailable", executionUnavailableCraft.availability.reason)
+        assertEquals("recipe-context-unavailable", executionUnavailableCraft.availability.reason)
+
+        gateway.capabilities =
+            FabricClientCapabilitySnapshot(
+                connected = true,
+                player = true,
+                inventory = true,
+                camera = true,
+                interactionManager = true,
+                world = true,
+                recipes = true,
+                recipeCrafting = true,
+            )
+
+        val craftingReadyGraph = backend.runtimeGraph("alice")
+        val availableCraft = craftingReadyGraph.operations.single { it.id == "recipe.craft" }
+
+        assertEquals(RuntimeAvailabilityState.AVAILABLE, availableCraft.availability.state)
     }
 
     @Test
@@ -1545,7 +1562,7 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric backend refuses recipe craft until live recipe executor exists`() {
+    fun `fabric backend crafts a discovered recipe handle through runtime graph adapter`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connected = true
         gateway.capabilities =
@@ -1557,7 +1574,18 @@ class FabricDriverModuleTest {
                 interactionManager = true,
                 world = true,
                 recipes = true,
+                recipeCrafting = true,
             )
+        gateway.queryResult =
+            buildJsonObject {
+                put("handle", "recipe.handle:42")
+                put("accepted", true)
+                put("changed", false)
+                put("crafted-count", 1)
+                put("inventory-before", "inventory.fingerprint:before")
+                put("inventory-after", "inventory.fingerprint:after")
+                put("sync-id", 7)
+            }
         val backend =
             FabricDriverBackend.real(
                 gateway = gateway,
@@ -1574,17 +1602,31 @@ class FabricDriverModuleTest {
                         mapOf(
                             "target" to
                                 buildJsonObject {
-                                    put("handle", "recipe.handle:abc123")
+                                    put("handle", "recipe.handle:42")
                                 },
                             "count" to JsonPrimitive(1),
                         ),
                 ),
             )
 
-        assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
-        assertEquals("recipe-execution-unavailable", result.message)
-        assertEquals(emptyList<String>(), gateway.actions)
-        assertEquals(0, gateway.scheduled)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        val craftData = result.data.jsonObject
+        assertEquals("recipe.handle:42", craftData["handle"]?.jsonPrimitive?.content)
+        assertEquals(true, craftData["accepted"]?.jsonPrimitive?.boolean)
+        assertEquals(
+            "inventory.fingerprint:before",
+            craftData["inventory-before"]
+                ?.jsonPrimitive
+                ?.content,
+        )
+        assertEquals(
+            "inventory.fingerprint:after",
+            craftData["inventory-after"]
+                ?.jsonPrimitive
+                ?.content,
+        )
+        assertEquals(listOf("client-query"), gateway.actions)
+        assertEquals(1, gateway.scheduled)
     }
 
     @Test

@@ -152,6 +152,7 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                         interactionManager = interactionManager != null,
                         world = world != null,
                         recipes = currentPlayer?.recipeBook != null && networkHandler?.recipeManager != null,
+                        recipeCrafting = interactionManager != null && currentPlayer?.currentScreenHandler != null,
                     )
                 }
             }
@@ -403,7 +404,11 @@ private fun FabricClientCapabilitySnapshot.recipeQueryReason(): String? =
 
 private fun FabricClientCapabilitySnapshot.recipeCraftReason(): String? =
     recipeQueryReason()
-        ?: "recipe-execution-unavailable"
+        ?: when {
+            !interactionManager -> "interaction-manager-unavailable"
+            !recipeCrafting -> "recipe-context-unavailable"
+            else -> null
+        }
 
 private fun FabricClientCapabilitySnapshot.cameraReason(): String? =
     when {

@@ -709,17 +709,20 @@ Verification:
   `recipe.handle`, `recipe.query`, and `recipe.craft`. `recipe.query`,
   `recipe`, and `recipe.handle` become available only when the live client
   reports recipe-book state; otherwise they remain unavailable with
-  `recipe-discovery-unavailable`. `recipe.craft` remains unavailable with
-  `recipe-execution-unavailable` until a real executor exists.
+  `recipe-discovery-unavailable`. `recipe.craft` becomes available only when
+  the live client also reports a craft execution context; otherwise it remains
+  unavailable with `recipe-context-unavailable` or another machine-readable
+  runtime reason.
 - [~] `recipe.query` has a guarded Fabric operation adapter that projects live
   recipe-book display entries into opaque Craftless recipe handles, public
   output/ingredient labels, categories, craftability, and query filters.
   Broader live recipe requirements, screen/handler permission details, stale
   handle validation, and real craft execution remain open.
-- [~] `recipe.craft` has public handle/count validation and a guarded Fabric
-  operation adapter that refuses live calls with `recipe-execution-unavailable`.
-  Real recipe execution, stale-handle validation, live craftability, and
-  inventory-change evidence remain open.
+- [~] `recipe.craft` has public handle/count validation, stale-handle
+  validation, live craftability checks, guarded Fabric client-thread execution
+  through `clickRecipe`, and before/after inventory fingerprints. Broader
+  screen/handler coverage, asynchronous post-server inventory confirmation,
+  and live survival evidence remain open.
 - [x] Public-agent composition uses generated recipe actions when available to
   craft useful outputs, then verifies inventory state through `inventory.query`
   in focused fake-server evidence.
@@ -731,6 +734,7 @@ Verification:
 
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest*'`
 - `mise exec -- gradle :driver-fabric:test --tests '*recipe*'`
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend crafts a discovered recipe handle through runtime graph adapter*'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 - `mise run ci`
