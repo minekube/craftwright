@@ -88,6 +88,28 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `root help prints stable command overview`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        val exit =
+            CraftlessCli.run(
+                listOf("--help"),
+                stdout = { output.appendLine(it) },
+                stderr = { errors.appendLine(it) },
+            )
+
+        assertEquals(0, exit)
+        assertEquals("", errors.toString())
+        val help = output.toString()
+        assertTrue(help.contains("Usage: craftless <command> [args]"))
+        assertTrue(help.contains("server start"))
+        assertTrue(help.contains("clients <id> <resource...> <action>"))
+        assertFalse(help.contains("player chat"))
+        assertFalse(help.contains("world block break"))
+    }
+
+    @Test
     fun `inactive static commands return explicit usage errors`() {
         val output = StringBuilder()
         val errors = StringBuilder()

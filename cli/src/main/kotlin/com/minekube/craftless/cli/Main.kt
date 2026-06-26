@@ -110,6 +110,10 @@ object CraftlessCli {
         env: Map<String, String> = System.getenv(),
         cacheMetadataFetcher: CacheMetadataFetcher = KtorCacheMetadataFetcher(),
     ): Int {
+        if (args.isRootHelp()) {
+            stdout(rootHelp())
+            return 0
+        }
         if (args.take(2) == listOf("server", "start")) {
             return runServerStart(args.drop(2), stdout, stderr, afterStart)
         }
@@ -168,6 +172,26 @@ object CraftlessCli {
         root().main(args)
         return 0
     }
+
+    private fun List<String>.isRootHelp(): Boolean =
+        this == listOf("--help") ||
+            this == listOf("-h") ||
+            this == listOf("help")
+
+    private fun rootHelp(): String =
+        buildString {
+            appendLine("Usage: craftless <command> [args]")
+            appendLine()
+            appendLine("Automate real Minecraft Java clients for tests, agents, and CI.")
+            appendLine()
+            appendLine("Commands:")
+            registeredCommandPaths().forEach { command ->
+                appendLine("  $command")
+            }
+            appendLine()
+            appendLine("Generated gameplay commands are loaded from each live client's OpenAPI document.")
+            append("Use `craftless clients <id> <resource...> <action> --help` after client discovery for action help.")
+        }
 
     private fun prepareCache(
         args: List<String>,
