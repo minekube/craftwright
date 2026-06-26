@@ -260,6 +260,7 @@ class OpenApiGenerationTest {
                     listOf(
                         RuntimeResourceNode("runtime", RuntimeAvailability.available()),
                         RuntimeResourceNode("player", RuntimeAvailability.available()),
+                        RuntimeResourceNode("entity", RuntimeAvailability.available()),
                     ),
                 operations =
                     listOf(
@@ -268,6 +269,15 @@ class OpenApiGenerationTest {
                             resource = "player",
                             adapter = "fabric.player-move",
                             arguments = mapOf("forward" to RuntimeSchema("boolean")),
+                            availability = RuntimeAvailability.available(),
+                        ),
+                    ),
+                handles =
+                    listOf(
+                        RuntimeHandleNode(
+                            id = "entity.handle",
+                            resource = "entity",
+                            schema = RuntimeSchema.objectSchema(),
                             availability = RuntimeAvailability.available(),
                         ),
                     ),
@@ -290,9 +300,14 @@ class OpenApiGenerationTest {
         assertEquals(OpenApiActionSource.RUNTIME_PROBE, move.source)
         assertEquals(OpenApiActionAvailability.AVAILABLE, move.availability)
         assertEquals("boolean", move.arguments.getValue("forward").type)
-        assertEquals(listOf("runtime", "player"), document.resources.map { it.id })
+        assertEquals(listOf("runtime", "player", "entity"), document.resources.map { it.id })
         assertEquals(emptyList(), document.resources.single { it.id == "runtime" }.actions)
         assertEquals(listOf("player.move"), document.resources.single { it.id == "player" }.actions)
+        assertEquals(listOf("entity.handle"), document.handles.map { it.id })
+        val entityHandle = document.handles.single()
+        assertEquals("entity", entityHandle.resource)
+        assertEquals("object", entityHandle.schema.type)
+        assertEquals(OpenApiActionAvailability.AVAILABLE, entityHandle.availability)
         assertEquals(listOf("player.chat.received"), document.events.map { it.id })
         assertEquals("/clients/{id}/player:move", document.paths.keys.single { it.endsWith("player:move") })
         assertEquals(

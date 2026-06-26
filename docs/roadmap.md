@@ -16,6 +16,9 @@ Craftless currently has:
   `POST /clients/{id}:run`, and generated aliases;
 - live resource projections exposed through `/clients/{id}/resources` and
   `x-craftless-resources`, derived from discovered action descriptors;
+- graph-projected handle metadata exposed through `x-craftless-handles` in
+  per-client OpenAPI, currently covering inventory slot and entity handle
+  families from the Fabric runtime graph;
 - a Craftless-owned instance file layout in client responses, covering instance
   root, game root, mods, config, saves, resource packs, and shader packs;
 - cache preparation that resolves Minecraft metadata, the selected client jar,
@@ -184,8 +187,9 @@ or static placeholder descriptors.
 - Current resource projection groups discovered action ids into live resources
   such as `player`, `inventory`, `world.block`, and `world.time`, and includes
   resource-level availability reasons plus the action descriptor schemas that
-  produced each resource. Richer object handles, registry/server-feature
-  resources, and event relationships are still roadmap.
+  produced each resource. Graph-projected handle metadata now exposes current
+  inventory slot and entity handle families; richer registry/server-feature
+  resources and object-specific handle schemas are still roadmap.
 - Fabric runtime metadata now uses a provider boundary. In the real Fabric
   backend, loader version, driver version, installed-mod fingerprint, and
   selected runtime registry fingerprint come from Fabric Loader and Minecraft

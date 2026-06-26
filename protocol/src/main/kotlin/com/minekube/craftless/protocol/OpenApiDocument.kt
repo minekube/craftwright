@@ -14,6 +14,8 @@ data class OpenApiDocument(
     val actions: List<OpenApiAction> = emptyList(),
     @SerialName("x-craftless-resources")
     val resources: List<OpenApiResource> = emptyList(),
+    @SerialName("x-craftless-handles")
+    val handles: List<OpenApiHandle> = emptyList(),
     @SerialName("x-craftless-events")
     val events: List<OpenApiEvent> = emptyList(),
 ) {
@@ -23,6 +25,7 @@ data class OpenApiDocument(
             extensions: Map<String, String> = emptyMap(),
             actions: List<OpenApiAction> = emptyList(),
             resources: List<OpenApiResource>? = null,
+            handles: List<OpenApiHandle> = emptyList(),
             events: List<OpenApiEvent> = emptyList(),
         ): OpenApiDocument {
             val duplicateAction =
@@ -56,6 +59,18 @@ data class OpenApiDocument(
                     require(actionId in actionsById) { "resource ${resource.id} references unknown action $actionId" }
                 }
             }
+            val duplicateHandle =
+                handles
+                    .groupBy { it.id }
+                    .entries
+                    .firstOrNull { (_, matches) -> matches.size > 1 }
+            if (duplicateHandle != null) {
+                throw IllegalArgumentException("duplicate handle id ${duplicateHandle.key}")
+            }
+            val resourceIds = resourceProjection.map { it.id }.toSet()
+            handles.forEach { handle ->
+                require(handle.resource in resourceIds) { "handle ${handle.id} references unknown resource ${handle.resource}" }
+            }
             catalog.routes.forEach { route ->
                 val actionId = route.actionId
                 if (actionId != null && actionId !in actionsById) {
@@ -73,6 +88,7 @@ data class OpenApiDocument(
                 extensions = extensions,
                 actions = actions,
                 resources = resourceProjection,
+                handles = handles,
                 events = events,
             )
         }
@@ -91,6 +107,7 @@ data class OpenApiDocument(
                 extensions = extensions + ("runtimeGraphFingerprint" to graph.fingerprint()),
                 actions = actions,
                 resources = graph.toOpenApiResources(actions),
+                handles = graph.handles.sortedBy { it.id }.map { it.toOpenApiHandle() },
                 events = graph.events.sortedBy { it.id }.map { it.toOpenApiEvent() },
             )
         }
@@ -217,6 +234,29 @@ data class OpenApiEvent(
             require(!availabilityReason.isNullOrBlank()) { "unavailable event $id requires availability reason" }
         } else {
             require(availabilityReason == null) { "available event $id must not declare availability reason" }
+        }
+    }
+}
+
+@Serializable
+data class OpenApiHandle(
+    val id: String,
+    val resource: String,
+    val schema: OpenApiActionSchema,
+    val availability: OpenApiActionAvailability = OpenApiActionAvailability.AVAILABLE,
+    val availabilityReason: String? = null,
+) {
+    init {
+        require(id.isCraftlessActionId()) { "invalid handle id $id" }
+        require(resource.isCraftlessResourceId()) { "invalid handle resource $resource" }
+        require(id.startsWith("$resource.")) { "handle $id must belong to resource $resource" }
+        require(availabilityReason == null || availabilityReason.isCraftlessActionArgumentName()) {
+            "handle availability reason must be a machine-readable Craftless code"
+        }
+        if (availability == OpenApiActionAvailability.UNAVAILABLE) {
+            require(!availabilityReason.isNullOrBlank()) { "unavailable handle $id requires availability reason" }
+        } else {
+            require(availabilityReason == null) { "available handle $id must not declare availability reason" }
         }
     }
 }
@@ -464,6 +504,15 @@ private fun RuntimeEventNode.toOpenApiEvent(): OpenApiEvent =
     OpenApiEvent(
         id = id,
         payload = OpenApiActionSchema(payload.type),
+        availability = availability.toOpenApiActionAvailability(),
+        availabilityReason = availability.reason,
+    )
+
+private fun RuntimeHandleNode.toOpenApiHandle(): OpenApiHandle =
+    OpenApiHandle(
+        id = id,
+        resource = resource,
+        schema = OpenApiActionSchema(schema.type),
         availability = availability.toOpenApiActionAvailability(),
         availabilityReason = availability.reason,
     )

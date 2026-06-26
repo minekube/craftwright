@@ -146,6 +146,21 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                     RuntimeResourceNode("screen", RuntimeAvailability.available()),
                 ),
             operations = operations,
+            handles =
+                listOf(
+                    RuntimeHandleNode(
+                        id = "inventory.slot",
+                        resource = "inventory",
+                        schema = RuntimeSchema.objectSchema(),
+                        availability = inventoryAvailability,
+                    ),
+                    RuntimeHandleNode(
+                        id = "entity.handle",
+                        resource = "entity",
+                        schema = RuntimeSchema.objectSchema(),
+                        availability = capabilities.entityAvailability(),
+                    ),
+                ),
             events = operations.map { operation -> operation.toEventNode() },
         )
     }
