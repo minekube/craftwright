@@ -341,6 +341,8 @@ private val FORBIDDEN_PUBLIC_NAMESPACE_TOKENS =
         "prism",
         "multimc",
         "mmc",
+        "baritone",
+        "swarmbot",
     )
 
 internal fun String.containsForbiddenPublicNamespaceToken(): Boolean {

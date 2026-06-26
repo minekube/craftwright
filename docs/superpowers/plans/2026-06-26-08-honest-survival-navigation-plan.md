@@ -135,11 +135,10 @@ Expected: PASS.
 ### Task 2: Runtime Graph Projection For Navigation
 
 **Files:**
-- Modify: `protocol/src/main/kotlin/com/minekube/craftless/protocol/RuntimeCapabilityGraph.kt`
-- Modify: `protocol/src/main/kotlin/com/minekube/craftless/protocol/OpenApiProjection.kt`
-- Test: `protocol/src/test/kotlin/com/minekube/craftless/protocol/OpenApiProjectionTest.kt`
+- Modify: `protocol/src/main/kotlin/com/minekube/craftless/protocol/OpenApiDocument.kt`
+- Test: `protocol/src/test/kotlin/com/minekube/craftless/protocol/OpenApiGenerationTest.kt`
 
-- [ ] **Step 1: Write failing projection tests**
+- [x] **Step 1: Write failing projection tests**
 
 Add a test that creates graph nodes for `navigation.plan`, `navigation.follow`,
 `task.run`, and `task.status`, then asserts per-client OpenAPI contains
@@ -150,27 +149,27 @@ assertTrue(openApi.actions.any { it.id == "navigation.plan" })
 assertFalse(json.encodeToString(openApi).contains("baritone", ignoreCase = true))
 ```
 
-- [ ] **Step 2: Run focused protocol tests and verify RED**
+- [x] **Step 2: Run focused protocol tests and verify RED**
 
 Run:
 
 ```sh
-mise exec -- gradle :protocol:test --tests 'com.minekube.craftless.protocol.OpenApiProjectionTest'
+mise exec -- gradle :protocol:test --tests 'com.minekube.craftless.protocol.OpenApiGenerationTest'
 ```
 
 Expected: FAIL until navigation resource/action schemas are projected.
 
-- [ ] **Step 3: Implement projection support**
+- [x] **Step 3: Implement projection support**
 
 Teach projection to accept navigation/task graph nodes with schemas from
 `NavigationModels.kt`. Do not add static route catalog entries.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run:
 
 ```sh
-mise exec -- gradle :protocol:test --tests 'com.minekube.craftless.protocol.OpenApiProjectionTest'
+mise exec -- gradle :protocol:test --tests 'com.minekube.craftless.protocol.OpenApiGenerationTest'
 ```
 
 Expected: PASS.

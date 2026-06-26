@@ -1,8 +1,10 @@
 package com.minekube.craftless.protocol
 
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -301,6 +303,107 @@ class OpenApiGenerationTest {
                 ?.extensions
                 ?.get("x-craftless-action"),
         )
+    }
+
+    @Test
+    fun `openapi document projects navigation and task operations from runtime graph without backend leaks`() {
+        val graph =
+            RuntimeCapabilityGraph(
+                clientId = "alice",
+                resources =
+                    listOf(
+                        RuntimeResourceNode(
+                            id = "navigation",
+                            availability = RuntimeAvailability.available(),
+                            sourceEvidence =
+                                listOf(
+                                    RuntimeSourceEvidence(
+                                        kind = "mod",
+                                        fingerprint = "baritone.api.BaritoneAPI",
+                                    ),
+                                ),
+                        ),
+                        RuntimeResourceNode("task", RuntimeAvailability.available()),
+                    ),
+                operations =
+                    listOf(
+                        RuntimeOperationNode(
+                            id = "navigation.plan",
+                            resource = "navigation",
+                            adapter = "navigation.default",
+                            arguments = mapOf("goal" to RuntimeSchema("object", required = true)),
+                            result = RuntimeSchema("object", required = true),
+                            availability = RuntimeAvailability.available(),
+                        ),
+                        RuntimeOperationNode(
+                            id = "navigation.follow",
+                            resource = "navigation",
+                            adapter = "navigation.default",
+                            arguments = mapOf("plan" to RuntimeSchema("object", required = true)),
+                            result = RuntimeSchema("object", required = true),
+                            availability = RuntimeAvailability.available(),
+                        ),
+                        RuntimeOperationNode(
+                            id = "task.run",
+                            resource = "task",
+                            adapter = "task.executor",
+                            arguments = mapOf("request" to RuntimeSchema("object", required = true)),
+                            result = RuntimeSchema("object", required = true),
+                            availability = RuntimeAvailability.available(),
+                        ),
+                        RuntimeOperationNode(
+                            id = "task.status",
+                            resource = "task",
+                            adapter = "task.executor",
+                            arguments = mapOf("task" to RuntimeSchema("string", required = true)),
+                            result = RuntimeSchema("object", required = true),
+                            availability = RuntimeAvailability.available(),
+                        ),
+                    ),
+                events =
+                    listOf(
+                        RuntimeEventNode(
+                            id = "task.progress",
+                            resource = "task",
+                            payload = RuntimeSchema.objectSchema(),
+                            availability = RuntimeAvailability.available(),
+                        ),
+                    ),
+            )
+
+        val document = OpenApiDocument.fromRuntimeGraph(graph)
+        val encoded = Json.encodeToString(OpenApiDocument.serializer(), document)
+
+        assertEquals(
+            listOf("navigation.follow", "navigation.plan", "task.run", "task.status"),
+            document.actions.map { it.id },
+        )
+        assertEquals(listOf("navigation", "task"), document.resources.map { it.id })
+        assertEquals("/clients/{id}/navigation:plan", document.paths.keys.single { it.endsWith("navigation:plan") })
+        assertEquals("/clients/{id}/task:run", document.paths.keys.single { it.endsWith("task:run") })
+        assertEquals(listOf("task.progress"), document.events.map { it.id })
+        assertFalse(encoded.contains("baritone", ignoreCase = true))
+        assertFalse(encoded.contains("swarmbot", ignoreCase = true))
+    }
+
+    @Test
+    fun `runtime graph rejects navigation backend names before openapi projection`() {
+        assertFailsWith<IllegalArgumentException> {
+            RuntimeOperationNode(
+                id = "navigation.baritone",
+                resource = "navigation",
+                adapter = "navigation.default",
+                availability = RuntimeAvailability.available(),
+            )
+        }
+        assertFailsWith<IllegalArgumentException> {
+            RuntimeOperationNode(
+                id = "task.swarmbot",
+                resource = "task",
+                adapter = "task.executor",
+                availability = RuntimeAvailability.available(),
+            )
+        }
     }
 
     @Test

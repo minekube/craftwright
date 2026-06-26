@@ -170,6 +170,9 @@ Verification:
   pathing, and task-composition design input.
 - [x] Navigation and task protocol models exist with Craftless-owned public
   names and no Baritone/SwarmBot/raw Minecraft public leakage.
+- [x] Runtime graph projection can expose navigation/task affordances from a
+  `RuntimeCapabilityGraph` without static route catalog entries or public
+  Baritone/SwarmBot leakage.
 - [ ] Runtime graph discovery can expose navigation/task affordances from the
   running client without static gameplay shortcut descriptors.
 - [ ] Optional Baritone integration is internal backend evidence only; public
