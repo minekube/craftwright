@@ -292,6 +292,30 @@ Verification:
   the next generic primitive. Current evidence shows `publicAgentState=RAN`,
   `world.block.query` with log results, `navigation.plan`, `navigation.follow`,
   and post-navigation `entity.query`.
+- [x] Public-agent runner now continues into target-facing, raycast,
+  `world.block.break`, and final inventory verification without using
+  `task.survival.*`.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
+
+## Phase 14: Public-Agent Material Collection
+
+- [x] Spec and plan exist for public-agent material collection without adding
+  `mine.log`, `collect.wood`, `find.tree`, or any scenario-specific action.
+- [x] Public-agent runner invokes `player.query`, derives `player.look` from
+  public positions, invokes `player.raycast`, invokes `world.block.break`, and
+  re-queries `inventory.query`.
+- [x] Public-agent runner blocks with
+  `insufficient-public-evidence:inventory.query.log` when an accepted break
+  does not produce public inventory evidence.
+- [x] Live no-hold evidence proves either collected-log inventory state or an
+  explicit blocker that identifies the next generic block-breaking/pickup
+  primitive needed. Current evidence blocked earlier at
+  `insufficient-public-evidence:world.block.query.log`, showing the runner now
+  preserves action evidence when local material search is insufficient.
 
 Verification:
 

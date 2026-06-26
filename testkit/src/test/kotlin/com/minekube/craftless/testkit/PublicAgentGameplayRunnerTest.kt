@@ -39,8 +39,13 @@ class PublicAgentGameplayRunnerTest {
                     "POST /clients/fabric-smoke:run",
                     "POST /clients/fabric-smoke:run",
                     "POST /clients/fabric-smoke:run",
+                    "POST /clients/fabric-smoke:run",
+                    "POST /clients/fabric-smoke:run",
+                    "POST /clients/fabric-smoke:run",
+                    "POST /clients/fabric-smoke:run",
+                    "POST /clients/fabric-smoke:run",
                 ),
-                server.requests.take(9),
+                server.requests.take(14),
             )
             assertEquals(
                 listOf(
@@ -48,6 +53,11 @@ class PublicAgentGameplayRunnerTest {
                     "world.block.query",
                     "navigation.plan",
                     "navigation.follow",
+                    "player.query",
+                    "player.look",
+                    "player.raycast",
+                    "world.block.break",
+                    "inventory.query",
                     "entity.query",
                 ),
                 result.actionLog.map { it.action },
@@ -55,7 +65,31 @@ class PublicAgentGameplayRunnerTest {
             assertTrue(server.requestBodies.any { it.contains(""""category":"log"""") })
             assertTrue(server.requestBodies.any { it.contains(""""kind":"block"""") })
             assertTrue(server.requestBodies.any { it.contains(""""x":12""") })
+            assertTrue(server.requestBodies.any { it.contains(""""yaw"""") })
+            assertTrue(server.requestBodies.any { it.contains(""""pitch"""") })
+            assertTrue(server.requestBodies.any { it.contains("player.raycast") })
+            assertTrue(server.requestBodies.any { it.contains("world.block.break") })
             assertTrue(server.requestBodies.none { it.contains("task.survival") })
+        }
+
+    @Test
+    fun `runner reports insufficient public evidence when break does not change inventory`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog(),
+                    finalInventoryResponse = """{"action":"inventory.query","status":"ACCEPTED","data":{"slots":[]}}""",
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
+            assertEquals("insufficient-public-evidence:inventory.query.log", result.blocker)
+            assertTrue(result.actionLog.map { it.action }.contains("world.block.break"))
+            assertTrue(result.actionLog.map { it.action }.contains("inventory.query"))
+            assertFalse(result.actionLog.map { it.action }.contains("entity.query"))
+            assertFalse(server.requestBodies.any { it.contains("task.survival") })
         }
 
     @Test
@@ -108,6 +142,7 @@ class PublicAgentGameplayRunnerTest {
                             "inventory.query",
                             "navigation.plan",
                             "navigation.follow",
+                            "player.query",
                             "player.look",
                             "player.raycast",
                             "world.block.break",
@@ -180,10 +215,23 @@ private class RecordingCraftlessHttpServer(
           }
         }
         """.trimIndent(),
+    private val finalInventoryResponse: String =
+        """
+        {
+          "action": "inventory.query",
+          "status": "ACCEPTED",
+          "data": {
+            "slots": [
+              {"slot": 0, "empty": false, "count": 1, "item-name": "Oak Log"}
+            ]
+          }
+        }
+        """.trimIndent(),
 ) {
     val url = "http://craftless.test"
     val requests = mutableListOf<String>()
     val requestBodies = mutableListOf<String>()
+    private var inventoryQueryCount = 0
     val http =
         HttpClient(
             MockEngine { request ->
@@ -209,14 +257,31 @@ private class RecordingCraftlessHttpServer(
     private fun actionResponse(): String {
         val body = requestBodies.lastOrNull().orEmpty()
         return when {
-            body.contains("inventory.query") -> """{"action":"inventory.query","status":"ACCEPTED","data":{"slots":[]}}"""
+            body.contains("inventory.query") -> inventoryQueryResponse()
             body.contains("world.block.query") -> blockQueryResponse
             body.contains("navigation.plan") ->
                 """{"action":"navigation.plan","status":"ACCEPTED","data":{"plan-id":"navigation.plan.public-agent.0001","state":"pending"}}"""
             body.contains("navigation.follow") ->
                 """{"action":"navigation.follow","status":"ACCEPTED","data":{"task-id":"task:navigation:public-agent","state":"running"}}"""
+            body.contains("player.query") ->
+                """{"action":"player.query","status":"ACCEPTED","data":{"position":{"x":11.0,"y":65.0,"z":-3.0}}}"""
+            body.contains("player.look") ->
+                """{"action":"player.look","status":"ACCEPTED"}"""
+            body.contains("player.raycast") ->
+                """{"action":"player.raycast","status":"ACCEPTED","data":{"hit":true,"target-kind":"block"}}"""
+            body.contains("world.block.break") ->
+                """{"action":"world.block.break","status":"ACCEPTED","data":{"hit":true,"target-kind":"block","started":true}}"""
             body.contains("entity.query") -> """{"action":"entity.query","status":"ACCEPTED","data":{"entities":[]}}"""
             else -> """{"action":"unknown","status":"UNSUPPORTED","message":"unexpected action"}"""
+        }
+    }
+
+    private fun inventoryQueryResponse(): String {
+        inventoryQueryCount += 1
+        return if (inventoryQueryCount == 1) {
+            """{"action":"inventory.query","status":"ACCEPTED","data":{"slots":[]}}"""
+        } else {
+            finalInventoryResponse
         }
     }
 
@@ -239,6 +304,7 @@ private fun completeActionCatalog(): List<String> =
         "inventory.query",
         "navigation.plan",
         "navigation.follow",
+        "player.query",
         "player.look",
         "player.raycast",
         "world.block.query",

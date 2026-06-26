@@ -24,6 +24,8 @@ import java.nio.file.Path
 import java.nio.file.StandardOpenOption.CREATE
 import java.nio.file.StandardOpenOption.TRUNCATE_EXISTING
 import java.nio.file.StandardOpenOption.WRITE
+import kotlin.math.atan2
+import kotlin.math.sqrt
 
 class PublicAgentGameplayRunner(
     private val baseUrl: String,
@@ -94,6 +96,10 @@ class PublicAgentGameplayRunner(
             blockQuery.responseObject()?.firstBlockPosition()
                 ?: return blocked("insufficient-public-evidence:world.block.query.log")
                     .also { result -> artifactsDir?.let { writeArtifacts(it, result) } }
+        val materialPoint =
+            materialPosition.toCraftlessPoint()
+                ?: return blocked("insufficient-public-evidence:world.block.query.position")
+                    .also { result -> artifactsDir?.let { writeArtifacts(it, result) } }
         val plan =
             invokeGenerated(
                 action = "navigation.plan",
@@ -125,6 +131,42 @@ class PublicAgentGameplayRunner(
                     )
                 },
         )
+        val player =
+            invokeGenerated("player.query")
+        val playerPosition =
+            player.responseObject()?.playerPosition()
+                ?: return blocked("insufficient-public-evidence:player.query.position")
+                    .also { result -> artifactsDir?.let { writeArtifacts(it, result) } }
+        val look = playerPosition.lookAt(materialPoint.centered())
+        invokeGenerated(
+            action = "player.look",
+            args =
+                buildJsonObject {
+                    put("yaw", JsonPrimitive(look.yaw))
+                    put("pitch", JsonPrimitive(look.pitch))
+                },
+        )
+        invokeGenerated(
+            action = "player.raycast",
+            args =
+                buildJsonObject {
+                    put("max-distance", JsonPrimitive(6.0))
+                    put("include-fluids", JsonPrimitive(false))
+                },
+        )
+        invokeGenerated(
+            action = "world.block.break",
+            args =
+                buildJsonObject {
+                    put("max-distance", JsonPrimitive(6.0))
+                    put("include-fluids", JsonPrimitive(false))
+                },
+        )
+        val finalInventory = invokeGenerated("inventory.query")
+        if (finalInventory.responseObject()?.hasLogItem() != true) {
+            return blocked("insufficient-public-evidence:inventory.query.log")
+                .also { result -> artifactsDir?.let { writeArtifacts(it, result) } }
+        }
         invokeGenerated("entity.query")
         val result =
             PublicAgentGameplayResult(
@@ -295,6 +337,7 @@ private val requiredActions =
         "inventory.query",
         "navigation.plan",
         "navigation.follow",
+        "player.query",
         "player.look",
         "player.raycast",
         "world.block.query",
@@ -317,11 +360,65 @@ private fun JsonObject.firstBlockPosition(): JsonObject? {
     return block["position"] as? JsonObject
 }
 
+private fun JsonObject.playerPosition(): CraftlessPoint? {
+    val data = this["data"] as? JsonObject ?: return null
+    val position = data["position"] as? JsonObject ?: return null
+    return position.toCraftlessPoint()
+}
+
+private fun JsonObject.toCraftlessPoint(): CraftlessPoint? {
+    val x = doubleField("x") ?: return null
+    val y = doubleField("y") ?: return null
+    val z = doubleField("z") ?: return null
+    return CraftlessPoint(x, y, z)
+}
+
+private fun JsonObject.hasLogItem(): Boolean {
+    val data = this["data"] as? JsonObject ?: return false
+    val slots = data["slots"]?.jsonArray ?: return false
+    return slots.any { element ->
+        val slot = element as? JsonObject ?: return@any false
+        slot["item-name"]
+            ?.jsonPrimitive
+            ?.contentOrNull
+            ?.contains("log", ignoreCase = true) == true
+    }
+}
+
 private fun JsonObject.planId(): String? {
     val data = this["data"] as? JsonObject ?: return null
     return data["plan-id"]?.jsonPrimitive?.contentOrNull
         ?: data["id"]?.jsonPrimitive?.contentOrNull
 }
+
+private fun JsonObject.doubleField(name: String): Double? =
+    this[name]
+        ?.jsonPrimitive
+        ?.contentOrNull
+        ?.toDoubleOrNull()
+
+private data class CraftlessPoint(
+    val x: Double,
+    val y: Double,
+    val z: Double,
+) {
+    fun centered(): CraftlessPoint = copy(x = x + 0.5, y = y + 0.5, z = z + 0.5)
+
+    fun lookAt(target: CraftlessPoint): CraftlessLook {
+        val dx = target.x - x
+        val dy = target.y - y
+        val dz = target.z - z
+        val horizontal = sqrt(dx * dx + dz * dz)
+        val yaw = Math.toDegrees(atan2(dz, dx)) - 90.0
+        val pitch = -Math.toDegrees(atan2(dy, horizontal))
+        return CraftlessLook(yaw = yaw, pitch = pitch.coerceIn(-90.0, 90.0))
+    }
+}
+
+private data class CraftlessLook(
+    val yaw: Double,
+    val pitch: Double,
+)
 
 fun main() {
     val config = PublicAgentGameplayRunnerConfig.fromEnvironment()
