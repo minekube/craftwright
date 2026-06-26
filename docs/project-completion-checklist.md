@@ -50,19 +50,21 @@ Legend:
   generated movement telemetry, generated look invocation, server-side target
   item provisioning, generated inventory observation/equip, generated block
   action invocation, disconnect, and artifact capture.
-- [~] Current Fabric driver has real chat, movement, connected-client
-  `player.query`, connected-client `player.look`, connected-client
-  `player.raycast`, connected-client `inventory.query`, connected-client
-  `inventory.equip`, connected-client `world.block.break`, connected-client
-  `world.block.interact`, connected-client `world.time.query`, and
-  gateway-discovered `screen.query` bindings plus runtime-probed `screen.close`
-  binding/unavailable metadata. When the client is disconnected, player query,
-  look, raycast, inventory query, inventory equip, block break, block interact,
-  and world time query are exposed only through gateway-backed unavailable
-  probe metadata. When no screen is open, `screen.close` is exposed only
-  through gateway-backed unavailable probe metadata. Broader gameplay discovery
-  is not implemented yet and must not be represented as a static placeholder
-  catalog.
+- [~] Current Fabric driver has real chat, movement, `player.query`,
+  `player.look`, `player.raycast`, `inventory.query`, `inventory.equip`,
+  `world.block.break`, `world.block.interact`, `world.time.query`, and
+  gateway-discovered `screen.query` bindings plus runtime-probed
+  `screen.close` binding/unavailable metadata. Connected-client gameplay
+  actions are no longer advertised from `isConnected()` alone: discovery
+  samples a client-thread capability snapshot for player, inventory, camera,
+  interaction-manager, and world availability, then projects available
+  bindings or machine-readable unavailable reasons such as
+  `player-unavailable`, `inventory-unavailable`, `camera-unavailable`,
+  `interaction-unavailable`, `world-unavailable`, or
+  `client-not-connected`. When no screen is open, `screen.close` is exposed
+  only through gateway-backed unavailable probe metadata. Broader gameplay
+  discovery is still roadmap and must not be represented as a static
+  placeholder catalog.
 - [ ] Craftless is complete.
 
 Baseline evidence:
@@ -170,15 +172,13 @@ Verification:
   availability, and machine-readable availability reasons.
 - [~] Design the Fabric runtime discovery/projection layer. Internal discovery
   is now composed from runtime probes for binding-backed actions,
-  connected-client `player.query`, connected-client `player.look`,
-  connected-client `player.raycast`, connected-client `inventory.query`,
-  connected-client `inventory.equip`, connected-client `world.block.break`,
-  connected-client `world.block.interact`, gateway-discovered `screen.query`,
-  runtime-probed `screen.close`, and disconnected/unavailable client-state
-  metadata, with duplicate probe output rejected before descriptor projection;
-  connected-client `world.time.query` is binding-backed with disconnected
-  unavailable probe metadata. Broader client/world/inventory/screen interaction
-  probes are still roadmap.
+  client-thread capability-snapshot projection for `player.query`,
+  `player.look`, `player.raycast`, `inventory.query`, `inventory.equip`,
+  `world.block.break`, `world.block.interact`, and `world.time.query`,
+  gateway-discovered `screen.query`, runtime-probed `screen.close`, and
+  disconnected/unavailable client-state metadata, with duplicate probe output
+  rejected before descriptor projection. Broader client/world/inventory/screen
+  interaction probes are still roadmap.
 - [~] Define how internal Fabric/Minecraft/mod/registry/server data becomes
   Craftless-owned actions, resources, handles, schemas, availability, and
   events. Action-derived resource projection now includes resource-level
@@ -216,13 +216,14 @@ Verification:
   runtime probes with duplicate action-id validation.
 - [~] Real look/perception/block/inventory/screen capabilities are discovered
   from the running client before they are advertised. `player.query`,
-  `player.look`, `player.raycast`, `inventory.query`, `inventory.equip`, and
+  `player.look`, `player.raycast`, `inventory.query`, `inventory.equip`,
   `world.block.break`, `world.block.interact`, and `world.time.query` now
-  change from unavailable probe metadata to available bindings based on
-  connected-client state. `screen.query` is discovered from the live client
-  gateway, and `screen.close` changes from unavailable probe metadata to an
-  available binding based on live screen state; broader
-  block/inventory/screen/world discovery is still missing.
+  change between unavailable probe metadata and available bindings from a
+  client-thread capability snapshot instead of a single connected flag.
+  `screen.query` is discovered from the live client gateway, and
+  `screen.close` changes from unavailable probe metadata to an available
+  binding based on live screen state; broader block/inventory/screen/world
+  discovery is still roadmap.
 - [x] Each advertised gameplay action has either a real Fabric execution
   binding or probe-backed unavailable metadata.
 - [x] No future gameplay action is added as a hand-written placeholder
@@ -347,17 +348,17 @@ Verification:
 
 Craftless is complete only when all are true:
 
-- [ ] README and docs match the restored product direction.
-- [ ] Public docs and code preserve the API layer separation described in
+- [x] README and docs match the restored product direction.
+- [x] Public docs and code preserve the API layer separation described in
   `AGENTS.md`.
-- [ ] Per-client OpenAPI is generated from runtime discovery and real bindings,
+- [x] Per-client OpenAPI is generated from runtime discovery and real bindings,
   not a static placeholder action list.
-- [ ] Public API names are Craftless-owned and policy tests enforce that.
-- [ ] Advertised player/world/inventory/screen actions have real Fabric
+- [x] Public API names are Craftless-owned and policy tests enforce that.
+- [x] Advertised player/world/inventory/screen actions have real Fabric
   execution bindings or probe-backed unavailable metadata.
 - [x] A real gameplay vertical slice passes through API/CLI the way a user or
   agent would use it.
-- [ ] `mise run lint` passes.
-- [ ] `mise run ci` passes.
+- [x] `mise run lint` passes.
+- [x] `mise run ci` passes.
 - [x] Opt-in Fabric real-client smoke passes and writes evidence artifacts.
-- [ ] The completed work is pushed to `main` when requested.
+- [x] The completed work is pushed to `main` when requested.

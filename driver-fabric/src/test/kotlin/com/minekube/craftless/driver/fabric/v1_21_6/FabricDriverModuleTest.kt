@@ -797,6 +797,45 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric runtime discovery downgrades connected actions when concrete capabilities are missing`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        gateway.capabilities =
+            FabricClientCapabilitySnapshot(
+                connected = true,
+                player = false,
+                inventory = false,
+                camera = true,
+                interactionManager = false,
+                world = true,
+            )
+        val backend = FabricDriverBackend.real(gateway)
+
+        val actions = backend.actions("alice").associateBy { it.id }
+
+        assertEquals(DriverActionAvailability.UNAVAILABLE, actions.getValue("player.query").availability)
+        assertEquals("player-unavailable", actions.getValue("player.query").availabilityReason)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, actions.getValue("player.look").availability)
+        assertEquals("player-unavailable", actions.getValue("player.look").availabilityReason)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, actions.getValue("inventory.query").availability)
+        assertEquals("inventory-unavailable", actions.getValue("inventory.query").availabilityReason)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, actions.getValue("inventory.equip").availability)
+        assertEquals("inventory-unavailable", actions.getValue("inventory.equip").availabilityReason)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, actions.getValue("world.block.break").availability)
+        assertEquals("interaction-unavailable", actions.getValue("world.block.break").availabilityReason)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, actions.getValue("world.block.interact").availability)
+        assertEquals("player-unavailable", actions.getValue("world.block.interact").availabilityReason)
+        assertEquals(DriverActionAvailability.AVAILABLE, actions.getValue("player.raycast").availability)
+        assertEquals(DriverActionAvailability.AVAILABLE, actions.getValue("world.time.query").availability)
+
+        val result = backend.invoke("alice", DriverActionInvocation("world.block.break"))
+
+        assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
+        assertEquals("interaction-unavailable", result.message)
+        assertEquals(2, gateway.capabilityProbeQueries)
+    }
+
+    @Test
     fun `fabric runtime discovery exposes screen query only from live client state`() {
         val metadataOnly = FabricDriverBackend.metadataOnly()
         assertTrue(metadataOnly.actions("alice").none { it.id == "screen.query" })
@@ -1298,6 +1337,16 @@ private class RecordingFabricClientGateway : FabricClientGateway {
         }
     var screenOpen = false
     var screenProbeQueries = 0
+    var capabilities =
+        FabricClientCapabilitySnapshot(
+            connected = true,
+            player = true,
+            inventory = true,
+            camera = true,
+            interactionManager = true,
+            world = true,
+        )
+    var capabilityProbeQueries = 0
 
     @Volatile
     var connected = false
@@ -1322,6 +1371,10 @@ private class RecordingFabricClientGateway : FabricClientGateway {
 
     @Suppress("UNCHECKED_CAST")
     override fun <T> queryOnClient(query: net.minecraft.client.MinecraftClient.() -> T): T {
+        if (isCapabilityDiscoveryProbe()) {
+            capabilityProbeQueries += 1
+            return capabilities as T
+        }
         if (isScreenCloseDiscoveryProbe()) {
             screenProbeQueries += 1
             return screenOpen as T
@@ -1353,5 +1406,10 @@ private class RecordingFabricClientGateway : FabricClientGateway {
     private fun isScreenCloseDiscoveryProbe(): Boolean =
         Thread.currentThread().stackTrace.any { frame ->
             frame.methodName == "discoverScreenCloseAction"
+        }
+
+    private fun isCapabilityDiscoveryProbe(): Boolean =
+        Thread.currentThread().stackTrace.any { frame ->
+            frame.methodName == "discoverClientCapabilities"
         }
 }

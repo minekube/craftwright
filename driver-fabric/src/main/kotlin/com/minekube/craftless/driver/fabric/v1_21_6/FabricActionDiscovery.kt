@@ -19,6 +19,27 @@ internal data class FabricActionDiscoveryContext(
     val bindings: Map<String, FabricActionBinding>,
 )
 
+internal data class FabricClientCapabilitySnapshot(
+    val connected: Boolean,
+    val player: Boolean,
+    val inventory: Boolean,
+    val camera: Boolean,
+    val interactionManager: Boolean,
+    val world: Boolean,
+) {
+    companion object {
+        fun disconnected(): FabricClientCapabilitySnapshot =
+            FabricClientCapabilitySnapshot(
+                connected = false,
+                player = false,
+                inventory = false,
+                camera = false,
+                interactionManager = false,
+                world = false,
+            )
+    }
+}
+
 internal data class FabricDiscoveredAction(
     val descriptor: DriverActionDescriptor,
     val binding: FabricActionBinding? = null,
@@ -95,70 +116,126 @@ private object ConnectedClientFabricActionProbe : FabricActionProbe {
 
 private fun FabricActionDiscoveryContext.probeConnectedClientActions(): List<FabricDiscoveredAction> {
     val gateway = gateway ?: return emptyList()
-    return if (gateway.isConnected()) {
-        listOf(
-            FabricDiscoveredAction(
-                descriptor = FabricPlayerQueryActionBinding.descriptor,
-                binding = FabricPlayerQueryActionBinding,
-            ),
-            FabricDiscoveredAction(
-                descriptor = FabricPlayerLookActionBinding.descriptor,
-                binding = FabricPlayerLookActionBinding,
-            ),
-            FabricDiscoveredAction(
-                descriptor = FabricPlayerRaycastActionBinding.descriptor,
-                binding = FabricPlayerRaycastActionBinding,
-            ),
-            FabricDiscoveredAction(
-                descriptor = FabricInventoryQueryActionBinding.descriptor,
-                binding = FabricInventoryQueryActionBinding,
-            ),
-            FabricDiscoveredAction(
-                descriptor = FabricInventoryEquipActionBinding.descriptor,
-                binding = FabricInventoryEquipActionBinding,
-            ),
-            FabricDiscoveredAction(
-                descriptor = FabricWorldBlockBreakActionBinding.descriptor,
-                binding = FabricWorldBlockBreakActionBinding,
-            ),
-            FabricDiscoveredAction(
-                descriptor = FabricWorldBlockInteractActionBinding.descriptor,
-                binding = FabricWorldBlockInteractActionBinding,
-            ),
-            FabricDiscoveredAction(
-                descriptor = FabricWorldTimeQueryActionBinding.descriptor,
-                binding = FabricWorldTimeQueryActionBinding,
-            ),
+    val capabilities = discoverClientCapabilities(gateway)
+    return listOf(
+        capabilities.discovered(
+            binding = FabricPlayerQueryActionBinding,
+            unavailable = ::unavailablePlayerQueryDescriptor,
+            reason = capabilities.playerReason(),
+        ),
+        capabilities.discovered(
+            binding = FabricPlayerLookActionBinding,
+            unavailable = ::unavailablePlayerLookDescriptor,
+            reason = capabilities.playerReason(),
+        ),
+        capabilities.discovered(
+            binding = FabricPlayerRaycastActionBinding,
+            unavailable = ::unavailableRaycastDescriptor,
+            reason = capabilities.cameraReason(),
+        ),
+        capabilities.discovered(
+            binding = FabricInventoryQueryActionBinding,
+            unavailable = ::unavailableInventoryQueryDescriptor,
+            reason = capabilities.inventoryReason(),
+        ),
+        capabilities.discovered(
+            binding = FabricInventoryEquipActionBinding,
+            unavailable = ::unavailableInventoryEquipDescriptor,
+            reason = capabilities.inventoryReason(),
+        ),
+        capabilities.discovered(
+            binding = FabricWorldBlockBreakActionBinding,
+            unavailable = ::unavailableWorldBlockBreakDescriptor,
+            reason = capabilities.blockBreakReason(),
+        ),
+        capabilities.discovered(
+            binding = FabricWorldBlockInteractActionBinding,
+            unavailable = ::unavailableWorldBlockInteractDescriptor,
+            reason = capabilities.blockInteractReason(),
+        ),
+        capabilities.discovered(
+            binding = FabricWorldTimeQueryActionBinding,
+            unavailable = ::unavailableWorldTimeQueryDescriptor,
+            reason = capabilities.worldReason(),
+        ),
+    )
+}
+
+private fun FabricActionDiscoveryContext.discoverClientCapabilities(gateway: FabricClientGateway): FabricClientCapabilitySnapshot =
+    if (!gateway.isConnected()) {
+        FabricClientCapabilitySnapshot.disconnected()
+    } else {
+        gateway.queryOnClient {
+            val currentPlayer = player
+            FabricClientCapabilitySnapshot(
+                connected = networkHandler != null && currentPlayer != null,
+                player = currentPlayer != null,
+                inventory = currentPlayer?.inventory != null,
+                camera = cameraEntity != null || currentPlayer != null,
+                interactionManager = interactionManager != null,
+                world = world != null,
+            )
+        }
+    }
+
+private fun FabricClientCapabilitySnapshot.discovered(
+    binding: FabricActionBinding,
+    unavailable: (String) -> DriverActionDescriptor,
+    reason: String?,
+): FabricDiscoveredAction =
+    if (reason == null) {
+        FabricDiscoveredAction(
+            descriptor = binding.descriptor,
+            binding = binding,
         )
     } else {
-        listOf(
-            FabricDiscoveredAction(
-                descriptor = unavailablePlayerQueryDescriptor(),
-            ),
-            FabricDiscoveredAction(
-                descriptor = unavailablePlayerLookDescriptor(),
-            ),
-            FabricDiscoveredAction(
-                descriptor = unavailableRaycastDescriptor(),
-            ),
-            FabricDiscoveredAction(
-                descriptor = unavailableInventoryQueryDescriptor(),
-            ),
-            FabricDiscoveredAction(
-                descriptor = unavailableInventoryEquipDescriptor(),
-            ),
-            FabricDiscoveredAction(
-                descriptor = unavailableWorldBlockBreakDescriptor(),
-            ),
-            FabricDiscoveredAction(
-                descriptor = unavailableWorldBlockInteractDescriptor(),
-            ),
-            FabricDiscoveredAction(
-                descriptor = unavailableWorldTimeQueryDescriptor(),
-            ),
-        )
+        FabricDiscoveredAction(descriptor = unavailable(reason))
     }
-}
+
+private fun FabricClientCapabilitySnapshot.playerReason(): String? =
+    when {
+        !connected -> "client-not-connected"
+        !player -> "player-unavailable"
+        else -> null
+    }
+
+private fun FabricClientCapabilitySnapshot.inventoryReason(): String? =
+    when {
+        !connected -> "client-not-connected"
+        !inventory -> "inventory-unavailable"
+        else -> null
+    }
+
+private fun FabricClientCapabilitySnapshot.cameraReason(): String? =
+    when {
+        !connected -> "client-not-connected"
+        !camera -> "camera-unavailable"
+        else -> null
+    }
+
+private fun FabricClientCapabilitySnapshot.worldReason(): String? =
+    when {
+        !connected -> "client-not-connected"
+        !world -> "world-unavailable"
+        else -> null
+    }
+
+private fun FabricClientCapabilitySnapshot.blockBreakReason(): String? =
+    worldReason()
+        ?: cameraReason()
+        ?: when {
+            !interactionManager -> "interaction-unavailable"
+            else -> null
+        }
+
+private fun FabricClientCapabilitySnapshot.blockInteractReason(): String? =
+    playerReason()
+        ?: worldReason()
+        ?: cameraReason()
+        ?: when {
+            !interactionManager -> "interaction-unavailable"
+            else -> null
+        }
 
 private fun List<FabricDiscoveredAction>.requireUniqueActionIds() {
     val duplicateAction =
@@ -170,60 +247,60 @@ private fun List<FabricDiscoveredAction>.requireUniqueActionIds() {
     }
 }
 
-private fun unavailablePlayerQueryDescriptor(): DriverActionDescriptor =
+private fun unavailablePlayerQueryDescriptor(reason: String = "client-not-connected"): DriverActionDescriptor =
     fabricPlayerQueryDescriptor().copy(
         source = DriverActionSource.RUNTIME_PROBE,
         availability = DriverActionAvailability.UNAVAILABLE,
-        availabilityReason = "client-not-connected",
+        availabilityReason = reason,
     )
 
-private fun unavailablePlayerLookDescriptor(): DriverActionDescriptor =
+private fun unavailablePlayerLookDescriptor(reason: String = "client-not-connected"): DriverActionDescriptor =
     fabricPlayerLookDescriptor().copy(
         source = DriverActionSource.RUNTIME_PROBE,
         availability = DriverActionAvailability.UNAVAILABLE,
-        availabilityReason = "client-not-connected",
+        availabilityReason = reason,
     )
 
-private fun unavailableRaycastDescriptor(): DriverActionDescriptor =
+private fun unavailableRaycastDescriptor(reason: String = "client-not-connected"): DriverActionDescriptor =
     fabricRaycastDescriptor().copy(
         source = DriverActionSource.RUNTIME_PROBE,
         availability = DriverActionAvailability.UNAVAILABLE,
-        availabilityReason = "client-not-connected",
+        availabilityReason = reason,
     )
 
-private fun unavailableInventoryQueryDescriptor(): DriverActionDescriptor =
+private fun unavailableInventoryQueryDescriptor(reason: String = "client-not-connected"): DriverActionDescriptor =
     fabricInventoryQueryDescriptor().copy(
         source = DriverActionSource.RUNTIME_PROBE,
         availability = DriverActionAvailability.UNAVAILABLE,
-        availabilityReason = "client-not-connected",
+        availabilityReason = reason,
     )
 
-private fun unavailableInventoryEquipDescriptor(): DriverActionDescriptor =
+private fun unavailableInventoryEquipDescriptor(reason: String = "client-not-connected"): DriverActionDescriptor =
     fabricInventoryEquipDescriptor().copy(
         source = DriverActionSource.RUNTIME_PROBE,
         availability = DriverActionAvailability.UNAVAILABLE,
-        availabilityReason = "client-not-connected",
+        availabilityReason = reason,
     )
 
-private fun unavailableWorldBlockBreakDescriptor(): DriverActionDescriptor =
+private fun unavailableWorldBlockBreakDescriptor(reason: String = "client-not-connected"): DriverActionDescriptor =
     fabricWorldBlockBreakDescriptor().copy(
         source = DriverActionSource.RUNTIME_PROBE,
         availability = DriverActionAvailability.UNAVAILABLE,
-        availabilityReason = "client-not-connected",
+        availabilityReason = reason,
     )
 
-private fun unavailableWorldBlockInteractDescriptor(): DriverActionDescriptor =
+private fun unavailableWorldBlockInteractDescriptor(reason: String = "client-not-connected"): DriverActionDescriptor =
     fabricWorldBlockInteractDescriptor().copy(
         source = DriverActionSource.RUNTIME_PROBE,
         availability = DriverActionAvailability.UNAVAILABLE,
-        availabilityReason = "client-not-connected",
+        availabilityReason = reason,
     )
 
-private fun unavailableWorldTimeQueryDescriptor(): DriverActionDescriptor =
+private fun unavailableWorldTimeQueryDescriptor(reason: String = "client-not-connected"): DriverActionDescriptor =
     fabricWorldTimeQueryDescriptor().copy(
         source = DriverActionSource.RUNTIME_PROBE,
         availability = DriverActionAvailability.UNAVAILABLE,
-        availabilityReason = "client-not-connected",
+        availabilityReason = reason,
     )
 
 private fun FabricActionDiscoveryContext.discoverScreenCloseAction(): FabricDiscoveredAction {
