@@ -51,6 +51,9 @@ fun main(args: Array<String>) {
 }
 
 object CraftlessCli {
+    private const val GENERATED_ACTION_USAGE =
+        "error: usage is clients <id> <resource...> <action> [--api <url>] [--openapi-cache <dir>] [--arg key=value] [--<arg> value]"
+
     private val json =
         Json {
             encodeDefaults = true
@@ -398,18 +401,25 @@ object CraftlessCli {
         val clientId = args.getOrNull(0).orEmpty()
         val action = args.getOrNull(2).orEmpty()
         if (clientId.isBlank() || action.isBlank()) {
-            stderr("error: usage is clients <id> run <action> [--api <url>] [--arg key=value]")
+            stderr("error: usage is clients <id> run <action> [--api <url>] [--openapi-cache <dir>] [--arg key=value]")
             return 2
         }
         val api = args.apiBaseUrl(env)
+        val openApiCache = args.optionValue("--openapi-cache")?.let(Path::of)
 
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
-                    val openApiResponse = http.get("${api.trimEnd('/')}/clients/$clientId/openapi.json")
-                    val openApiBody = openApiResponse.bodyAsText()
-                    if (!openApiResponse.status.isSuccess()) {
-                        stderr(openApiBody)
+                    var openApiFetchError: String? = null
+                    val openApiBody =
+                        http.getClientOpenApiBody(
+                            api = api,
+                            clientId = clientId,
+                            cacheRoot = openApiCache,
+                            onErrorBody = { body -> openApiFetchError = body },
+                        )
+                    if (openApiBody == null) {
+                        stderr(openApiFetchError ?: "error: live OpenAPI cache could not be revalidated for client $clientId")
                         return@runBlocking 1
                     }
                     val openApi = json.decodeFromString<OpenApiDocument>(openApiBody)
@@ -446,18 +456,25 @@ object CraftlessCli {
     ): Int {
         val clientId = args.getOrNull(0)?.takeIf { it.isNotBlank() }
         if (clientId == null) {
-            stderr("error: usage is clients <id> <resource...> <action> [--api <url>] [--arg key=value] [--<arg> value]")
+            stderr(GENERATED_ACTION_USAGE)
             return 2
         }
         val api = args.apiBaseUrl(env)
+        val openApiCache = args.optionValue("--openapi-cache")?.let(Path::of)
 
         return runCatching {
             kotlinx.coroutines.runBlocking {
                 HttpClient(CIO).use { http ->
-                    val openApiResponse = http.get("${api.trimEnd('/')}/clients/$clientId/openapi.json")
-                    val openApiBody = openApiResponse.bodyAsText()
-                    if (!openApiResponse.status.isSuccess()) {
-                        stderr(openApiBody)
+                    var openApiFetchError: String? = null
+                    val openApiBody =
+                        http.getClientOpenApiBody(
+                            api = api,
+                            clientId = clientId,
+                            cacheRoot = openApiCache,
+                            onErrorBody = { body -> openApiFetchError = body },
+                        )
+                    if (openApiBody == null) {
+                        stderr(openApiFetchError ?: "error: live OpenAPI cache could not be revalidated for client $clientId")
                         return@runBlocking 1
                     }
                     val openApi = json.decodeFromString<OpenApiDocument>(openApiBody)
@@ -470,7 +487,7 @@ object CraftlessCli {
                                 return@runBlocking 0
                             }
                         }
-                        stderr("error: usage is clients <id> <resource...> <action> [--api <url>] [--arg key=value] [--<arg> value]")
+                        stderr(GENERATED_ACTION_USAGE)
                         return@runBlocking 2
                     }
                     val aliasOperation = openApi.paths[alias.path]?.post
@@ -536,6 +553,7 @@ object CraftlessCli {
         api: String,
         clientId: String,
         cacheRoot: Path?,
+        onErrorBody: ((String) -> Unit)? = null,
     ): String? {
         val cacheEntry = cacheRoot?.readOpenApiCacheEntry(api = api, clientId = clientId)
         val response =
@@ -547,6 +565,7 @@ object CraftlessCli {
         }
         val body = response.bodyAsText()
         if (!response.status.isSuccess()) {
+            onErrorBody?.invoke(body)
             return null
         }
         cacheRoot?.writeOpenApiCacheEntry(
@@ -718,7 +737,7 @@ object CraftlessCli {
         while (index < size) {
             val token = this[index]
             when {
-                token == "--api" || token == "--arg" -> index += 2
+                token == "--api" || token == "--arg" || token == "--openapi-cache" -> index += 2
                 token.startsWith("--") -> {
                     val name = token.removePrefix("--")
                     require(name.isNotBlank()) { "action argument flag is required" }

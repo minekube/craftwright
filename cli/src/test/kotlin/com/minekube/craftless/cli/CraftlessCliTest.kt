@@ -710,6 +710,58 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `clients run revalidates durable live openapi cache by etag before invocation`() {
+        val cacheDir = Files.createTempDirectory("craftless-cli-run-openapi-cache")
+        val firstOutput = StringBuilder()
+        val secondOutput = StringBuilder()
+
+        RevalidatingOpenApiServer().use { server ->
+            val firstExit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "run",
+                        "player.chat",
+                        "--api",
+                        server.url,
+                        "--openapi-cache",
+                        cacheDir.toString(),
+                        "--arg",
+                        "message=hello",
+                    ),
+                    stdout = { firstOutput.appendLine(it) },
+                )
+            val secondExit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "run",
+                        "player.chat",
+                        "--api",
+                        server.url,
+                        "--openapi-cache",
+                        cacheDir.toString(),
+                        "--arg",
+                        "message=hello",
+                    ),
+                    stdout = { secondOutput.appendLine(it) },
+                )
+
+            assertEquals(0, firstExit)
+            assertEquals(0, secondExit)
+            assertEquals(listOf(null, "etag-v1"), server.ifNoneMatchValues)
+            assertEquals(2, server.runCallCount)
+        }
+
+        assertEquals(firstOutput.toString(), secondOutput.toString())
+        val response = Json.parseToJsonElement(secondOutput.toString().trim()).jsonObject
+        assertEquals("player.chat", response["action"]?.jsonPrimitive?.content)
+        assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
+    }
+
+    @Test
     fun `generated client action alias rejects actions missing from live openapi action list`() {
         val output = StringBuilder()
         val errors = StringBuilder()
@@ -795,6 +847,58 @@ class CraftlessCliTest {
 
         assertEquals("", output.toString())
         assertTrue(errors.toString().contains("action player.chat requires argument message"))
+    }
+
+    @Test
+    fun `generated client action alias revalidates durable live openapi cache by etag before invocation`() {
+        val cacheDir = Files.createTempDirectory("craftless-cli-alias-openapi-cache")
+        val firstOutput = StringBuilder()
+        val secondOutput = StringBuilder()
+
+        RevalidatingOpenApiServer().use { server ->
+            val firstExit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "player",
+                        "chat",
+                        "--api",
+                        server.url,
+                        "--openapi-cache",
+                        cacheDir.toString(),
+                        "--message",
+                        "hello",
+                    ),
+                    stdout = { firstOutput.appendLine(it) },
+                )
+            val secondExit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "player",
+                        "chat",
+                        "--api",
+                        server.url,
+                        "--openapi-cache",
+                        cacheDir.toString(),
+                        "--message",
+                        "hello",
+                    ),
+                    stdout = { secondOutput.appendLine(it) },
+                )
+
+            assertEquals(0, firstExit)
+            assertEquals(0, secondExit)
+            assertEquals(listOf(null, "etag-v1"), server.ifNoneMatchValues)
+            assertEquals(2, server.aliasCallCount)
+        }
+
+        assertEquals(firstOutput.toString(), secondOutput.toString())
+        val response = Json.parseToJsonElement(secondOutput.toString().trim()).jsonObject
+        assertEquals("player.chat", response["action"]?.jsonPrimitive?.content)
+        assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
     }
 
     @Test
@@ -1953,8 +2057,14 @@ class CraftlessCliTest {
     private class RevalidatingOpenApiServer : AutoCloseable {
         private val port = allocateLoopbackPort()
         private val values = mutableListOf<String?>()
+        private var runCalls = 0
+        private var aliasCalls = 0
         val ifNoneMatchValues: List<String?>
             get() = values.toList()
+        val runCallCount: Int
+            get() = runCalls
+        val aliasCallCount: Int
+            get() = aliasCalls
         private val server =
             embeddedServer(ServerCIO, host = "127.0.0.1", port = port) {
                 routing {
@@ -1983,10 +2093,25 @@ class CraftlessCliTest {
                                           "x-craftless-return": "value",
                                           "x-craftless-source": "action",
                                           "x-craftless-member": "run"
+                                            }
+                                          }
+                                        },
+                                        "/clients/alice/player:chat": {
+                                          "post": {
+                                            "operationId": "runPlayerChat",
+                                            "tags": ["clients"],
+                                            "responses": { "200": { "description": "OK" } },
+                                            "x-craftless": {
+                                              "x-craftless-owner": "clients",
+                                              "x-craftless-target": "client",
+                                              "x-craftless-return": "value",
+                                              "x-craftless-source": "action",
+                                              "x-craftless-member": "run",
+                                              "x-craftless-action": "player.chat"
+                                            }
+                                          }
                                         }
-                                      }
-                                    }
-                                  },
+                                      },
                                   "x-craftless": {
                                     "x-craftless-runtime-fingerprint": "fingerprint-test"
                                   },
@@ -2017,6 +2142,20 @@ class CraftlessCliTest {
                                 ContentType.Application.Json,
                             )
                         }
+                    }
+                    post("/clients/alice:run") {
+                        runCalls += 1
+                        call.respondText(
+                            """{"action":"player.chat","status":"ACCEPTED","message":"hello"}""",
+                            ContentType.Application.Json,
+                        )
+                    }
+                    post("/clients/alice/player:chat") {
+                        aliasCalls += 1
+                        call.respondText(
+                            """{"action":"player.chat","status":"ACCEPTED","message":"hello"}""",
+                            ContentType.Application.Json,
+                        )
                     }
                 }
             }

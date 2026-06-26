@@ -196,9 +196,11 @@ of mirroring the API by hand.
   the Bun helper revalidates its process-local cached live spec with
   `If-None-Match`; `craftless clients <id> actions --openapi-cache <dir>`,
   `craftless clients <id> resources --openapi-cache <dir>`, and `craftless
-  clients <id> tools --openapi-cache <dir>` now persist the live per-client
-  OpenAPI body plus ETag and revalidate it across CLI invocations. Broader
-  durable generated-client and CLI cache coverage remains future work.
+  clients <id> tools --openapi-cache <dir>`, `craftless clients <id> run
+  <action> --openapi-cache <dir>`, and generated action aliases with
+  `--openapi-cache <dir>` now persist the live per-client OpenAPI body plus
+  ETag and revalidate it across CLI invocations. Broader durable
+  generated-client cache coverage remains future work.
 - Render dynamic CLI help from `/clients/{id}/openapi.json`, using
   `/clients/{id}/actions` only as a descriptor projection/availability view.
   Generated action alias help and generated resource help now use live
