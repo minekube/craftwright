@@ -7,6 +7,7 @@ data class CachePrepareRequest(
     val minecraftVersion: String,
     val loader: Loader,
     val loaderVersion: String? = null,
+    val java: JavaRuntimeRequirement? = null,
 ) {
     init {
         requireFileSafeSegment(minecraftVersion, "minecraft version")
@@ -63,6 +64,7 @@ data class CachePrepareResult(
     val status: CachePrepareStatus,
     val artifacts: List<CachePreparedArtifact>,
     val launch: CacheLaunchPlan,
+    val javaSelection: JavaRuntimeSelection? = null,
 ) {
     companion object {
         fun forRequest(
@@ -133,6 +135,100 @@ data class CachePrepareResult(
             )
         }
     }
+}
+
+@Serializable
+data class JavaRuntimeRequirement(
+    val majorVersion: Int,
+    val component: String? = null,
+    val platform: String? = null,
+    val architecture: String? = null,
+    val sourcePolicy: JavaRuntimeSourcePolicy = JavaRuntimeSourcePolicy.AUTO,
+    val reason: String,
+) {
+    init {
+        require(majorVersion > 0) { "Java major version must be positive" }
+        component?.let { requireFileSafeSegment(it, "Java runtime component") }
+        platform?.let { requireFileSafeSegment(it, "Java runtime platform") }
+        architecture?.let { requireFileSafeSegment(it, "Java runtime architecture") }
+        require(reason.isNotBlank()) { "Java runtime requirement reason is required" }
+    }
+}
+
+@Serializable
+enum class JavaRuntimeSourcePolicy {
+    AUTO,
+    CONFIGURED_ONLY,
+    MANAGED_ALLOWED,
+}
+
+@Serializable
+enum class JavaRuntimeProviderKind {
+    CONFIGURED,
+    MANAGED,
+    MISE,
+    SYSTEM,
+}
+
+@Serializable
+data class JavaRuntimeDescriptor(
+    val id: String,
+    val provider: JavaRuntimeProviderKind,
+    val javaHome: String? = null,
+    val executable: String,
+    val majorVersion: Int,
+    val version: String,
+    val vendor: String? = null,
+    val architecture: String? = null,
+    val managed: Boolean = false,
+    val evidence: Map<String, String> = emptyMap(),
+) {
+    init {
+        require(id.isNotBlank()) { "Java runtime id is required" }
+        javaHome?.let { requireJavaRuntimeLocation(it, "Java runtime home") }
+        requireJavaRuntimeLocation(executable, "Java runtime executable")
+        require(majorVersion > 0) { "Java major version must be positive" }
+        require(version.isNotBlank()) { "Java runtime version is required" }
+    }
+}
+
+@Serializable
+data class RejectedJavaRuntimeCandidate(
+    val executable: String,
+    val provider: JavaRuntimeProviderKind,
+    val reason: String,
+    val detectedMajorVersion: Int? = null,
+) {
+    init {
+        requireJavaRuntimeLocation(executable, "rejected Java runtime executable")
+        require(reason.isNotBlank()) { "rejected Java runtime reason is required" }
+        detectedMajorVersion?.let { require(it > 0) { "detected Java major version must be positive" } }
+    }
+}
+
+@Serializable
+data class JavaRuntimeSelection(
+    val requirement: JavaRuntimeRequirement,
+    val status: JavaRuntimeSelectionStatus,
+    val selected: JavaRuntimeDescriptor? = null,
+    val rejected: List<RejectedJavaRuntimeCandidate> = emptyList(),
+    val reason: String,
+) {
+    init {
+        require(reason.isNotBlank()) { "Java runtime selection reason is required" }
+        if (status == JavaRuntimeSelectionStatus.SELECTED) {
+            requireNotNull(selected) { "selected Java runtime is required for selected status" }
+        }
+        if (status == JavaRuntimeSelectionStatus.UNSATISFIED) {
+            require(selected == null) { "unsatisfied Java runtime selection must not include a selected runtime" }
+        }
+    }
+}
+
+@Serializable
+enum class JavaRuntimeSelectionStatus {
+    SELECTED,
+    UNSATISFIED,
 }
 
 const val MINECRAFT_VERSION_INDEX_URL: String = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
@@ -252,4 +348,12 @@ private fun requireRelativeCacheHandle(
     require(!value.startsWith('/')) { "$label must be relative" }
     require(!value.contains('\\')) { "$label must use forward slashes" }
     require(!value.split('/').any { it == ".." }) { "$label must stay under the workspace root" }
+}
+
+private fun requireJavaRuntimeLocation(
+    value: String,
+    label: String,
+) {
+    require(value.isNotBlank()) { "$label is required" }
+    require(!value.contains('\u0000')) { "$label must not contain NUL" }
 }

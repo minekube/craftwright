@@ -3,6 +3,7 @@ package com.minekube.craftless.protocol
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class CacheModelsTest {
     @Test
@@ -135,5 +136,62 @@ class CacheModelsTest {
             "cache/loaders/fabric/1.21.6/0.17.2/profile.json",
             result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LOADER_PROFILE }.handle,
         )
+    }
+
+    @Test
+    fun `java runtime selection records requirement selected runtime and rejected candidates`() {
+        val requirement =
+            JavaRuntimeRequirement(
+                majorVersion = 25,
+                component = "java-runtime-gamma",
+                platform = "mac-os-arm64",
+                architecture = "aarch64",
+                reason = "minecraft-version-metadata",
+            )
+        val selected =
+            JavaRuntimeDescriptor(
+                id = "managed:mac-os-arm64:java-runtime-gamma:25.0.3",
+                provider = JavaRuntimeProviderKind.MANAGED,
+                javaHome = "cache/runtimes/mac-os-arm64/java-runtime-gamma",
+                executable = "cache/runtimes/mac-os-arm64/java-runtime-gamma/bin/java",
+                majorVersion = 25,
+                version = "25.0.3",
+                vendor = "Eclipse Temurin",
+                architecture = "aarch64",
+                managed = true,
+                evidence =
+                    mapOf(
+                        "minecraftVersion" to "26.2",
+                        "source" to "mojang-java-runtime",
+                    ),
+            )
+        val rejected =
+            RejectedJavaRuntimeCandidate(
+                executable = "/Library/Java/JavaVirtualMachines/temurin-21/bin/java",
+                provider = JavaRuntimeProviderKind.SYSTEM,
+                reason = "java-major-too-low",
+                detectedMajorVersion = 21,
+            )
+        val selection =
+            JavaRuntimeSelection(
+                requirement = requirement,
+                status = JavaRuntimeSelectionStatus.SELECTED,
+                selected = selected,
+                rejected = listOf(rejected),
+                reason = "managed-runtime-satisfies-requirement",
+            )
+
+        assertEquals(25, requirement.majorVersion)
+        assertEquals("minecraft-version-metadata", requirement.reason)
+        assertEquals(JavaRuntimeProviderKind.MANAGED, selected.provider)
+        assertEquals(JavaRuntimeSelectionStatus.SELECTED, selection.status)
+        assertEquals("cache/runtimes/mac-os-arm64/java-runtime-gamma/bin/java", selection.selected?.executable)
+        assertTrue(selection.rejected.any { it.reason == "java-major-too-low" })
+        assertFailsWith<IllegalArgumentException> {
+            requirement.copy(component = "../java-runtime-gamma")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            requirement.copy(majorVersion = 0)
+        }
     }
 }
