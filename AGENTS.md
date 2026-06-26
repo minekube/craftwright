@@ -23,9 +23,17 @@ The durable shape is thin:
 
 Do not turn Craftless into a hand-written SDK with one static method, route, or
 CLI command per Minecraft action.
-Do not add static placeholder action descriptors. A public action/resource may
-appear only when it comes from a real binding or from a runtime discovery probe
-that inspected the running client and produced explicit availability metadata.
+Work on the system that discovers, projects, invokes, and streams Minecraft
+runtime affordances; do not work inside the system by adding one more bespoke
+gameplay action.
+Do not add static placeholder action descriptors, and do not add new
+hand-written public gameplay action descriptors merely because they have a real
+binding. A public gameplay action/resource should come from the runtime
+capability graph generated from reflection, mappings, registries, callbacks,
+screens, handlers, world/entity/inventory state, permissions, and installed
+mods. Existing hand-written gameplay bindings are transitional bootstrap and
+evidence code, not the durable API shape and not completion evidence by
+themselves.
 
 ## Public API Rules
 
@@ -57,6 +65,10 @@ only when it describes runtime support precisely.
 Generated aliases such as `POST /clients/{id}/player:move` are derived from
 the running client's OpenAPI/action descriptors. Do not create static gameplay
 route families in Kotlin, CLI source, README examples, or tests.
+Do not add new public action ids such as `world.dimension.query` by writing a
+descriptor and binding pair directly. First add or improve the generic
+discovery/projection system that would discover that affordance from the live
+runtime, then let the generated per-client OpenAPI expose the projected result.
 
 ## API Layers
 
@@ -79,11 +91,17 @@ Keep these layers separate. Do not flatten them into one static API:
    `actions()` and `invoke(...)`. Do not add static driver methods such as
    `sendChat()`, `player()`, `inventory()`, `raycast()`, or one method per
    gameplay action.
-6. Fabric runtime discovery/projection: internal probes inspect
-   Fabric/Minecraft/mod/client state and project it into Craftless-owned
-   descriptors. Raw implementation names are inputs, not public contracts.
-7. Fabric execution bindings: internal client-thread implementations for
-   advertised executable actions.
+6. Runtime capability graph: internal discovery collects Fabric/Minecraft/mod
+   classes, methods, registries, callbacks, screens, handlers, resources,
+   handles, permissions, and live client state into a generic graph. This graph
+   is the input to OpenAPI generation.
+7. Fabric runtime discovery/projection: internal probes inspect
+   Fabric/Minecraft/mod/client state and project graph nodes into
+   Craftless-owned descriptors. Raw implementation names are inputs, not public
+   contracts.
+8. Fabric execution adapters: internal client-thread implementations invoke
+   projected graph affordances. These adapters must not become the public API
+   catalog.
 
 The source design is
 `docs/superpowers/specs/2026-06-25-generated-client-api-design.md`, especially
@@ -92,7 +110,8 @@ requirements sections.
 
 ## HTTP And CLI
 
-- Use Ktor Server for local JVM HTTP/WebSocket surfaces.
+- Use Ktor Server for local JVM HTTP, SSE, and only-if-needed WebSocket
+  surfaces.
 - Use Ktor Client for Kotlin/JVM HTTP clients and tests.
 - Do not add OkHttp, `com.sun.net.httpserver`, Java `HttpClient`, or
   hand-rolled HTTP clients in product code.
@@ -106,16 +125,41 @@ requirements sections.
   and help from `/openapi.json`, `/clients/{id}/openapi.json`, and
   `/clients/{id}/actions`.
 
+## Live Events And RPC
+
+- Prefer Server-Sent Events for server-to-client live streams because Craftless
+  primarily streams lifecycle, runtime, capability, and game/perception events
+  outward to agents and clients.
+- Use HTTP `POST` JSON-RPC-style requests for client-to-server control such as
+  invoke, subscribe, unsubscribe, and query. The POST response may acknowledge
+  accepted work; correlated results and notifications may arrive on the SSE
+  stream.
+- JSON-RPC payload shape is useful, but SSE is the preferred transport for
+  one-way server event delivery. Do not default to WebSocket unless a feature
+  genuinely needs bidirectional low-latency interactive control that cannot be
+  modeled as HTTP POST plus SSE.
+- Event filtering should exist on both sides: server-side subscription filters
+  to avoid flooding clients, and client-side filters for local agent logic.
+- Event names, resource ids, action ids, handles, and schemas emitted on streams
+  must be Craftless-owned projections from the live runtime capability graph.
+  Do not stream raw Fabric/Yarn/intermediary names or Minecraft implementation
+  names as public contracts.
+
 ## Driver Rules
 
 - Prefer one consolidated `driver-fabric` module with internal version-aware
   bindings, reflection/mapping probes, and small Mixins/accessors.
 - Keep Minecraft calls on the client thread.
 - Version-specific code stays behind stable Craftless driver/action contracts.
-- Per-client OpenAPI exposes real executable bindings and runtime-discovered
-  resources/actions for the running client. Unavailable actions may be exposed
-  only when a runtime probe discovered the operation and records why it is not
-  currently executable.
+- Per-client OpenAPI exposes runtime-discovered resources/actions for the
+  running client. Executability is provided by internal adapters behind the
+  projected capability graph. Unavailable actions may be exposed only when a
+  runtime probe discovered the operation and records why it is not currently
+  executable.
+- Do not grow `driver-fabric` by adding one hand-written public gameplay
+  descriptor/binding pair after another. When an affordance is missing, improve
+  the generic reflection/mapping/registry/callback/screen/handler discovery
+  and projection system first.
 - Module names and Minecraft versions are not public API.
 - The bridge backend is evidence infrastructure only. Do not present it as the
   final automation driver.
@@ -159,9 +203,12 @@ Use `docs/project-completion-checklist.md` as the active project checklist.
 Update it when project status changes.
 
 Do not mark Craftless complete while the current Fabric driver is still a
-small hand-written binding list. Completion requires runtime discovery,
-generated per-client OpenAPI, executable bindings or probe-backed availability
-for advertised actions/resources, and real-client evidence.
+small hand-written binding list or while new gameplay breadth depends on adding
+more hand-written descriptor/binding pairs. Completion requires a generic
+runtime capability graph, reflection/mapping/registry/callback/screen/handler
+discovery, generated per-client OpenAPI from that graph, executable adapters or
+probe-backed availability for advertised actions/resources, SSE event
+streaming for live observations, and real-client evidence.
 
 ## Documentation
 
