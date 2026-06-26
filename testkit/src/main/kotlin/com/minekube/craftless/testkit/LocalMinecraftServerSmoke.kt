@@ -1,8 +1,11 @@
 package com.minekube.craftless.testkit
 
+import com.minekube.craftless.protocol.CachePrepareResult
+import com.minekube.craftless.protocol.JavaRuntimeSelection
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.net.ServerSocket
 import java.nio.file.Files
@@ -38,6 +41,7 @@ object LocalMinecraftServerSmoke {
         return runBlocking {
             HttpClient(CIO).use { http ->
                 val layout = LocalServerFixture(root = config.root, port = config.port).prepare()
+                val javaSelectionEvidence = config.writeJavaSelectionEvidence(layout)
                 val serverJar = provisionServerJar(layout, http)
                 val server =
                     layout.startMinecraftServer(
@@ -75,6 +79,7 @@ object LocalMinecraftServerSmoke {
                     evidenceCount = processResult.evidenceCount,
                     actionLog = commandResult?.log,
                     actionExitCode = commandResult?.exitCode,
+                    javaSelectionEvidence = javaSelectionEvidence,
                     evidenceSummary = layout.assertExpectedEvidence(config),
                 )
             }
@@ -96,6 +101,7 @@ data class LocalMinecraftServerSmokeResult(
     val evidenceCount: Int = 0,
     val actionLog: Path? = null,
     val actionExitCode: Int? = null,
+    val javaSelectionEvidence: Path? = null,
     val evidenceSummary: LocalMinecraftSmokeEvidenceSummary = LocalMinecraftSmokeEvidenceSummary(),
 )
 
@@ -123,8 +129,14 @@ data class LocalMinecraftServerSmokeConfig(
     val enabled: Boolean,
     val root: Path,
     val minecraftVersion: String = "1.21.6",
+    val javaSelection: JavaRuntimeSelection? = null,
     val port: Int = DEFAULT_MINECRAFT_SERVER_PORT,
-    val javaExecutable: Path = Path.of(System.getProperty("java.home")).resolve("bin").resolve("java"),
+    val javaExecutable: Path =
+        javaSelection
+            ?.selected
+            ?.executable
+            ?.let { executable -> root.resolveCacheHandleOrPath(executable) }
+            ?: Path.of(System.getProperty("java.home")).resolve("bin").resolve("java"),
     val actionCommand: List<String> = emptyList(),
     val actionTimeoutMillis: Long = 300_000,
     val expectedPlayer: String? = null,
@@ -155,6 +167,8 @@ data class LocalMinecraftServerSmokeConfig(
         private const val ROOT = "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT"
         private const val VERSION = "CRAFTLESS_SMOKE_MINECRAFT_VERSION"
         private const val JAVA_EXECUTABLE = "CRAFTLESS_SMOKE_JAVA_EXECUTABLE"
+        private const val JAVA_SELECTION_JSON = "CRAFTLESS_SMOKE_JAVA_SELECTION_JSON"
+        private const val JAVA_SELECTION_FILE = "CRAFTLESS_SMOKE_JAVA_SELECTION_FILE"
         private const val ACTION_COMMAND_JSON = "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON"
         private const val ACTION_TIMEOUT = "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS"
         private const val EXPECT_PLAYER = "CRAFTLESS_SMOKE_EXPECT_PLAYER"
@@ -170,14 +184,17 @@ data class LocalMinecraftServerSmokeConfig(
 
         fun fromEnvironment(env: Map<String, String> = System.getenv()): LocalMinecraftServerSmokeConfig {
             val enabled = env.isEnabled(ENABLED) || env.isEnabled(FABRIC_ENABLED)
+            val root =
+                env[ROOT]
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let(Path::of)
+                    ?: Path.of("build", "craftless-local-server-smoke")
+            val javaSelection = env.javaSelection()
             return LocalMinecraftServerSmokeConfig(
                 enabled = enabled,
-                root =
-                    env[ROOT]
-                        ?.takeIf { it.isNotBlank() }
-                        ?.let(Path::of)
-                        ?: Path.of("build", "craftless-local-server-smoke"),
+                root = root,
                 minecraftVersion = env[VERSION]?.takeIf { it.isNotBlank() } ?: "1.21.6",
+                javaSelection = javaSelection,
                 port =
                     env[CRAFTLESS_SMOKE_SERVER_PORT_ENV]?.toIntStrict(CRAFTLESS_SMOKE_SERVER_PORT_ENV)
                         ?: if (enabled) findAvailableSmokePort() else DEFAULT_MINECRAFT_SERVER_PORT,
@@ -185,6 +202,10 @@ data class LocalMinecraftServerSmokeConfig(
                     env[JAVA_EXECUTABLE]
                         ?.takeIf { it.isNotBlank() }
                         ?.let(Path::of)
+                        ?: javaSelection
+                            ?.selected
+                            ?.executable
+                            ?.let { executable -> root.resolveCacheHandleOrPath(executable) }
                         ?: Path.of(System.getProperty("java.home")).resolve("bin").resolve("java"),
                 actionCommand =
                     env[ACTION_COMMAND_JSON]
@@ -229,6 +250,25 @@ data class LocalMinecraftServerSmokeConfig(
             }
             error("could not allocate a non-default Minecraft smoke server port")
         }
+
+        private fun Map<String, String>.javaSelection(): JavaRuntimeSelection? {
+            this[JAVA_SELECTION_JSON]
+                ?.takeIf { it.isNotBlank() }
+                ?.let { return smokeJson.decodeFromString<JavaRuntimeSelection>(it) }
+            return this[JAVA_SELECTION_FILE]
+                ?.takeIf { it.isNotBlank() }
+                ?.let(Path::of)
+                ?.let { path -> Files.readString(path) }
+                ?.let(::decodeJavaSelectionDocument)
+        }
+
+        private fun decodeJavaSelectionDocument(document: String): JavaRuntimeSelection =
+            runCatching {
+                smokeJson.decodeFromString<CachePrepareResult>(document).javaSelection
+                    ?: error("cache prepare result does not contain javaSelection")
+            }.getOrElse {
+                smokeJson.decodeFromString<JavaRuntimeSelection>(document)
+            }
     }
 }
 
@@ -417,6 +457,19 @@ private fun LocalServerLayout.writeSmokeActionOutput(output: List<String>): Path
     val log = artifactsDir.resolve("smoke-action.log")
     Files.writeString(log, output.joinToString("\n", postfix = "\n"), CREATE, TRUNCATE_EXISTING)
     return log
+}
+
+private fun LocalMinecraftServerSmokeConfig.writeJavaSelectionEvidence(layout: LocalServerLayout): Path? {
+    val selection = javaSelection ?: return null
+    Files.createDirectories(layout.artifactsDir)
+    val evidence = layout.artifactsDir.resolve("java-runtime-selection.json")
+    Files.writeString(evidence, smokeJson.encodeToString(selection) + "\n", CREATE, TRUNCATE_EXISTING)
+    return evidence
+}
+
+private fun Path.resolveCacheHandleOrPath(value: String): Path {
+    val path = Path.of(value)
+    return if (path.isAbsolute) path else resolve(path).normalize()
 }
 
 private fun <T> MutableList<T>.snapshot(): List<T> = synchronized(this) { toList() }

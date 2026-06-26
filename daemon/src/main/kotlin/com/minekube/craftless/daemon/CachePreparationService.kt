@@ -267,16 +267,16 @@ class CachePreparationService(
                 } else {
                     return null
                 }
+        val resolver = JavaRuntimeResolver()
         val selection =
-            JavaRuntimeResolver()
+            resolver
                 .resolve(
                     requirement = requirement,
                     context =
                         JavaRuntimeDiscoveryContext(
                             managedRuntimeRoot = resolveHandle(result.runtimeRoot),
                         ),
-                )
-                .withWorkspaceHandles()
+                ).withWorkspaceHandles()
         require(selection.status == JavaRuntimeSelectionStatus.SELECTED) {
             "Java runtime selection failed for Minecraft ${request.minecraftVersion}: ${selection.reason}"
         }

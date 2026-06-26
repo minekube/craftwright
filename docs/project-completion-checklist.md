@@ -623,10 +623,13 @@ Verification:
 - [x] Supervisor API and CLI can list or resolve Java runtimes without adding
   gameplay action catalogs. Evidence:
   `mise exec -- gradle :protocol:test :daemon:test :cli:test`.
-- [ ] Testkit/server smoke consumes resolver output and records Java selection
+- [x] Testkit/server smoke consumes resolver output and records Java selection
   evidence instead of depending only on `CRAFTLESS_SMOKE_JAVA_EXECUTABLE`.
-- [ ] Minecraft `26.2` server smoke proves Java 25 selection; Fabric client
-  compatibility remains gated by Phase 26 driver-lane selection.
+  Evidence: `mise exec -- gradle :testkit:test` and
+  `docs/superpowers/evidence/2026-06-26-java-runtime-resolution-smoke.md`.
+- [x] Minecraft `26.2` server smoke proves Java 25 selection; Fabric client
+  compatibility remains gated by Phase 26 driver-lane selection. Evidence:
+  `docs/superpowers/evidence/2026-06-26-java-runtime-resolution-smoke.md`.
 
 Verification:
 

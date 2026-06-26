@@ -24,11 +24,11 @@ import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
-import com.minekube.craftless.protocol.JsonRpcResponse
 import com.minekube.craftless.protocol.JavaRuntimeListResult
 import com.minekube.craftless.protocol.JavaRuntimeProviderKind
 import com.minekube.craftless.protocol.JavaRuntimeSelection
 import com.minekube.craftless.protocol.JavaRuntimeSelectionStatus
+import com.minekube.craftless.protocol.JsonRpcResponse
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
 import com.minekube.craftless.protocol.OpenApiAction
@@ -1499,7 +1499,7 @@ private class ServerStaticCacheMetadataFetcher(
     override suspend fun fetchBytes(url: String): ByteArray =
         requireNotNull(binaryResponses[url]) {
             "missing test binary response for $url"
-    }
+        }
 }
 
 private fun writeFakeJava(

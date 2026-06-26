@@ -69,6 +69,91 @@ class LocalMinecraftServerSmokeTest {
     }
 
     @Test
+    fun `local server smoke can consume Java runtime selection from environment`() {
+        val root = createTempDirectory("craftless-local-server-smoke-java-selection-env")
+        val selectedJava = root.resolve("cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java")
+        writeFakeJava(selectedJava)
+
+        val config =
+            LocalMinecraftServerSmokeConfig.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_LOCAL_SERVER_SMOKE" to "1",
+                    "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT" to root.toString(),
+                    "CRAFTLESS_SMOKE_JAVA_SELECTION_JSON" to
+                        """
+                        {
+                          "requirement": {
+                            "majorVersion": 25,
+                            "component": "java-runtime-gamma",
+                            "reason": "minecraft-version-metadata"
+                          },
+                          "status": "SELECTED",
+                          "selected": {
+                            "id": "managed:25:java",
+                            "provider": "MANAGED",
+                            "executable": "cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java",
+                            "majorVersion": 25,
+                            "version": "25.0.3",
+                            "managed": true
+                          },
+                          "reason": "managed-runtime-satisfies-requirement"
+                        }
+                        """.trimIndent(),
+                ),
+            )
+
+        assertEquals(selectedJava, config.javaExecutable)
+        assertEquals(25, config.javaSelection?.requirement?.majorVersion)
+    }
+
+    @Test
+    fun `local server smoke records Java runtime selection evidence`() {
+        val root = createTempDirectory("craftless-local-server-smoke-java-selection-evidence")
+        val selectedJava = root.resolve("cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java")
+        val fakeServerJar = root.resolve("server.jar")
+        Files.writeString(fakeServerJar, "fake")
+        writeFakeJava(selectedJava)
+        val config =
+            LocalMinecraftServerSmokeConfig.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_LOCAL_SERVER_SMOKE" to "1",
+                    "CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT" to root.toString(),
+                    "CRAFTLESS_SMOKE_JAVA_SELECTION_JSON" to
+                        """
+                        {
+                          "requirement": {
+                            "majorVersion": 25,
+                            "component": "java-runtime-gamma",
+                            "reason": "minecraft-version-metadata"
+                          },
+                          "status": "SELECTED",
+                          "selected": {
+                            "id": "managed:25:java",
+                            "provider": "MANAGED",
+                            "executable": "cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java",
+                            "majorVersion": 25,
+                            "version": "25.0.3",
+                            "managed": true
+                          },
+                          "reason": "managed-runtime-satisfies-requirement"
+                        }
+                        """.trimIndent(),
+                ),
+            )
+
+        val result =
+            LocalMinecraftServerSmoke.runWithServer(
+                config = config,
+                provisionServerJar = { _, _ -> fakeServerJar },
+            )
+
+        val evidence = requireNotNull(result.javaSelectionEvidence)
+        assertEquals(root.resolve("artifacts").resolve("java-runtime-selection.json"), evidence)
+        assertTrue(Files.readString(evidence).contains("\"majorVersion\":25"))
+        assertTrue(Files.readString(evidence).contains("java-runtime-gamma"))
+    }
+
+    @Test
     fun `local server smoke is enabled by fabric client smoke gate`() {
         val config =
             LocalMinecraftServerSmokeConfig.fromEnvironment(
@@ -465,4 +550,18 @@ private fun waitUntilExists(
         Thread.sleep(10)
     }
     return Files.exists(path)
+}
+
+private fun writeFakeJava(path: Path) {
+    Files.createDirectories(path.parent)
+    Files.writeString(
+        path,
+        """
+        #!/bin/sh
+        echo '[12:00:00] [Server thread/INFO]: Done (1.000s)! For help, type "help"'
+        read command
+        printf '%s\n' "${'$'}command" > minecraft-server-stdin.txt
+        """.trimIndent() + "\n",
+    )
+    assertTrue(path.toFile().setExecutable(true))
 }

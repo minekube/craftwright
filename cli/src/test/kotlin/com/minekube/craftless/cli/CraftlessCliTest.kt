@@ -410,10 +410,22 @@ class CraftlessCliTest {
 
         val selection = Json.parseToJsonElement(output.toString().trim()).jsonObject
         assertEquals("SELECTED", selection["status"]?.jsonPrimitive?.content)
-        assertEquals(25, selection["requirement"]?.jsonObject?.get("majorVersion")?.jsonPrimitive?.content?.toInt())
+        assertEquals(
+            25,
+            selection["requirement"]
+                ?.jsonObject
+                ?.get("majorVersion")
+                ?.jsonPrimitive
+                ?.content
+                ?.toInt(),
+        )
         assertEquals(
             "cache/runtimes/mac-os-arm64/java-runtime-gamma/image/bin/java",
-            selection["selected"]?.jsonObject?.get("executable")?.jsonPrimitive?.content,
+            selection["selected"]
+                ?.jsonObject
+                ?.get("executable")
+                ?.jsonPrimitive
+                ?.content,
         )
     }
 
@@ -1955,7 +1967,9 @@ class CraftlessCliTest {
                 FakeDriverSession(request.id)
             },
         workspaceRoot: java.nio.file.Path? = null,
-        cacheMetadataFetcher: CacheMetadataFetcher = com.minekube.craftless.daemon.KtorCacheMetadataFetcher(),
+        cacheMetadataFetcher: CacheMetadataFetcher =
+            com.minekube.craftless.daemon
+                .KtorCacheMetadataFetcher(),
     ) : AutoCloseable {
         private val server =
             com.minekube.craftless.daemon.LocalSessionApiServer.inMemory(

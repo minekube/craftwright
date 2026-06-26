@@ -111,7 +111,10 @@ class JavaRuntimeResolver(
         JavaRuntimeDescriptor(
             id = "${candidate.provider.name.lowercase()}:${result.majorVersion}:${candidate.executable}",
             provider = candidate.provider,
-            javaHome = candidate.executable.parent?.parent?.toString(),
+            javaHome =
+                candidate.executable.parent
+                    ?.parent
+                    ?.toString(),
             executable = candidate.executable.toString(),
             majorVersion = requireNotNull(result.majorVersion),
             version = requireNotNull(result.version),
@@ -127,6 +130,13 @@ class JavaRuntimeResolver(
 
     private fun List<JavaRuntimeCandidate>.deduplicateByExecutable(): List<JavaRuntimeCandidate> {
         val seen = linkedSetOf<String>()
-        return filter { candidate -> seen.add(candidate.executable.toAbsolutePath().normalize().toString()) }
+        return filter { candidate ->
+            seen.add(
+                candidate.executable
+                    .toAbsolutePath()
+                    .normalize()
+                    .toString(),
+            )
+        }
     }
 }
