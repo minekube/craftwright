@@ -168,7 +168,7 @@ Verification:
 - [x] Baritone and SwarmBot prior art were cloned under
   `/tmp/craftless-pathfinder-research` and reviewed for navigation, movement,
   pathing, and task-composition design input.
-- [ ] Navigation and task protocol models exist with Craftless-owned public
+- [x] Navigation and task protocol models exist with Craftless-owned public
   names and no Baritone/SwarmBot/raw Minecraft public leakage.
 - [ ] Runtime graph discovery can expose navigation/task affordances from the
   running client without static gameplay shortcut descriptors.

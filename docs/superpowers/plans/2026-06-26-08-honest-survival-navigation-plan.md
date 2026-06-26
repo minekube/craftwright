@@ -16,7 +16,7 @@
 - Create: `protocol/src/main/kotlin/com/minekube/craftless/protocol/NavigationModels.kt`
 - Test: `protocol/src/test/kotlin/com/minekube/craftless/protocol/NavigationModelsTest.kt`
 
-- [ ] **Step 1: Write the failing serialization and validation tests**
+- [x] **Step 1: Write the failing serialization and validation tests**
 
 Create tests asserting that navigation goals, plans, route segments, task
 requests, task status, and progress events serialize with Craftless-owned names
@@ -34,7 +34,7 @@ fun `navigation models reject raw backend names`() {
 }
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run:
 
@@ -44,7 +44,7 @@ mise exec -- gradle :protocol:test --tests 'com.minekube.craftless.protocol.Navi
 
 Expected: FAIL because the model classes do not exist.
 
-- [ ] **Step 3: Implement the protocol models**
+- [x] **Step 3: Implement the protocol models**
 
 Add serializable models:
 
@@ -122,7 +122,7 @@ data class NavigationProgressEvent(
 )
 ```
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run:
 
