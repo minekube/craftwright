@@ -146,14 +146,13 @@ Verification:
   `POST /clients/{id}:run` or reading `x-craftless-resources`. The daemon
   exposes per-client OpenAPI `ETag` revalidation keyed by the live
   runtime/action fingerprint, and the Playwright helper revalidates its
-  process-local cached live spec with `If-None-Match`. `craftless clients
-  <id> openapi --openapi-cache <dir>`, `craftless clients <id> actions
-  --openapi-cache <dir>`, `craftless clients <id> resources
+  process-local and optional durable cached live specs with `If-None-Match`.
+  `craftless clients <id> openapi --openapi-cache <dir>`, `craftless clients
+  <id> actions --openapi-cache <dir>`, `craftless clients <id> resources
   --openapi-cache <dir>`, `craftless clients <id> tools --openapi-cache
   <dir>`, `craftless clients <id> run <action> --openapi-cache <dir>`, and
   generated action aliases with `--openapi-cache <dir>` now persist the live
-  per-client OpenAPI body plus ETag and revalidate it across CLI invocations;
-  broader durable generated-client cache coverage remains roadmap.
+  per-client OpenAPI body plus ETag and revalidate it across CLI invocations.
 - [x] `DriverSession` remains lifecycle/events/runtime metadata plus
   `actions()` and `invoke(...)`; no static player/world/inventory methods.
 - [x] Fabric discovery/projection and execution bindings stay internal and

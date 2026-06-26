@@ -1,4 +1,7 @@
 import { expect, test } from "bun:test";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createCraftlessFixture, createOpenApiActionClient, toHaveChat } from "./index";
 
 test("fixture provides an injected automation client without shelling out to CLI output", async () => {
@@ -189,4 +192,68 @@ test("openapi action client revalidates cached live spec by etag", async () => {
   ]);
   expect(calls[2]?.init?.headers).toBeInstanceOf(Headers);
   expect((calls[2]?.init?.headers as Headers).get("if-none-match")).toBe("\"fingerprint-a\"");
+});
+
+test("openapi action client revalidates durable cached live spec by etag across instances", async () => {
+  const cacheDirectory = await mkdtemp(join(tmpdir(), "craftless-playwright-openapi-cache-"));
+  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  const resources = [
+    {
+      id: "inventory",
+      availability: "available",
+      actions: ["inventory.query"],
+    },
+  ];
+  const fetchImpl = async (url: string, init?: RequestInit): Promise<Response> => {
+    calls.push({ url, init });
+    if (url.endsWith("/clients/alice/openapi.json")) {
+      if (init?.headers instanceof Headers && init.headers.get("if-none-match") === "\"fingerprint-durable\"") {
+        return new Response(null, { status: 304 });
+      }
+      return Response.json(
+        {
+          openapi: "3.1.0",
+          info: { title: "Craftless test API", version: "1" },
+          paths: {},
+          "x-craftless": {
+            "x-craftless-runtime-fingerprint": "fingerprint-durable",
+          },
+          "x-craftless-resources": resources,
+        },
+        {
+          headers: {
+            etag: "\"fingerprint-durable\"",
+          },
+        },
+      );
+    }
+    return new Response("missing", { status: 404 });
+  };
+
+  try {
+    const firstClient = createOpenApiActionClient({
+      baseUrl: "http://127.0.0.1:8080",
+      clientId: "alice",
+      cacheDirectory,
+      fetch: fetchImpl,
+    });
+    await expect(firstClient.resources()).resolves.toEqual(resources);
+
+    const secondClient = createOpenApiActionClient({
+      baseUrl: "http://127.0.0.1:8080",
+      clientId: "alice",
+      cacheDirectory,
+      fetch: fetchImpl,
+    });
+    await expect(secondClient.resources()).resolves.toEqual(resources);
+  } finally {
+    await rm(cacheDirectory, { force: true, recursive: true });
+  }
+
+  expect(calls.map((call) => call.url)).toEqual([
+    "http://127.0.0.1:8080/clients/alice/openapi.json",
+    "http://127.0.0.1:8080/clients/alice/openapi.json",
+  ]);
+  expect(calls[1]?.init?.headers).toBeInstanceOf(Headers);
+  expect((calls[1]?.init?.headers as Headers).get("if-none-match")).toBe("\"fingerprint-durable\"");
 });

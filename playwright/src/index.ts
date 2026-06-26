@@ -1,3 +1,7 @@
+import { createHash } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
 export interface CraftlessAutomationClient {
   launch(input: {
     name: string;
@@ -42,6 +46,7 @@ export interface CraftlessOpenApiDocument {
 export interface OpenApiActionClientOptions {
   baseUrl: string;
   clientId: string;
+  cacheDirectory?: string;
   fetch?: typeof fetch;
 }
 
@@ -54,9 +59,11 @@ export function createOpenApiActionClient(options: OpenApiActionClientOptions): 
   const fetchImpl = options.fetch ?? fetch;
   const baseUrl = options.baseUrl.replace(/\/+$/, "");
   const clientId = options.clientId;
+  const cacheDirectory = options.cacheDirectory;
   let cachedOpenApi: { etag: string; document: CraftlessOpenApiDocument } | undefined;
 
   async function loadOpenApi(): Promise<CraftlessOpenApiDocument> {
+    cachedOpenApi ??= await readCachedOpenApi(cacheDirectory, baseUrl, clientId);
     const headers = cachedOpenApi ? new Headers({ "if-none-match": cachedOpenApi.etag }) : undefined;
     const response = await fetchImpl(`${baseUrl}/clients/${clientId}/openapi.json`, headers ? { headers } : undefined);
     if (response.status === 304 && cachedOpenApi) {
@@ -69,6 +76,7 @@ export function createOpenApiActionClient(options: OpenApiActionClientOptions): 
     const etag = response.headers.get("etag");
     if (etag) {
       cachedOpenApi = { etag, document };
+      await writeCachedOpenApi(cacheDirectory, baseUrl, clientId, cachedOpenApi);
     } else {
       cachedOpenApi = undefined;
     }
@@ -99,6 +107,47 @@ export function createOpenApiActionClient(options: OpenApiActionClientOptions): 
       });
     },
   };
+}
+
+async function readCachedOpenApi(
+  cacheDirectory: string | undefined,
+  baseUrl: string,
+  clientId: string,
+): Promise<{ etag: string; document: CraftlessOpenApiDocument } | undefined> {
+  if (!cacheDirectory) {
+    return undefined;
+  }
+  try {
+    const body = await readFile(openApiCachePath(cacheDirectory, baseUrl, clientId), "utf8");
+    const entry = JSON.parse(body) as { etag?: unknown; document?: unknown };
+    if (typeof entry.etag === "string" && typeof entry.document === "object" && entry.document !== null) {
+      return {
+        etag: entry.etag,
+        document: entry.document as CraftlessOpenApiDocument,
+      };
+    }
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
+async function writeCachedOpenApi(
+  cacheDirectory: string | undefined,
+  baseUrl: string,
+  clientId: string,
+  entry: { etag: string; document: CraftlessOpenApiDocument },
+): Promise<void> {
+  if (!cacheDirectory) {
+    return;
+  }
+  await mkdir(cacheDirectory, { recursive: true });
+  await writeFile(openApiCachePath(cacheDirectory, baseUrl, clientId), JSON.stringify(entry), "utf8");
+}
+
+function openApiCachePath(cacheDirectory: string, baseUrl: string, clientId: string): string {
+  const digest = createHash("sha256").update(`${baseUrl}\n${clientId}`).digest("hex").slice(0, 32);
+  return join(cacheDirectory, `${digest}.json`);
 }
 
 async function fetchJson<T>(fetchImpl: typeof fetch, url: string, init?: RequestInit): Promise<T> {
