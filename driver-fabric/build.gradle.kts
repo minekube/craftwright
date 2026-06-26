@@ -44,6 +44,75 @@ val pathfinderRuntimeEnabled =
             value == "1" || value.equals("true", ignoreCase = true)
         }
 
+val fabricCompiledMinecraftVersion = "1.21.6"
+val fabricCompiledJavaMajorVersion = 21
+
+fun jsonString(value: String): String =
+    buildString {
+        append('"')
+        value.forEach { char ->
+            when (char) {
+                '\\' -> append("\\\\")
+                '"' -> append("\\\"")
+                '\b' -> append("\\b")
+                '\u000C' -> append("\\f")
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                '\t' -> append("\\t")
+                else -> append(char)
+            }
+        }
+        append('"')
+    }
+
+fun laneSuffix(version: String): String =
+    version
+        .lowercase()
+        .replace(Regex("[^a-z0-9]+"), "-")
+        .trim('-')
+        .ifBlank { "unknown" }
+
+fun fabricSmokeRuntimeLaneJson(minecraftVersion: String): String {
+    val version = minecraftVersion.takeIf { it.isNotBlank() } ?: fabricCompiledMinecraftVersion
+    val lane =
+        when (version) {
+            fabricCompiledMinecraftVersion ->
+                mapOf(
+                    "id" to "fabric-current-lane",
+                    "status" to "SUPPORTED",
+                    "minecraftVersion" to version,
+                    "javaMajorVersion" to fabricCompiledJavaMajorVersion,
+                    "providerId" to "fabric-current-lane",
+                )
+            "26.2" ->
+                mapOf(
+                    "id" to "fabric-simulated-26",
+                    "status" to "UNSUPPORTED",
+                    "minecraftVersion" to version,
+                    "javaMajorVersion" to 25,
+                    "providerId" to "fabric-simulated-provider",
+                    "unsupportedReason" to "runtime-lane-missing",
+                )
+            else ->
+                mapOf(
+                    "id" to "fabric-unsupported-${laneSuffix(version)}",
+                    "status" to "UNSUPPORTED",
+                    "minecraftVersion" to version,
+                    "javaMajorVersion" to if (version.startsWith("26.")) 25 else fabricCompiledJavaMajorVersion,
+                    "providerId" to "fabric-unsupported-provider",
+                    "unsupportedReason" to "unsupported-version",
+                )
+        }
+    return lane.entries.joinToString(prefix = "{", postfix = "}") { (key, value) ->
+        val encodedValue =
+            when (value) {
+                is Number -> value.toString()
+                else -> jsonString(value.toString())
+            }
+        "${jsonString(key)}:$encodedValue"
+    }
+}
+
 fun sha256(file: File): String =
     MessageDigest
         .getInstance("SHA-256")
@@ -126,7 +195,13 @@ tasks.register<JavaExec>("fabricClientSmoke") {
     val fabricSmokeEnabled =
         System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE") == "1" ||
             System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE").equals("true", ignoreCase = true)
+    val fabricSmokeMinecraftVersion =
+        System
+            .getenv("CRAFTLESS_SMOKE_MINECRAFT_VERSION")
+            ?.takeIf { it.isNotBlank() }
+            ?: fabricCompiledMinecraftVersion
     environment("CRAFTLESS_FABRIC_CLIENT_SMOKE", System.getenv("CRAFTLESS_FABRIC_CLIENT_SMOKE").orEmpty())
+    environment("CRAFTLESS_SMOKE_MINECRAFT_VERSION", fabricSmokeMinecraftVersion)
 
     if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_ACTION_COMMAND_JSON").isNullOrBlank()) {
         val rootProjectPath =
@@ -137,6 +212,13 @@ tasks.register<JavaExec>("fabricClientSmoke") {
             "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON",
             """["mise","-C","$rootProjectPath","exec","--","gradle","-p","$rootProjectPath",":driver-fabric:runClient"]""",
         )
+    }
+    if (
+        fabricSmokeEnabled &&
+        System.getenv("CRAFTLESS_SMOKE_RUNTIME_LANE_JSON").isNullOrBlank() &&
+        System.getenv("CRAFTLESS_SMOKE_RUNTIME_LANE_FILE").isNullOrBlank()
+    ) {
+        environment("CRAFTLESS_SMOKE_RUNTIME_LANE_JSON", fabricSmokeRuntimeLaneJson(fabricSmokeMinecraftVersion))
     }
     if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_EXPECT_CHAT_MESSAGE").isNullOrBlank()) {
         environment(

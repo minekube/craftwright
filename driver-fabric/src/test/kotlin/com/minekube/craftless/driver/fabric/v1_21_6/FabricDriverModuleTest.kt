@@ -387,6 +387,16 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric client smoke passes runtime lane evidence before launching client`() {
+        val buildScript = Files.readString(repositoryRoot().resolve("driver-fabric/build.gradle.kts"))
+
+        assertTrue(buildScript.contains("fabricSmokeRuntimeLaneJson"))
+        assertTrue(buildScript.contains("\"CRAFTLESS_SMOKE_RUNTIME_LANE_JSON\""))
+        assertTrue(buildScript.contains("\"runtime-lane-missing\""))
+        assertTrue(buildScript.contains("\"unsupported-version\""))
+    }
+
+    @Test
     fun `fabric backend schedules generated actions through generic client execution`() {
         val gateway = RecordingFabricClientGateway()
         val backend = smokeBackend(gateway)

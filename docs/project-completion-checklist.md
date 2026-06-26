@@ -589,9 +589,15 @@ Verification:
   `mise exec -- gradle :driver-fabric:test --tests '*FabricCapabilityProbeTest.runtime metadata probe emits sanitized compatibility lane evidence*' --tests '*FabricDriverModuleTest.fabric backend runtime graph includes sanitized compatibility lane evidence*'`.
 - [ ] Java runtime selection is version-aware; Minecraft `26.2` requires Java
   25 and must not be launched through the repository's Java 21 default.
-- [ ] Fabric client launch selects a compiled/runtime-compatible lane for the
+- [x] Fabric client launch selects a compiled/runtime-compatible lane for the
   requested Minecraft version instead of always launching the current `1.21.6`
-  Fabric lane.
+  Fabric lane. Evidence:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric client smoke passes runtime lane evidence before launching client*'`
+  and
+  `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 CRAFTLESS_SMOKE_MINECRAFT_VERSION=26.2 CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT=/tmp/craftless-fabric-smoke-26-lane mise exec -- gradle :driver-fabric:fabricClientSmoke`;
+  the latter writes `artifacts/runtime-lane.json` with status `UNSUPPORTED`,
+  Java 25, and reason `runtime-lane-missing` before launching the current
+  Fabric client lane.
 - [ ] Connect success is backed by observed client/server join evidence, not
   only by accepting a connect request.
 - [ ] Supervisor API can prepare, install, and launch a real versioned client
