@@ -541,6 +541,54 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `server streams generic graph invocation results without legacy event metadata`() =
+        withHttpClient { http ->
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory =
+                        DriverSessionFactory { request ->
+                            GenericGraphQueryDriverSession(request.id)
+                        },
+                ).use { server ->
+                    server.start()
+                    createAlice(http, server)
+
+                    http
+                        .post(server.url("/clients/alice:rpc")) {
+                            contentType(ContentType.Application.Json)
+                            setBody(
+                                """
+                                {
+                                  "jsonrpc": "2.0",
+                                  "id": "rpc:alice:query-1",
+                                  "method": "invoke",
+                                  "params": {
+                                    "action": "player.query"
+                                  }
+                                }
+                                """.trimIndent(),
+                            )
+                        }.let { response ->
+                            val body = json.decodeFromString<JsonRpcResponse>(response.bodyAsText())
+                            val result = requireNotNull(body.result?.jsonObject)
+                            assertEquals(HttpStatusCode.OK, response.status)
+                            assertEquals("rpc:alice:query-1", body.id)
+                            assertEquals("player.query", result["action"]?.jsonPrimitive?.content)
+                            assertEquals("ACCEPTED", result["status"]?.jsonPrimitive?.content)
+                        }
+
+                    http.get(server.url("/clients/alice/events:stream?type=player.query")).let { response ->
+                        val body = response.bodyAsText()
+                        assertEquals(HttpStatusCode.OK, response.status)
+                        assertTrue(body.contains("event: player.query"))
+                        assertTrue(body.contains("\"operationId\":\"player.query\""))
+                        assertTrue(body.contains("\"correlationId\":\"rpc:alice:query-1\""))
+                        assertTrue(body.contains("\"selected-slot\":2"), body)
+                    }
+                }
+        }
+
+    @Test
     fun `server rejects unavailable discovered actions before driver invocation`() =
         withHttpClient { http ->
             val driver = UnavailableActionDriverSession("alice")
@@ -1329,6 +1377,57 @@ private class GraphOperationAdapterDriverSession(
             message = "legacy invoke should not run",
         )
     }
+
+    override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
+
+    override fun events(): List<DriverEvent> = emptyList()
+}
+
+private class GenericGraphQueryDriverSession(
+    override val clientId: String,
+) : DriverSession {
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.CONNECTED)
+
+    override fun actions(): List<DriverActionDescriptor> = emptyList()
+
+    override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
+
+    override fun runtimeGraph(): RuntimeCapabilityGraph =
+        RuntimeCapabilityGraph(
+            clientId = clientId,
+            resources = listOf(RuntimeResourceNode("player", RuntimeAvailability.available())),
+            operations =
+                listOf(
+                    RuntimeOperationNode(
+                        id = "player.query",
+                        resource = "player",
+                        adapter = "fake.player-query",
+                        availability = RuntimeAvailability.available(),
+                    ),
+                ),
+        )
+
+    override fun operationAdapters(): DriverOperationAdapters =
+        DriverOperationAdapters(
+            mapOf(
+                "fake.player-query" to
+                    DriverOperationAdapter { invocation ->
+                        DriverActionResult(
+                            action = invocation.operation.id,
+                            status = DriverActionStatus.ACCEPTED,
+                            data =
+                                buildJsonObject {
+                                    put("selected-slot", 2)
+                                },
+                        )
+                    },
+            ),
+        )
+
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
+        DriverActionResult(invocation.action, DriverActionStatus.UNSUPPORTED, message = "legacy invoke should not run")
 
     override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
 

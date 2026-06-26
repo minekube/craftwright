@@ -118,9 +118,10 @@ Verification:
 - [~] Unavailable, permission, schema, stale-handle, and runtime-mismatch
   errors are machine-readable. Current evidence covers unavailable and schema
   failures; permission, stale-handle, and runtime-mismatch codes remain.
-- [~] Invocation results validate against graph-projected result schemas and
-  publish correlated events. Current evidence covers schema validation and
-  session events; correlated SSE events remain in Phase 6.
+- [x] Invocation results validate against graph-projected result schemas and
+  publish correlated SSE events for generic graph invocations. Current evidence
+  covers schema validation, session events, JSON-RPC correlation ids, and
+  operation-typed SSE payloads.
 
 Verification:
 

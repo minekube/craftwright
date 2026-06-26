@@ -628,14 +628,12 @@ private fun DriverActionResult.toSessionEvent(
     operationId: String,
     correlationId: String? = null,
 ): SessionEvent? {
-    if (message == null) {
-        return null
-    }
     if (status != DriverActionStatus.ACCEPTED) {
+        val eventMessage = message ?: return null
         return SessionEvent(
             type = "error",
             client = clientId,
-            message = message,
+            message = eventMessage,
             operationId = operationId,
             resourceId = operationId.substringBeforeLast("."),
             correlationId = correlationId,
@@ -643,12 +641,13 @@ private fun DriverActionResult.toSessionEvent(
     }
 
     return SessionEvent(
-        type = eventType?.sessionEventType() ?: return null,
+        type = eventType?.sessionEventType() ?: operationId,
         client = clientId,
         message = message,
         operationId = operationId,
         resourceId = operationId.substringBeforeLast("."),
         correlationId = correlationId,
+        payload = toJson(),
     )
 }
 

@@ -160,6 +160,7 @@ class FabricCapabilityProbeTest {
 
         val resources = graph.resources.associateBy { it.id }
         val operations = graph.operations.associateBy { it.id }
+        val events = graph.events.associateBy { it.id }
 
         assertEquals(2, gateway.queryCount)
         assertEquals(RuntimeAvailabilityState.AVAILABLE, resources.getValue("player").availability.state)
@@ -174,6 +175,10 @@ class FabricCapabilityProbeTest {
         assertEquals(RuntimeAvailabilityState.UNAVAILABLE, operations.getValue("inventory.query").availability.state)
         assertEquals(RuntimeAvailabilityState.UNAVAILABLE, operations.getValue("screen.close").availability.state)
         assertTrue(graph.operations.all { operation -> operation.adapter.startsWith("fabric.") })
+        assertEquals(RuntimeAvailabilityState.AVAILABLE, events.getValue("player.query").availability.state)
+        assertEquals(RuntimeAvailabilityState.AVAILABLE, events.getValue("entity.query").availability.state)
+        assertEquals("object", events.getValue("entity.query").payload.type)
+        assertEquals(RuntimeAvailabilityState.UNAVAILABLE, events.getValue("inventory.query").availability.state)
     }
 }
 

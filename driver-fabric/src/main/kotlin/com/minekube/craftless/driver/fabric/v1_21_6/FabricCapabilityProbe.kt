@@ -107,6 +107,33 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
         val blockInteractAvailability = capabilities.blockInteractAvailability()
         val screenCloseAvailability =
             if (screenOpen) RuntimeAvailability.available() else RuntimeAvailability.unavailable("screen-not-open")
+        val operations =
+            listOf(
+                context.operation("player.query", "player", "fabric.player-query", playerAvailability),
+                context.operation("player.chat", "player", "fabric.player-chat", playerAvailability),
+                context.operation("player.look", "player", "fabric.player-look", playerAvailability),
+                context.operation("player.move", "player", "fabric.player-move", playerAvailability),
+                context.operation("player.raycast", "player", "fabric.player-raycast", cameraAvailability),
+                context.operation("inventory.query", "inventory", "fabric.inventory-query", inventoryAvailability),
+                context.operation("inventory.equip", "inventory", "fabric.inventory-equip", inventoryAvailability),
+                RuntimeOperationNode(
+                    id = "entity.query",
+                    resource = "entity",
+                    adapter = "fabric.entity-query",
+                    arguments =
+                        mapOf(
+                            "radius" to RuntimeSchema("number"),
+                            "limit" to RuntimeSchema("integer"),
+                        ),
+                    result = RuntimeSchema.objectSchema(),
+                    availability = capabilities.entityAvailability(),
+                ),
+                context.operation("world.time.query", "world", "fabric.world-time-query", worldAvailability),
+                context.operation("world.block.break", "world", "fabric.world-block-break", blockBreakAvailability),
+                context.operation("world.block.interact", "world", "fabric.world-block-interact", blockInteractAvailability),
+                context.operation("screen.query", "screen", "fabric.screen-query", RuntimeAvailability.available()),
+                context.operation("screen.close", "screen", "fabric.screen-close", screenCloseAvailability),
+            )
 
         return FabricCapabilityGraphFragment(
             resources =
@@ -118,33 +145,8 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                     RuntimeResourceNode("entity", capabilities.entityAvailability()),
                     RuntimeResourceNode("screen", RuntimeAvailability.available()),
                 ),
-            operations =
-                listOf(
-                    context.operation("player.query", "player", "fabric.player-query", playerAvailability),
-                    context.operation("player.chat", "player", "fabric.player-chat", playerAvailability),
-                    context.operation("player.look", "player", "fabric.player-look", playerAvailability),
-                    context.operation("player.move", "player", "fabric.player-move", playerAvailability),
-                    context.operation("player.raycast", "player", "fabric.player-raycast", cameraAvailability),
-                    context.operation("inventory.query", "inventory", "fabric.inventory-query", inventoryAvailability),
-                    context.operation("inventory.equip", "inventory", "fabric.inventory-equip", inventoryAvailability),
-                    RuntimeOperationNode(
-                        id = "entity.query",
-                        resource = "entity",
-                        adapter = "fabric.entity-query",
-                        arguments =
-                            mapOf(
-                                "radius" to RuntimeSchema("number"),
-                                "limit" to RuntimeSchema("integer"),
-                            ),
-                        result = RuntimeSchema.objectSchema(),
-                        availability = capabilities.entityAvailability(),
-                    ),
-                    context.operation("world.time.query", "world", "fabric.world-time-query", worldAvailability),
-                    context.operation("world.block.break", "world", "fabric.world-block-break", blockBreakAvailability),
-                    context.operation("world.block.interact", "world", "fabric.world-block-interact", blockInteractAvailability),
-                    context.operation("screen.query", "screen", "fabric.screen-query", RuntimeAvailability.available()),
-                    context.operation("screen.close", "screen", "fabric.screen-close", screenCloseAvailability),
-                ),
+            operations = operations,
+            events = operations.map { operation -> operation.toEventNode() },
         )
     }
 }
@@ -169,6 +171,15 @@ private fun FabricCapabilityProbeContext.operation(
 private fun FabricCapabilityProbeContext.actionDescriptorArguments(id: String) =
     bindings[id]?.descriptor?.arguments
         ?: fabricBootstrapDescriptor(id)?.arguments
+
+private fun RuntimeOperationNode.toEventNode(): RuntimeEventNode =
+    RuntimeEventNode(
+        id = id,
+        resource = resource,
+        payload = RuntimeSchema.objectSchema(),
+        availability = availability,
+        sourceEvidence = sourceEvidence,
+    )
 
 private fun fabricBootstrapDescriptor(id: String) =
     when (id) {
