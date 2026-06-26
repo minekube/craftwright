@@ -55,11 +55,11 @@ Expected: pass.
 **Files:**
 - Modify: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt`
 
-- [ ] **Step 1: Add test rejecting new descriptor/binding catalog growth**
+- [x] **Step 1: Add test rejecting new descriptor/binding catalog growth**
 
 Assert new public gameplay operation ids must appear in graph projection tests, not only in `FabricActionBindings.kt`.
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 Run: `mise exec -- gradle :driver-fabric:test`
 

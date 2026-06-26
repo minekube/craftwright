@@ -94,6 +94,8 @@ Verification:
 - [x] Probes emit private evidence and graph nodes, not public OpenAPI
   descriptors directly.
 - [x] Current bootstrap gameplay affordances are represented as graph nodes.
+- [x] Static descriptor/binding drift is guarded in both protocol policy tests
+  and driver-fabric module tests.
 
 Verification:
 

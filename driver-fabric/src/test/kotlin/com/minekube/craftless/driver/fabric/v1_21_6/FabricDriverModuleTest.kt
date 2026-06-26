@@ -20,6 +20,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -29,6 +30,17 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class FabricDriverModuleTest {
     private val json = Json { ignoreUnknownKeys = true }
+
+    private fun repositoryRoot(): Path =
+        generateSequence(Path.of("").toAbsolutePath()) { path -> path.parent }
+            .first { path -> Files.exists(path.resolve("settings.gradle.kts")) }
+
+    private fun transitionalFabricActionAllowlist(root: Path): List<String> =
+        Files
+            .readAllLines(root.resolve("docs/architecture/transitional-fabric-action-allowlist.txt"))
+            .map { line -> line.substringBefore("#").trim() }
+            .filter { line -> line.isNotBlank() }
+            .sorted()
 
     @Test
     fun `fabric metadata declares client entrypoint and mixin config`() {
@@ -494,6 +506,43 @@ class FabricDriverModuleTest {
         val actionIds = backend.actions("alice").map { it.id }.toSet()
 
         assertEquals(setOf("player.chat", "player.move"), actionIds)
+    }
+
+    @Test
+    fun `hand written fabric gameplay descriptors stay transitional and graph represented`() {
+        val root = repositoryRoot()
+        val allowlist = transitionalFabricActionAllowlist(root)
+        val source =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionBindings.kt",
+                ),
+            )
+        val descriptorIds =
+            Regex("""id = "([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*)"""")
+                .findAll(source)
+                .map { match -> match.groupValues[1] }
+                .distinct()
+                .sorted()
+                .toList()
+        val graphOperationIds =
+            FabricDriverBackend
+                .metadataOnly()
+                .runtimeGraph("alice")
+                .operations
+                .map { operation -> operation.id }
+                .toSet()
+
+        assertEquals(
+            allowlist,
+            descriptorIds,
+            "Hand-written Fabric gameplay descriptors are transitional only; " +
+                "new public gameplay breadth must be discovered through the runtime graph.",
+        )
+        assertTrue(
+            graphOperationIds.containsAll(allowlist),
+            "Transitional descriptor ids must be represented by runtime graph operations.",
+        )
     }
 
     @Test
