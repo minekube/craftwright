@@ -16,7 +16,7 @@
 - Create: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricSurvivalTaskExecutor.kt`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricSurvivalTaskExecutorTest.kt`
 
-- [ ] **Step 1: Write the failing contract tests**
+- [x] **Step 1: Write the failing contract tests**
 
 Add tests:
 
@@ -44,7 +44,7 @@ fun `honest cow hunt starts with observable task status and progress`() {
 }
 ```
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run:
 
@@ -54,7 +54,7 @@ mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.f
 
 Expected: FAIL because `FabricSurvivalTaskExecutor` does not exist.
 
-- [ ] **Step 3: Implement the minimal contract**
+- [x] **Step 3: Implement the minimal contract**
 
 Create `FabricSurvivalTaskExecutor`, `RecordingSurvivalExecutor`, and
 `SurvivalTaskRegistry`. Supported task ids are exactly:
@@ -67,7 +67,7 @@ Unknown task ids return `NavigationTaskStatus(state = FAILED, message =
 "unsupported-task")`. The cow-hunt starts a task id such as
 `task:survival:honest-cow-hunt:0001`, stores it, and emits `task.observe`.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run the focused test again. Expected: PASS.
 

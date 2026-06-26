@@ -227,6 +227,10 @@ tasks.register<JavaExec>("fabricFinalGameplay") {
             System.getenv("CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS") ?: "3000",
         )
         environment(
+            "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS",
+            System.getenv("CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS") ?: "720000",
+        )
+        environment(
             "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS",
             System.getenv("CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS") ?: "600000",
         )

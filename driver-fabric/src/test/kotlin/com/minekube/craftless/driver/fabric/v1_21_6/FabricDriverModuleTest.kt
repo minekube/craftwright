@@ -333,6 +333,15 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric final gameplay action timeout exceeds human hold window`() {
+        val buildScript = Files.readString(repositoryRoot().resolve("driver-fabric/build.gradle.kts"))
+
+        assertTrue(buildScript.contains("\"CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS\""))
+        assertTrue(buildScript.contains("?: \"720000\""))
+        assertTrue(buildScript.contains("?: \"600000\""))
+    }
+
+    @Test
     fun `fabric backend schedules generated actions through generic client execution`() {
         val gateway = RecordingFabricClientGateway()
         val backend = smokeBackend(gateway)
