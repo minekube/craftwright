@@ -129,6 +129,54 @@ test("openapi action client discovers resources from the live client spec", asyn
   ]);
 });
 
+test("openapi action client subscribes to live sse events", async () => {
+  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  const fetchImpl = async (url: string, init?: RequestInit): Promise<Response> => {
+    calls.push({ url, init });
+    if (url.endsWith("/clients/alice/openapi.json")) {
+      return Response.json({
+        openapi: "3.1.0",
+        info: { title: "Craftless test API", version: "1" },
+        paths: {
+          "/clients/alice/events:stream": { get: {} },
+        },
+        "x-craftless": {},
+      });
+    }
+    if (url.endsWith("/clients/alice/events:stream?type=player.chat")) {
+      return new Response(
+        [
+          "id: event:alice:0001",
+          "event: player.chat",
+          'data: {"id":"event:alice:0001","type":"player.chat","clientId":"alice","payload":{"message":"hello"}}',
+          "",
+          "",
+        ].join("\n"),
+        { headers: { "content-type": "text/event-stream" } },
+      );
+    }
+    return new Response("missing", { status: 404 });
+  };
+  const client = createOpenApiActionClient({
+    baseUrl: "http://127.0.0.1:8080",
+    clientId: "alice",
+    fetch: fetchImpl,
+  });
+
+  await expect(client.events({ type: "player.chat" })).resolves.toEqual([
+    {
+      id: "event:alice:0001",
+      type: "player.chat",
+      clientId: "alice",
+      payload: { message: "hello" },
+    },
+  ]);
+  expect(calls.map((call) => call.url)).toEqual([
+    "http://127.0.0.1:8080/clients/alice/openapi.json",
+    "http://127.0.0.1:8080/clients/alice/events:stream?type=player.chat",
+  ]);
+});
+
 test("openapi action client revalidates cached live spec by etag", async () => {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
   const resources = [

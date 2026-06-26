@@ -122,13 +122,16 @@ Verification:
 
 ## Phase 6: SSE, JSON-RPC, And Adaptive Consumers
 
-- [ ] Daemon exposes SSE streams for supervisor and per-client live events.
-- [ ] Daemon exposes HTTP POST JSON-RPC-style control for invoke, subscribe,
-  unsubscribe, and query.
-- [ ] Event filters work server-side and client-side.
-- [ ] CLI can watch live events and invoke/query using live OpenAPI/stream
-  metadata.
-- [ ] Bun helper can subscribe to events without npm, npx, yarn, pnpm, or local
+- [x] Daemon exposes SSE streams for supervisor and per-client live events.
+- [~] Daemon exposes HTTP POST JSON-RPC-style control for invoke, subscribe,
+  unsubscribe, and query. Current evidence covers invoke correlation and
+  generic acknowledgements for the non-invoke methods; persistent subscription
+  state remains future hardening.
+- [x] Event filters work server-side and client-side.
+- [~] CLI can watch live events and invoke/query using live OpenAPI/stream
+  metadata. Current evidence covers live event watching and invocation; query
+  remains a generic RPC follow-up.
+- [x] Bun helper can subscribe to events without npm, npx, yarn, pnpm, or local
   Node tooling.
 
 Verification:

@@ -24,6 +24,7 @@ import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
+import com.minekube.craftless.protocol.JsonRpcResponse
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
 import com.minekube.craftless.protocol.OpenApiAction
@@ -466,6 +467,77 @@ class LocalSessionApiServerTest {
                         assertTrue(body.contains("scanned world radius 4"))
                     }
                 }
+        }
+
+    @Test
+    fun `server streams filtered live client events as sse`() =
+        withHttpClient { http ->
+            fakeLocalSessionApiServer().use { server ->
+                server.start()
+                createAlice(http, server)
+
+                http
+                    .post(server.url("/clients/alice:run")) {
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"action":"player.chat","args":{"message":"hello stream"}}""")
+                    }.let { response ->
+                        assertEquals(HttpStatusCode.OK, response.status)
+                    }
+
+                http.get(server.url("/clients/alice/events:stream?type=player.chat")).let { response ->
+                    val body = response.bodyAsText()
+                    assertEquals(HttpStatusCode.OK, response.status)
+                    assertTrue(response.headers[HttpHeaders.ContentType]?.contains("text/event-stream") == true)
+                    assertTrue(body.contains("event: player.chat"))
+                    assertTrue(body.contains("\"type\":\"player.chat\""))
+                    assertTrue(body.contains("\"clientId\":\"alice\""))
+                    assertTrue(body.contains("hello stream"))
+                    assertTrue(!body.contains("client.created"))
+                }
+            }
+        }
+
+    @Test
+    fun `server invokes actions through json rpc with correlation ids`() =
+        withHttpClient { http ->
+            fakeLocalSessionApiServer().use { server ->
+                server.start()
+                createAlice(http, server)
+
+                http
+                    .post(server.url("/clients/alice:rpc")) {
+                        contentType(ContentType.Application.Json)
+                        setBody(
+                            """
+                            {
+                              "jsonrpc": "2.0",
+                              "id": "rpc:alice:chat-1",
+                              "method": "invoke",
+                              "params": {
+                                "action": "player.chat",
+                                "args": { "message": "hello rpc" }
+                              }
+                            }
+                            """.trimIndent(),
+                        )
+                    }.let { response ->
+                        val body = json.decodeFromString<JsonRpcResponse>(response.bodyAsText())
+                        val result = requireNotNull(body.result?.jsonObject)
+                        assertEquals(HttpStatusCode.OK, response.status)
+                        assertEquals("rpc:alice:chat-1", body.id)
+                        assertEquals("player.chat", result["action"]?.jsonPrimitive?.content)
+                        assertEquals("ACCEPTED", result["status"]?.jsonPrimitive?.content)
+                    }
+
+                http.get(server.url("/clients/alice/events:stream?correlationId=rpc:alice:chat-1")).let { response ->
+                    val body = response.bodyAsText()
+                    assertEquals(HttpStatusCode.OK, response.status)
+                    assertTrue(body.contains("event: player.chat"))
+                    assertTrue(body.contains("\"correlationId\":\"rpc:alice:chat-1\""))
+                    assertTrue(body.contains("hello rpc"))
+                    assertTrue(!body.contains("client.created"))
+                }
+            }
         }
 
     @Test

@@ -98,7 +98,12 @@ class OpenApiGenerationTest {
         assertTrue(document.resources.isEmpty())
         assertTrue(document.paths.keys.none { it == "/clients/{id}/player:chat" })
         assertTrue(document.paths.keys.none { it == "/clients/{id}/player:move" })
-        assertTrue(document.paths.keys.none { it.matches(Regex("""^/clients/\{id}/[^/]+:[^/]+$""")) })
+        assertTrue(
+            document.paths.keys.none {
+                it.matches(Regex("""^/clients/\{id}/[^/]+:[^/]+$""")) &&
+                    it != "/clients/{id}/events:stream"
+            },
+        )
     }
 
     @Test

@@ -43,6 +43,24 @@ export interface CraftlessOpenApiDocument {
   "x-craftless-resources"?: CraftlessOpenApiResource[];
 }
 
+export interface CraftlessLiveEvent {
+  id: string;
+  type: string;
+  clientId?: string;
+  resourceId?: string;
+  operationId?: string;
+  correlationId?: string;
+  payload?: Record<string, unknown>;
+  timestamp?: string;
+}
+
+export interface CraftlessLiveEventFilter {
+  type?: string;
+  resourceId?: string;
+  operationId?: string;
+  correlationId?: string;
+}
+
 export interface OpenApiActionClientOptions {
   baseUrl: string;
   clientId: string;
@@ -53,6 +71,7 @@ export interface OpenApiActionClientOptions {
 export interface OpenApiActionClient {
   invoke(action: string, args?: Record<string, unknown>): Promise<unknown>;
   resources(): Promise<CraftlessOpenApiResource[]>;
+  events(filter?: CraftlessLiveEventFilter): Promise<CraftlessLiveEvent[]>;
 }
 
 export function createOpenApiActionClient(options: OpenApiActionClientOptions): OpenApiActionClient {
@@ -89,6 +108,25 @@ export function createOpenApiActionClient(options: OpenApiActionClientOptions): 
       return openApi["x-craftless-resources"] ?? [];
     },
 
+    async events(filter: CraftlessLiveEventFilter = {}): Promise<CraftlessLiveEvent[]> {
+      const openApi = await loadOpenApi();
+      const streamPath = `/clients/${clientId}/events:stream`;
+      if (!openApi.paths?.[streamPath]) {
+        throw new Error(`client ${clientId} OpenAPI does not describe live event stream`);
+      }
+      const params = new URLSearchParams();
+      if (filter.type) params.set("type", filter.type);
+      if (filter.resourceId) params.set("resourceId", filter.resourceId);
+      if (filter.operationId) params.set("operationId", filter.operationId);
+      if (filter.correlationId) params.set("correlationId", filter.correlationId);
+      const query = params.size > 0 ? `?${params.toString()}` : "";
+      const response = await fetchImpl(`${baseUrl}${streamPath}${query}`);
+      if (!response.ok) {
+        throw new Error(`Craftless API request failed with ${response.status}: ${await response.text()}`);
+      }
+      return parseSseEvents(await response.text());
+    },
+
     async invoke(action: string, args: Record<string, unknown> = {}): Promise<unknown> {
       const openApi = await loadOpenApi();
       const actionDescriptor = openApi["x-craftless-actions"]?.find((descriptor) => descriptor.id === action);
@@ -107,6 +145,20 @@ export function createOpenApiActionClient(options: OpenApiActionClientOptions): 
       });
     },
   };
+}
+
+function parseSseEvents(body: string): CraftlessLiveEvent[] {
+  return body
+    .split(/\n\n+/)
+    .map((frame) =>
+      frame
+        .split(/\n/)
+        .filter((line) => line.startsWith("data: "))
+        .map((line) => line.slice("data: ".length))
+        .join("\n"),
+    )
+    .filter((data) => data.length > 0)
+    .map((data) => JSON.parse(data) as CraftlessLiveEvent);
 }
 
 async function readCachedOpenApi(

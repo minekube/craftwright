@@ -61,6 +61,7 @@ class CraftlessCliTest {
         assertTrue(commands.contains("clients <id> openapi"))
         assertTrue(commands.contains("clients <id> actions"))
         assertTrue(commands.contains("clients <id> resources"))
+        assertTrue(commands.contains("clients <id> events"))
         assertTrue(commands.contains("clients <id> tools"))
         assertTrue(commands.contains("clients <id> run <action>"))
         assertTrue(commands.contains("clients <id> <resource...> <action>"))
@@ -1297,6 +1298,52 @@ class CraftlessCliTest {
         val response = Json.parseToJsonElement(output.toString().trim()).jsonObject
         assertEquals("player.move", response["action"]?.jsonPrimitive?.content)
         assertEquals("ACCEPTED", response["status"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `clients events watches live sse stream from daemon`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+
+        LocalTestApiServer().use { server ->
+            server.createAlice()
+            CraftlessCli.run(
+                listOf(
+                    "clients",
+                    "alice",
+                    "run",
+                    "player.chat",
+                    "--api",
+                    server.url,
+                    "--arg",
+                    "message=hello cli stream",
+                ),
+                stdout = {},
+            )
+
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "events",
+                        "--api",
+                        server.url,
+                        "--type",
+                        "player.chat",
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
+
+            assertEquals(0, exit, errors.toString())
+        }
+
+        val body = output.toString()
+        assertTrue(body.contains("event: player.chat"))
+        assertTrue(body.contains("\"type\":\"player.chat\""))
+        assertTrue(body.contains("hello cli stream"))
+        assertTrue(!body.contains("client.created"))
     }
 
     @Test

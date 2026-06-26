@@ -152,6 +152,7 @@ class ClientSessionService private constructor(
             route("GET", "/clients/$clientId/resources", "listClientResources", "clients", "resources", "resource"),
             route("POST", "/clients/$clientId:run", "runClientAction", "clients", "run", "action"),
             route("GET", "/clients/$clientId/events", "getClientEvents", "clients", "events", "route"),
+            route("GET", "/clients/$clientId/events:stream", "streamClientEvents", "clients", "events", "route"),
         ) + actionAliases
     }
 

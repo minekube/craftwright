@@ -86,6 +86,7 @@ object CraftlessCli {
             "clients <id> openapi",
             "clients <id> actions",
             "clients <id> resources",
+            "clients <id> events",
             "clients <id> tools",
             "clients <id> run <action>",
             "clients <id> <resource...> <action>",
@@ -138,6 +139,9 @@ object CraftlessCli {
         }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "resources") {
             return getClientResources(args.drop(1), stdout, stderr, env)
+        }
+        if (args.size >= 3 && args[0] == "clients" && args[2] == "events") {
+            return getClientEvents(args.drop(1), stdout, stderr, env)
         }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "tools") {
             return getClientTools(args.drop(1), stdout, stderr, env)
@@ -608,6 +612,39 @@ object CraftlessCli {
             }
         }.getOrElse { error ->
             stderr("error: ${error.message ?: "failed to fetch resources"}")
+            2
+        }
+    }
+
+    private fun getClientEvents(
+        args: List<String>,
+        stdout: (String) -> Unit,
+        stderr: (String) -> Unit,
+        env: Map<String, String>,
+    ): Int {
+        val clientId = args.getOrNull(0).orEmpty()
+        if (clientId.isBlank()) {
+            stderr("error: usage is clients <id> events [--api <url>] [--type <event-type>]")
+            return 2
+        }
+        val api = args.apiBaseUrl(env)
+        val type = args.optionValue("--type")
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                HttpClient(CIO).use { http ->
+                    val query = type?.let { "?type=$it" }.orEmpty()
+                    val response = http.get("${api.trimEnd('/')}/clients/$clientId/events:stream$query")
+                    val body = response.bodyAsText()
+                    if (!response.status.isSuccess()) {
+                        stderr(body)
+                        return@runBlocking 1
+                    }
+                    stdout(body)
+                    0
+                }
+            }
+        }.getOrElse { error ->
+            stderr("error: ${error.message ?: "failed to fetch events"}")
             2
         }
     }

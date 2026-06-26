@@ -16,15 +16,15 @@
 - Create: `protocol/src/main/kotlin/com/minekube/craftless/protocol/LiveEventModels.kt`
 - Test: `protocol/src/test/kotlin/com/minekube/craftless/protocol/LiveEventModelsTest.kt`
 
-- [ ] **Step 1: Add failing tests**
+- [x] **Step 1: Add failing tests**
 
 Assert event ids, event types, resource ids, correlation ids, filters, and JSON-RPC request/response envelopes validate as Craftless-owned contracts.
 
-- [ ] **Step 2: Implement models**
+- [x] **Step 2: Implement models**
 
 Add serializable SSE event and JSON-RPC envelope DTOs.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `mise exec -- gradle :protocol:test`
 
@@ -36,15 +36,15 @@ Expected: pass.
 - Modify: `daemon/src/main/kotlin/com/minekube/craftless/daemon/LocalSessionApiServer.kt`
 - Test: `daemon/src/test/kotlin/com/minekube/craftless/daemon/LocalSessionApiServerTest.kt`
 
-- [ ] **Step 1: Add failing daemon tests**
+- [x] **Step 1: Add failing daemon tests**
 
 Assert `GET /clients/{id}/events:stream` streams filtered events and `POST /clients/{id}:rpc` returns JSON-RPC acknowledgements with correlation ids.
 
-- [ ] **Step 2: Implement Ktor SSE response**
+- [x] **Step 2: Implement Ktor SSE response**
 
 Use Ktor response streaming with `text/event-stream`; do not introduce WebSocket unless later evidence requires it.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `mise exec -- gradle :daemon:test`
 
@@ -58,15 +58,15 @@ Expected: pass.
 - Test: `cli/src/test/kotlin/com/minekube/craftless/cli/CraftlessCliTest.kt`
 - Test: `playwright/src/index.test.ts`
 
-- [ ] **Step 1: Add failing consumer tests**
+- [x] **Step 1: Add failing consumer tests**
 
 Assert CLI can watch events from live stream metadata and Bun helper can subscribe without npm/node tooling.
 
-- [ ] **Step 2: Implement adaptive consumers**
+- [x] **Step 2: Implement adaptive consumers**
 
 Add `craftless clients <id> events` and helper event stream support using Ktor Client/Bun fetch.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `mise exec -- gradle :cli:test && mise exec -- bun test playwright`
 

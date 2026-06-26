@@ -83,6 +83,7 @@ class ApiRouteCatalog(
                     route("GET", "/openapi.json", "getOpenapiJson", "openapi", "supervisor", "openapi", "route"),
                     route("GET", "/version", "getVersion", "version", "supervisor", "version", "route"),
                     route("GET", "/events", "getEvents", "events", "supervisor", "events", "route"),
+                    route("GET", "/events:stream", "streamEvents", "events", "supervisor", "events", "route"),
                     route("POST", "/cache:prepare", "prepareCache", "cache", "cache", "prepare", "method"),
                     route("POST", "/cache:export", "exportCache", "cache", "cache", "export", "method"),
                     route("POST", "/cache:cleanup", "cleanupCache", "cache", "cache", "cleanup", "method"),
@@ -96,6 +97,7 @@ class ApiRouteCatalog(
                     route("POST", "/clients/{id}:run", "runClientAction", "clients", "clients", "run", "action"),
                     route("POST", "/clients/{id}:stop", "stopClient", "clients", "clients", "stop", "method"),
                     route("GET", "/clients/{id}/events", "getClientEvents", "clients", "clients", "events", "route"),
+                    route("GET", "/clients/{id}/events:stream", "streamClientEvents", "clients", "clients", "events", "route"),
                 ),
             )
 

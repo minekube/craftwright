@@ -14,6 +14,11 @@ import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
+import com.minekube.craftless.protocol.JsonRpcMethod
+import com.minekube.craftless.protocol.JsonRpcRequest
+import com.minekube.craftless.protocol.JsonRpcResponse
+import com.minekube.craftless.protocol.LiveEvent
+import com.minekube.craftless.protocol.LiveEventFilter
 import com.minekube.craftless.protocol.OpenApiAction
 import com.minekube.craftless.protocol.OpenApiActionArgument
 import com.minekube.craftless.protocol.OpenApiActionAvailability
@@ -41,9 +46,12 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import java.net.ServerSocket
 import java.nio.file.Path
 import java.time.Instant
@@ -87,6 +95,9 @@ class LocalSessionApiServer private constructor(
             }
             get("/events") {
                 call.respondJson(HttpStatusCode.OK, events)
+            }
+            get("/events:stream") {
+                call.respondSse(events.toLiveEvents().filter { event -> call.liveEventFilter().matches(event) })
             }
             post("/cache:prepare") {
                 runCatching {
@@ -154,6 +165,21 @@ class LocalSessionApiServer private constructor(
                 runCatching {
                     service.routesFor(clientId)
                     call.respondJson(HttpStatusCode.OK, events.filter { it.client == clientId })
+                }.getOrElse { error ->
+                    call.respondMissingClient(error)
+                }
+            }
+            get("/clients/{id}/events:stream") {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                runCatching {
+                    service.routesFor(clientId)
+                    val filter = call.liveEventFilter(clientId = clientId)
+                    call.respondSse(
+                        events
+                            .filter { it.client == clientId }
+                            .toLiveEvents()
+                            .filter { event -> filter.matches(event) },
+                    )
                 }.getOrElse { error ->
                     call.respondMissingClient(error)
                 }
@@ -226,7 +252,7 @@ class LocalSessionApiServer private constructor(
                         throw UnsupportedAction(result.message ?: "action ${request.action} is not available for client $clientId")
                     }
                     action.requireResult(result)
-                    result.toSessionEvent(clientId)?.let { events += it }
+                    result.toSessionEvent(clientId, operationId = request.action)?.let { events += it }
                     call.respondJson(
                         HttpStatusCode.OK,
                         ActionInvocationResponse(
@@ -243,6 +269,66 @@ class LocalSessionApiServer private constructor(
                             call.respondJson(
                                 HttpStatusCode.BadRequest,
                                 ErrorResponse("INVALID_ACTION_INPUT", error.message ?: "invalid action input"),
+                            )
+                    }
+                }
+            }
+            post("/clients/{id}:rpc") {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                runCatching {
+                    val request = json.decodeFromString<JsonRpcRequest>(call.receiveText())
+                    val response =
+                        when (request.method) {
+                            JsonRpcMethod.INVOKE -> {
+                                val actionId =
+                                    requireNotNull(request.params["action"]?.jsonPrimitive?.content) {
+                                        "json rpc invoke requires action"
+                                    }
+                                if (!actionId.isCraftlessActionId()) {
+                                    throw InvalidActionInput("invalid action id $actionId")
+                                }
+                                val args = request.params["args"]?.jsonObject ?: buildJsonObject {}
+                                val driver = service.requireActiveDriver(clientId)
+                                val openApi = service.openApiFor(clientId)
+                                val action =
+                                    openApi.actionDescriptor(actionId)
+                                        ?: throw UnsupportedAction("action $actionId is not available for client $clientId")
+                                action.requireAvailable(clientId)
+                                action.requireArguments(args)
+                                val result = driver.invokeGeneratedOperation(clientId, actionId, args)
+                                if (result.status == DriverActionStatus.UNSUPPORTED) {
+                                    throw UnsupportedAction(result.message ?: "action $actionId is not available for client $clientId")
+                                }
+                                action.requireResult(result)
+                                result
+                                    .toSessionEvent(clientId, operationId = actionId, correlationId = request.id)
+                                    ?.let { events += it }
+                                JsonRpcResponse.result(id = request.id, result = result.toJson())
+                            }
+
+                            JsonRpcMethod.SUBSCRIBE,
+                            JsonRpcMethod.UNSUBSCRIBE,
+                            JsonRpcMethod.QUERY,
+                            ->
+                                JsonRpcResponse.result(
+                                    id = request.id,
+                                    result =
+                                        buildJsonObject {
+                                            put("accepted", true)
+                                            put("method", request.method)
+                                        },
+                                )
+
+                            else -> error("unsupported json rpc method ${request.method}")
+                        }
+                    call.respondJson(HttpStatusCode.OK, response)
+                }.getOrElse { error ->
+                    when (error) {
+                        is RouteFailure -> call.respondRouteFailure(error)
+                        else ->
+                            call.respondJson(
+                                HttpStatusCode.BadRequest,
+                                JsonRpcResponse.error(id = null, code = "invalid-request", message = error.message ?: "invalid request"),
                             )
                     }
                 }
@@ -280,7 +366,7 @@ class LocalSessionApiServer private constructor(
                         throw UnsupportedAction(result.message ?: "action $actionId is not available for client $clientId")
                     }
                     action.requireResult(result)
-                    result.toSessionEvent(clientId)?.let { events += it }
+                    result.toSessionEvent(clientId, operationId = actionId)?.let { events += it }
                     call.respondJson(
                         HttpStatusCode.OK,
                         ActionInvocationResponse(
@@ -345,6 +431,16 @@ class LocalSessionApiServer private constructor(
             return
         }
         respondJson(HttpStatusCode.OK, value)
+    }
+
+    private suspend fun ApplicationCall.respondSse(events: List<LiveEvent>) {
+        val body =
+            events.joinToString(separator = "") { event ->
+                "id: ${event.id}\n" +
+                    "event: ${event.type}\n" +
+                    "data: ${json.encodeToString(event)}\n\n"
+            }
+        respondText(body, ContentType.Text.EventStream, HttpStatusCode.OK)
     }
 
     private suspend fun ApplicationCall.respondNotModifiedWhenFingerprintMatches(document: OpenApiDocument): Boolean {
@@ -482,6 +578,16 @@ private fun DriverActionResult.responseFields(): Map<String, JsonElement> =
         }
     }
 
+private fun DriverActionResult.toJson(): JsonObject =
+    buildJsonObject {
+        put("action", action)
+        put("status", status.name)
+        message?.let { put("message", it) }
+        if (data.isNotEmpty()) {
+            put("data", data)
+        }
+    }
+
 private fun OpenApiActionArgument.requireValueType(
     actionId: String,
     name: String,
@@ -517,7 +623,11 @@ private fun String.toActionId(): String {
     return (resourceParts + parts[1]).joinToString(".")
 }
 
-private fun DriverActionResult.toSessionEvent(clientId: String): SessionEvent? {
+private fun DriverActionResult.toSessionEvent(
+    clientId: String,
+    operationId: String,
+    correlationId: String? = null,
+): SessionEvent? {
     if (message == null) {
         return null
     }
@@ -526,6 +636,9 @@ private fun DriverActionResult.toSessionEvent(clientId: String): SessionEvent? {
             type = "error",
             client = clientId,
             message = message,
+            operationId = operationId,
+            resourceId = operationId.substringBeforeLast("."),
+            correlationId = correlationId,
         )
     }
 
@@ -533,6 +646,9 @@ private fun DriverActionResult.toSessionEvent(clientId: String): SessionEvent? {
         type = eventType?.sessionEventType() ?: return null,
         client = clientId,
         message = message,
+        operationId = operationId,
+        resourceId = operationId.substringBeforeLast("."),
+        correlationId = correlationId,
     )
 }
 
@@ -595,6 +711,10 @@ data class SessionEvent(
     val type: String,
     val client: String? = null,
     val message: String? = null,
+    val resourceId: String? = null,
+    val operationId: String? = null,
+    val correlationId: String? = null,
+    val payload: JsonObject = buildJsonObject {},
     val time: String = Instant.now().toString(),
 )
 
@@ -623,3 +743,58 @@ data class ActionInvocationResponse(
     val message: String? = null,
     val data: JsonObject? = null,
 )
+
+private fun ApplicationCall.liveEventFilter(clientId: String? = null): LiveEventFilter =
+    LiveEventFilter(
+        types = request.queryParameters.getAll("type").orEmpty(),
+        clientId = clientId ?: request.queryParameters["clientId"],
+        resourceId = request.queryParameters["resourceId"],
+        operationId = request.queryParameters["operationId"],
+        correlationId = request.queryParameters["correlationId"],
+    )
+
+private fun LiveEventFilter.matches(event: LiveEvent): Boolean =
+    matches(
+        type = event.type,
+        clientId = event.clientId,
+        resourceId = event.resourceId,
+        operationId = event.operationId,
+        correlationId = event.correlationId,
+    )
+
+private fun List<SessionEvent>.toLiveEvents(): List<LiveEvent> =
+    mapIndexed { index, event ->
+        event.toLiveEvent(index + 1)
+    }
+
+private fun SessionEvent.toLiveEvent(sequence: Int): LiveEvent {
+    val liveType = toLiveEventType()
+    val liveResourceId = resourceId ?: operationId?.substringBeforeLast(".")
+    val payload =
+        if (payload.isNotEmpty()) {
+            payload
+        } else {
+            buildJsonObject {
+                message?.let { put("message", it) }
+            }
+        }
+    return LiveEvent(
+        id = "event:${client ?: "supervisor"}:${sequence.toString().padStart(4, '0')}",
+        type = liveType,
+        clientId = client,
+        resourceId = liveResourceId,
+        operationId = operationId,
+        correlationId = correlationId,
+        payload = payload,
+        timestamp = time,
+    )
+}
+
+private fun SessionEvent.toLiveEventType(): String =
+    when {
+        type == "chat" -> operationId ?: "player.chat"
+        type == "movement" -> operationId ?: "player.move"
+        type == "error" -> "system.error"
+        type.isCraftlessActionId() -> type
+        else -> "system.event"
+    }
