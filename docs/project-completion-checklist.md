@@ -565,6 +565,8 @@ Verification:
   `docs/superpowers/specs/2026-06-26-26-version-agnostic-driver-architecture-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-26-26-version-agnostic-driver-architecture-plan.md`.
+- [x] Compatibility probe exists:
+  `docs/superpowers/evidence/2026-06-26-version-26-compatibility-probe.md`.
 - [ ] Current 1.21.6-specific Fabric code is audited and classified as build
   lane, internal provider, runtime evidence, fixture, or public-facing debt.
 - [ ] Stable internal runtime/provider facades exist before adding more
@@ -573,6 +575,17 @@ Verification:
   plus at least one simulated or additional lane.
 - [ ] Runtime probe metadata records version/provider support and unavailable
   reasons without leaking Fabric/Yarn/Minecraft names into public API.
+- [ ] Java runtime selection is version-aware; Minecraft `26.2` requires Java
+  25 and must not be launched through the repository's Java 21 default.
+- [ ] Fabric client launch selects a compiled/runtime-compatible lane for the
+  requested Minecraft version instead of always launching the current `1.21.6`
+  Fabric lane.
+- [ ] Connect success is backed by observed client/server join evidence, not
+  only by accepting a connect request.
+- [ ] Supervisor API can prepare, install, and launch a real versioned client
+  runtime instead of failing with an unavailable driver factory.
+- [ ] Cache preparation for large Minecraft/mod artifact sets is resumable and
+  idempotent with retryable per-file failures and progress evidence.
 
 Verification:
 
