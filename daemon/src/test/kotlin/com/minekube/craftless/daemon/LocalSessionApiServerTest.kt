@@ -842,6 +842,50 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `server maps graph unavailable reasons to machine readable invocation errors`() =
+        withHttpClient { http ->
+            data class Case(
+                val reason: String,
+                val status: HttpStatusCode,
+                val code: String,
+            )
+
+            listOf(
+                Case("permission-denied", HttpStatusCode.Forbidden, "PERMISSION_DENIED"),
+                Case("stale-handle", HttpStatusCode.Conflict, "STALE_HANDLE"),
+                Case("runtime-mismatch", HttpStatusCode.Conflict, "RUNTIME_MISMATCH"),
+            ).forEach { case ->
+                val driver =
+                    GraphOperationAdapterDriverSession(
+                        clientId = "alice",
+                        availability = RuntimeAvailability.unavailable(case.reason),
+                    )
+                LocalSessionApiServer
+                    .inMemory(
+                        driverFactory =
+                            DriverSessionFactory {
+                                driver
+                            },
+                    ).use { server ->
+                        server.start()
+                        createAlice(http, server)
+
+                        http
+                            .post(server.url("/clients/alice:run")) {
+                                contentType(ContentType.Application.Json)
+                                setBody("""{"action":"player.chat","args":{"message":"hello unavailable"}}""")
+                            }.let { response ->
+                                assertEquals(case.status, response.status)
+                                assertError(response.bodyAsText(), case.code, case.reason)
+                            }
+
+                        assertEquals(0, driver.adapterInvokeCount)
+                        assertEquals(0, driver.legacyInvokeCount)
+                    }
+            }
+        }
+
+    @Test
     fun `server returns generic action result data payload`() =
         withHttpClient { http ->
             LocalSessionApiServer

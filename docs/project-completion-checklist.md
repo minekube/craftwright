@@ -116,9 +116,10 @@ Verification:
   client-thread execution adapters.
 - [x] Existing bootstrap Fabric implementations are adapter inputs, not the
   public action catalog.
-- [~] Unavailable, permission, schema, stale-handle, and runtime-mismatch
+- [x] Unavailable, permission, schema, stale-handle, and runtime-mismatch
   errors are machine-readable. Current evidence covers unavailable and schema
-  failures; permission, stale-handle, and runtime-mismatch codes remain.
+  failures plus graph-projected `PERMISSION_DENIED`, `STALE_HANDLE`, and
+  `RUNTIME_MISMATCH` invocation responses.
 - [x] Invocation results validate against graph-projected result schemas and
   publish correlated SSE events for generic graph invocations. Current evidence
   covers schema validation, session events, JSON-RPC correlation ids, and

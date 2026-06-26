@@ -41,11 +41,11 @@ Expected: pass.
 
 Assert unavailable graph operations reject before adapter invocation, stale schema rejects, and result schema mismatch returns machine-readable error.
 
-- [~] **Step 2: Implement graph operation validation**
+- [x] **Step 2: Implement graph operation validation**
 
 Validate action id, args, availability, permission, adapter key, and result schema from graph-projected metadata.
 
-Current evidence covers action id, args/schema, availability, adapter-key dispatch, and result-schema validation. Permission, stale-handle, and runtime-mismatch codes still need the richer runtime/event model.
+Current evidence covers action id, args/schema, availability, adapter-key dispatch, result-schema validation, and machine-readable permission, stale-handle, and runtime-mismatch response codes.
 
 - [x] **Step 3: Verify**
 

@@ -561,9 +561,17 @@ private fun OpenApiAction.requireArguments(arguments: Map<String, JsonElement>) 
 
 private fun OpenApiAction.requireAvailable(clientId: String) {
     if (availability == OpenApiActionAvailability.UNAVAILABLE) {
-        throw UnsupportedAction(availabilityReason ?: "action $id is not available for client $clientId")
+        throw (availabilityReason ?: "action $id is not available for client $clientId").toUnavailableActionFailure()
     }
 }
+
+private fun String.toUnavailableActionFailure(): RouteFailure =
+    when (this) {
+        "permission-denied" -> PermissionDenied(this)
+        "stale-handle" -> StaleHandle(this)
+        "runtime-mismatch" -> RuntimeMismatch(this)
+        else -> UnsupportedAction(this)
+    }
 
 private fun OpenApiAction.requireResult(result: DriverActionResult) {
     if (result.action != id) {
@@ -691,6 +699,18 @@ private class UnsupportedAction(
 private class InvalidActionInput(
     message: String,
 ) : RouteFailure(HttpStatusCode.BadRequest, "INVALID_ACTION_INPUT", message)
+
+private class PermissionDenied(
+    message: String,
+) : RouteFailure(HttpStatusCode.Forbidden, "PERMISSION_DENIED", message)
+
+private class StaleHandle(
+    message: String,
+) : RouteFailure(HttpStatusCode.Conflict, "STALE_HANDLE", message)
+
+private class RuntimeMismatch(
+    message: String,
+) : RouteFailure(HttpStatusCode.Conflict, "RUNTIME_MISMATCH", message)
 
 private class DriverResultMismatch(
     message: String,
