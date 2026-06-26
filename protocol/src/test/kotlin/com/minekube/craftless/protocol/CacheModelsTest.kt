@@ -30,5 +30,21 @@ class CacheModelsTest {
         assertEquals("cache/runtimes", result.runtimeRoot)
         assertEquals("cache/prepared/1.21.6-fabric.json", result.manifest)
         assertEquals(CachePrepareStatus.PREPARED, result.status)
+        assertEquals(
+            listOf(
+                CachePreparedArtifact(
+                    kind = CachePreparedArtifactKind.MINECRAFT_VERSION_INDEX,
+                    handle = "cache/minecraft/version_manifest_v2.json",
+                    source = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
+                    status = CachePreparedArtifactStatus.RESOLVED,
+                ),
+                CachePreparedArtifact(
+                    kind = CachePreparedArtifactKind.MINECRAFT_VERSION_MANIFEST,
+                    handle = "cache/minecraft/versions/1.21.6/version.json",
+                    status = CachePreparedArtifactStatus.RESOLVED,
+                ),
+            ),
+            result.artifacts,
+        )
     }
 }

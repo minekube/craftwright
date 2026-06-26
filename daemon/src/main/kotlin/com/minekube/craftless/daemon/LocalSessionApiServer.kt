@@ -295,6 +295,7 @@ class LocalSessionApiServer private constructor(
             port: Int = 0,
             driverFactory: DriverSessionFactory = DriverSessionFactory.unavailable(),
             workspaceRoot: Path? = null,
+            cacheMetadataFetcher: CacheMetadataFetcher = KtorCacheMetadataFetcher(),
         ): LocalSessionApiServer =
             LocalSessionApiServer(
                 service =
@@ -302,7 +303,7 @@ class LocalSessionApiServer private constructor(
                         driverFactory = driverFactory,
                         fileStore = workspaceRoot?.let(::InstanceFileStore),
                     ),
-                cachePreparationService = workspaceRoot?.let(::CachePreparationService),
+                cachePreparationService = workspaceRoot?.let { CachePreparationService(it, cacheMetadataFetcher) },
                 host = "127.0.0.1",
                 requestedPort = port,
             )

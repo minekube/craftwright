@@ -133,11 +133,13 @@ class OpenApiGenerationTest {
                 "runtimeRoot",
                 "manifest",
                 "status",
+                "artifacts",
             ),
             responseSchema.required,
         )
         assertEquals("string", responseSchema.properties["cacheRoot"]?.type)
         assertEquals("string", responseSchema.properties["status"]?.type)
+        assertEquals("array", responseSchema.properties["artifacts"]?.type)
         assertErrorSchema(requireNotNull(operation.errorSchema("400")))
     }
 

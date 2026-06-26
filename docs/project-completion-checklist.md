@@ -218,12 +218,16 @@ Verification:
 - [x] `craftless cache prepare --mc <version> --loader <loader> --workspace
   <path>` and `POST /cache:prepare` prepare Craftless-owned cache directories
   and a setup manifest.
+- [x] Cache preparation resolves and stores the Minecraft version index and the
+  selected Minecraft version manifest through Ktor Client with offline test
+  fakes.
 - [x] Prism Launcher source was cloned under `/tmp/prismlauncher-source` for
   research, outside Minekube repos.
 - [x] Prism findings are captured as design input, not a core dependency.
 - [~] Client runtime/file management is strong enough for repeated local and CI
   runs. Instance directories and cache preparation are now repeatable and
-  idempotent; Java/runtime artifact resolution, Minecraft/Fabric downloads, and
+  idempotent, with Minecraft version metadata resolved into the workspace;
+  Java/runtime artifact resolution, Minecraft client jar/Fabric downloads, and
   explicit cleanup/export flows are still roadmap.
 - [x] Public APIs expose Craftless-owned file handles only.
 

@@ -1,5 +1,6 @@
 package com.minekube.craftless.cli
 
+import com.minekube.craftless.daemon.CacheMetadataFetcher
 import com.minekube.craftless.daemon.DriverSessionFactory
 import com.minekube.craftless.driver.api.DriverActionArgument
 import com.minekube.craftless.driver.api.DriverActionDescriptor
@@ -8,6 +9,7 @@ import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.CachePrepareResult
+import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
 import com.minekube.craftless.testkit.FakeDriverSession
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -170,6 +172,20 @@ class CraftlessCliTest {
                     workspace.toString(),
                 ),
                 stdout = { output.appendLine(it) },
+                cacheMetadataFetcher =
+                    StaticCacheMetadataFetcher(
+                        mapOf(
+                            MINECRAFT_VERSION_INDEX_URL to
+                                """
+                                {
+                                  "versions": [
+                                    { "id": "1.21.6", "url": "https://metadata.test/1.21.6.json" }
+                                  ]
+                                }
+                                """.trimIndent(),
+                            "https://metadata.test/1.21.6.json" to """{"id":"1.21.6"}""",
+                        ),
+                    ),
             )
 
         assertEquals(0, exit)
@@ -1576,4 +1592,10 @@ class CraftlessCliTest {
                 socket.localPort
             }
     }
+}
+
+private class StaticCacheMetadataFetcher(
+    private val responses: Map<String, String>,
+) : CacheMetadataFetcher {
+    override suspend fun fetchText(url: String): String = requireNotNull(responses[url]) { "missing test response for $url" }
 }

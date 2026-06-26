@@ -584,6 +584,22 @@ private fun cachePrepareResponse(): OpenApiResponse =
                             "runtimeRoot" to OpenApiSchema(type = "string"),
                             "manifest" to OpenApiSchema(type = "string"),
                             "status" to OpenApiSchema(type = "string"),
+                            "artifacts" to
+                                OpenApiSchema(
+                                    type = "array",
+                                    items =
+                                        OpenApiSchema(
+                                            type = "object",
+                                            properties =
+                                                mapOf(
+                                                    "kind" to OpenApiSchema(type = "string"),
+                                                    "handle" to OpenApiSchema(type = "string"),
+                                                    "source" to OpenApiSchema(type = "string", nullable = true),
+                                                    "status" to OpenApiSchema(type = "string"),
+                                                ),
+                                            required = listOf("kind", "handle", "status"),
+                                        ),
+                                ),
                         ),
                     required =
                         listOf(
@@ -595,6 +611,7 @@ private fun cachePrepareResponse(): OpenApiResponse =
                             "runtimeRoot",
                             "manifest",
                             "status",
+                            "artifacts",
                         ),
                 ),
             ),

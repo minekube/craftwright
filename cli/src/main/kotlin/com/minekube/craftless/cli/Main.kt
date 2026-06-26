@@ -4,7 +4,9 @@ import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.core.CoreCliktCommand
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.core.subcommands
+import com.minekube.craftless.daemon.CacheMetadataFetcher
 import com.minekube.craftless.daemon.CachePreparationService
+import com.minekube.craftless.daemon.KtorCacheMetadataFetcher
 import com.minekube.craftless.daemon.LocalSessionApiServer
 import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.CreateClientRequest
@@ -81,12 +83,13 @@ object CraftlessCli {
         stderr: (String) -> Unit = {},
         afterStart: (ApiServerMetadata) -> Unit = {},
         env: Map<String, String> = System.getenv(),
+        cacheMetadataFetcher: CacheMetadataFetcher = KtorCacheMetadataFetcher(),
     ): Int {
         if (args.take(2) == listOf("server", "start")) {
             return runServerStart(args.drop(2), stdout, stderr, afterStart)
         }
         if (args.take(2) == listOf("cache", "prepare")) {
-            return prepareCache(args.drop(2), stdout, stderr)
+            return prepareCache(args.drop(2), stdout, stderr, cacheMetadataFetcher)
         }
         if (args.take(2) == listOf("clients", "create")) {
             return createClient(args.drop(2), stdout, stderr, env)
@@ -130,6 +133,7 @@ object CraftlessCli {
         args: List<String>,
         stdout: (String) -> Unit,
         stderr: (String) -> Unit,
+        metadataFetcher: CacheMetadataFetcher,
     ): Int {
         val minecraftVersion = args.optionValue("--mc")
         val loader =
@@ -143,12 +147,14 @@ object CraftlessCli {
         }
         return runCatching {
             val result =
-                CachePreparationService(workspace).prepare(
-                    CachePrepareRequest(
-                        minecraftVersion = minecraftVersion,
-                        loader = loader,
-                    ),
-                )
+                kotlinx.coroutines.runBlocking {
+                    CachePreparationService(workspace, metadataFetcher).prepare(
+                        CachePrepareRequest(
+                            minecraftVersion = minecraftVersion,
+                            loader = loader,
+                        ),
+                    )
+                }
             stdout(json.encodeToString(result))
             0
         }.getOrElse { error ->

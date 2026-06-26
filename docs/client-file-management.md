@@ -54,9 +54,10 @@ runtime file root alongside the daemon URL and OpenAPI path.
 `craftless cache prepare --mc <version> --loader <loader> --workspace <path>`
 prepares the Craftless-owned setup cache handles for a Minecraft version,
 loader, runtime cache, and preparation manifest. The same contract is exposed by
-the supervisor API as `POST /cache:prepare`. Current implementation prepares
-repeatable directories and a manifest; artifact download/resolution is still
-future provisioning work.
+the supervisor API as `POST /cache:prepare`. Current implementation uses Ktor
+Client to resolve and store Mojang's version index plus the selected Minecraft
+version manifest; client jars, Fabric artifacts, Java runtimes, and integrity
+verification are still future provisioning work.
 
 ## Prism Source Findings
 

@@ -20,6 +20,7 @@ import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.Loader
+import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
 import com.minekube.craftless.protocol.OpenApiAction
 import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.Profile
@@ -194,7 +195,23 @@ class LocalSessionApiServerTest {
     fun `server prepares cache handles under configured workspace`() =
         withHttpClient { http ->
             val workspace = Files.createTempDirectory("craftless-server-cache")
-            fakeLocalSessionApiServer(workspaceRoot = workspace).use { server ->
+            fakeLocalSessionApiServer(
+                workspaceRoot = workspace,
+                cacheMetadataFetcher =
+                    ServerStaticCacheMetadataFetcher(
+                        mapOf(
+                            MINECRAFT_VERSION_INDEX_URL to
+                                """
+                                {
+                                  "versions": [
+                                    { "id": "1.21.6", "url": "https://metadata.test/1.21.6.json" }
+                                  ]
+                                }
+                                """.trimIndent(),
+                            "https://metadata.test/1.21.6.json" to """{"id":"1.21.6"}""",
+                        ),
+                    ),
+            ).use { server ->
                 server.start()
 
                 val response =
@@ -785,14 +802,24 @@ class LocalSessionApiServerTest {
     }
 }
 
-private fun fakeLocalSessionApiServer(workspaceRoot: java.nio.file.Path? = null): LocalSessionApiServer =
+private fun fakeLocalSessionApiServer(
+    workspaceRoot: java.nio.file.Path? = null,
+    cacheMetadataFetcher: CacheMetadataFetcher = KtorCacheMetadataFetcher(),
+): LocalSessionApiServer =
     LocalSessionApiServer.inMemory(
         driverFactory =
             DriverSessionFactory { request ->
                 FakeDriverSession(request.id)
             },
         workspaceRoot = workspaceRoot,
+        cacheMetadataFetcher = cacheMetadataFetcher,
     )
+
+private class ServerStaticCacheMetadataFetcher(
+    private val responses: Map<String, String>,
+) : CacheMetadataFetcher {
+    override suspend fun fetchText(url: String): String = requireNotNull(responses[url]) { "missing test response for $url" }
+}
 
 private class EventMetadataDriverSession(
     override val clientId: String,
