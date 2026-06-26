@@ -29,8 +29,9 @@ Legend:
   OpenAPI action descriptor for argument schema validation, help, positional
   argument mapping, and nested generated aliases such as
   `/clients/{id}/world/block:break`, with `/clients/{id}/actions` treated as
-  an availability projection. Invocation no longer gates on `/actions`; live
-  OpenAPI is the action existence and schema authority.
+  an availability projection. Invocation and `craftless clients <id> actions`
+  no longer gate on `/actions`; live OpenAPI is the action existence and schema
+  authority.
 - [x] Daemon generic and generated-alias action dispatch validate driver result
   payloads against the advertised action result descriptor before returning
   success.
@@ -114,10 +115,12 @@ Verification:
   including nested resource aliases derived from action ids, and do not treat
   `/clients/{id}/actions` as an invocation precondition.
 - [~] CLI and external helper consumers use OpenAPI/descriptors at runtime
-  instead of hard-coding gameplay commands. The Playwright helper now has a
-  thin OpenAPI action client that fetches `/clients/{id}/openapi.json` before
-  invoking `POST /clients/{id}:run`; generated clients and agent-tool
-  packaging remain roadmap.
+  instead of hard-coding gameplay commands or treating `/clients/{id}/actions`
+  as authoritative. The `craftless clients <id> actions` command now reads
+  `x-craftless-actions` from `/clients/{id}/openapi.json`, and the Playwright
+  helper has a thin OpenAPI action client that fetches
+  `/clients/{id}/openapi.json` before invoking `POST /clients/{id}:run`;
+  generated clients and agent-tool packaging remain roadmap.
 - [x] `DriverSession` remains lifecycle/events/runtime metadata plus
   `actions()` and `invoke(...)`; no static player/world/inventory methods.
 - [x] Fabric discovery/projection and execution bindings stay internal and

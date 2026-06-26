@@ -820,6 +820,30 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `clients actions uses live openapi as action authority`() {
+        val output = StringBuilder()
+
+        StaleActionsProjectionServer().use { server ->
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "alice",
+                        "actions",
+                        "--api",
+                        server.url,
+                    ),
+                    stdout = { output.appendLine(it) },
+                )
+
+            assertEquals(0, exit)
+        }
+
+        val actions = Json.parseToJsonElement(output.toString().trim()).jsonArray
+        assertEquals(listOf("player.chat"), actions.map { it.jsonObject["id"]?.jsonPrimitive?.content })
+    }
+
+    @Test
     fun `clients resources fetches live resource projection from daemon`() {
         val output = StringBuilder()
 
