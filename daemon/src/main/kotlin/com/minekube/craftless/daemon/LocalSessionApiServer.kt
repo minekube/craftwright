@@ -19,6 +19,7 @@ import com.minekube.craftless.protocol.OpenApiActionAvailability
 import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.isCraftlessActionId
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -26,6 +27,7 @@ import io.ktor.server.application.call
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.request.receiveText
+import io.ktor.server.response.header
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -115,7 +117,7 @@ class LocalSessionApiServer private constructor(
             get("/clients/{id}/openapi.json") {
                 val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
                 runCatching {
-                    call.respondJson(HttpStatusCode.OK, service.openApiFor(clientId))
+                    call.respondClientOpenApi(service.openApiFor(clientId))
                 }.getOrElse { error ->
                     call.respondMissingClient(error)
                 }
@@ -335,6 +337,21 @@ class LocalSessionApiServer private constructor(
         value: T,
     ) {
         respondText(json.encodeToString(value), ContentType.Application.Json, status)
+    }
+
+    private suspend fun ApplicationCall.respondClientOpenApi(document: OpenApiDocument) {
+        val runtimeFingerprint = document.extensions["x-craftless-runtime-fingerprint"]
+        if (runtimeFingerprint != null) {
+            val etag = "\"$runtimeFingerprint\""
+            response.header("X-Craftless-Runtime-Fingerprint", runtimeFingerprint)
+            response.header(HttpHeaders.ETag, etag)
+            response.header(HttpHeaders.CacheControl, "no-cache")
+            if (request.headers[HttpHeaders.IfNoneMatch] == etag) {
+                respondText("", status = HttpStatusCode.NotModified)
+                return
+            }
+        }
+        respondJson(HttpStatusCode.OK, document)
     }
 
     private suspend fun ApplicationCall.respondRouteFailure(error: RouteFailure) {

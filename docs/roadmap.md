@@ -40,6 +40,10 @@ Craftless currently has:
   `/clients/{id}/openapi.json` action descriptors for action existence,
   argument schemas, and generated help, while `/clients/{id}/actions` remains
   a descriptor projection;
+- per-client OpenAPI responses expose the live runtime/action fingerprint in
+  `x-craftless-runtime-fingerprint`, `X-Craftless-Runtime-Fingerprint`, and
+  HTTP `ETag` metadata so adaptive consumers can revalidate cached specs by
+  the running client's capability fingerprint;
 - protocol policy tests reject public action descriptors and route metadata
   that leak Fabric, Yarn, intermediary, raw Minecraft, bridge, or launcher
   namespace tokens;
@@ -175,7 +179,9 @@ mise run ci
 Goal: make `craftless` and future generated clients consume live specs instead
 of mirroring the API by hand.
 
-- Cache per-client OpenAPI only by runtime/action fingerprint.
+- Cache per-client OpenAPI only by runtime/action fingerprint. The daemon now
+  emits HTTP `ETag` revalidation metadata for the live per-client spec;
+  durable generated-client cache implementations remain future work.
 - Render dynamic CLI help from `/clients/{id}/openapi.json`, using
   `/clients/{id}/actions` only as a descriptor projection/availability view.
 - Keep static CLI commands limited to daemon lifecycle, client lifecycle,

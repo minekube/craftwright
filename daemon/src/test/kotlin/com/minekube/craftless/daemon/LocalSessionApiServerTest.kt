@@ -32,10 +32,12 @@ import com.minekube.craftless.testkit.fakeDriverRuntimeMetadata
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import kotlinx.serialization.json.Json
@@ -131,6 +133,14 @@ class LocalSessionApiServerTest {
                 http.get(server.url("/clients/alice/openapi.json")).let { clientOpenapi ->
                     val body = clientOpenapi.bodyAsText()
                     assertEquals(HttpStatusCode.OK, clientOpenapi.status)
+                    val document = json.decodeFromString<OpenApiDocument>(body)
+                    val runtimeFingerprint =
+                        requireNotNull(document.extensions["x-craftless-runtime-fingerprint"]) {
+                            "missing runtime fingerprint"
+                        }
+                    assertEquals(runtimeFingerprint, clientOpenapi.headers["X-Craftless-Runtime-Fingerprint"])
+                    assertEquals("\"$runtimeFingerprint\"", clientOpenapi.headers[HttpHeaders.ETag])
+                    assertEquals("no-cache", clientOpenapi.headers[HttpHeaders.CacheControl])
                     assertTrue(body.contains("\"x-craftless-client-id\":\"alice\""))
                     assertTrue(body.contains("\"x-craftless-loader-version\":\"none\""))
                     assertTrue(body.contains("\"x-craftless-driver-version\":\"0.1.0-SNAPSHOT\""))
@@ -160,6 +170,14 @@ class LocalSessionApiServerTest {
                     assertTrue(!body.contains("/clients/alice/player\""))
                     assertTrue(!body.contains("/clients/alice/player/position"))
                     assertTrue(!body.contains("/actions/move"))
+
+                    http
+                        .get(server.url("/clients/alice/openapi.json")) {
+                            header(HttpHeaders.IfNoneMatch, "\"$runtimeFingerprint\"")
+                        }.let { cachedOpenapi ->
+                            assertEquals(HttpStatusCode.NotModified, cachedOpenapi.status)
+                            assertEquals("", cachedOpenapi.bodyAsText())
+                        }
                 }
             }
         }

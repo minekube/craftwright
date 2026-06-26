@@ -36,6 +36,9 @@ Legend:
 - [x] Daemon generic and generated-alias action dispatch use the live
   per-client OpenAPI action descriptor for action existence, availability,
   argument validation, and result payload validation before returning success.
+- [x] Per-client OpenAPI responses expose the live runtime/action fingerprint
+  through `x-craftless-runtime-fingerprint`, `X-Craftless-Runtime-Fingerprint`,
+  and HTTP `ETag`/`If-None-Match` revalidation metadata.
 - [x] Fabric smoke has proven real client launch, server join, generated chat,
   generated movement invocation, generated look invocation, server-side target
   item provisioning, generated inventory observation/equip, generated block
@@ -124,8 +127,10 @@ Verification:
   `x-craftless-actions` and `x-craftless-resources` from
   `/clients/{id}/openapi.json`, and the Playwright helper has a thin OpenAPI
   action client that fetches `/clients/{id}/openapi.json` before invoking
-  `POST /clients/{id}:run` or reading `x-craftless-resources`; generated
-  clients and agent-tool packaging remain roadmap.
+  `POST /clients/{id}:run` or reading `x-craftless-resources`. The daemon
+  exposes per-client OpenAPI `ETag` revalidation keyed by the live
+  runtime/action fingerprint; generated clients and agent-tool packaging
+  remain roadmap.
 - [x] `DriverSession` remains lifecycle/events/runtime metadata plus
   `actions()` and `invoke(...)`; no static player/world/inventory methods.
 - [x] Fabric discovery/projection and execution bindings stay internal and
