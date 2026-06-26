@@ -153,7 +153,8 @@ class NamespacePolicyTest {
         val root = repositoryRoot()
         val allowlistPath = root.resolve("docs/architecture/transitional-fabric-action-allowlist.txt")
         val allowlist =
-            Files.readAllLines(allowlistPath)
+            Files
+                .readAllLines(allowlistPath)
                 .map { line -> line.substringBefore("#").trim() }
                 .filter { line -> line.isNotBlank() }
                 .sorted()

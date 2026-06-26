@@ -10,6 +10,9 @@ import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.protocol.ClientState
+import com.minekube.craftless.protocol.RuntimeAvailability
+import com.minekube.craftless.protocol.RuntimeCapabilityGraph
+import com.minekube.craftless.protocol.RuntimeResourceNode
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
@@ -148,6 +151,29 @@ class BackendDriverSessionTest {
     }
 
     @Test
+    fun `runtime driver session exposes backend capability graph snapshot`() {
+        val backend =
+            RecordingDriverBackend(
+                graph =
+                    RuntimeCapabilityGraph(
+                        clientId = "alice",
+                        resources = listOf(RuntimeResourceNode("inventory", RuntimeAvailability.available())),
+                    ),
+            )
+        val session =
+            BackendDriverSession(
+                clientId = "alice",
+                backend = backend,
+            )
+
+        val graph = session.runtimeGraph()
+
+        assertEquals("alice", graph.clientId)
+        assertEquals(listOf("inventory"), graph.resources.map { it.id })
+        assertEquals(backend.runtimeGraph("alice").fingerprint(), graph.fingerprint())
+    }
+
+    @Test
     fun `hmc bridge backend adapts the temporary bridge to runtime backend actions`() {
         val backend = HmcBridgeDriverBackend(HmcBridgeBackend.dryRun())
 
@@ -210,6 +236,7 @@ class BackendDriverSessionTest {
 private class RecordingDriverBackend(
     private val rejectedAction: String? = null,
     private val resultEventType: DriverEventType? = null,
+    private val graph: RuntimeCapabilityGraph = RuntimeCapabilityGraph(clientId = "alice"),
 ) : DriverBackend {
     val calls = mutableListOf<String>()
 
@@ -243,6 +270,8 @@ private class RecordingDriverBackend(
             serverFeatureFingerprint = "features-test",
             permissionsFingerprint = "permissions-test",
         )
+
+    override fun runtimeGraph(clientId: String): RuntimeCapabilityGraph = graph.copy(clientId = clientId)
 
     override fun invoke(
         clientId: String,

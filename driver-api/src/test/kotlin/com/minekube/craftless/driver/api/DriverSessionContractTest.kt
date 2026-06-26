@@ -16,6 +16,7 @@ class DriverSessionContractTest {
         val methodNames =
             DriverSession::class.java
                 .declaredMethods
+                .filterNot { it.isSynthetic }
                 .map { it.name }
                 .toSet()
 
@@ -26,6 +27,7 @@ class DriverSessionContractTest {
                 "connect",
                 "actions",
                 "runtimeMetadata",
+                "runtimeGraph",
                 "invoke",
                 "stop",
                 "events",

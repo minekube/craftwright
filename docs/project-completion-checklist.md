@@ -61,13 +61,13 @@ Verification:
 
 ## Phase 2: Runtime Capability Graph
 
-- [ ] Protocol graph models exist for resources, operations, handles, events,
+- [x] Protocol graph models exist for resources, operations, handles, events,
   schemas, availability, private source evidence, and fingerprints.
-- [ ] Graph validation rejects duplicate ids, invalid public ids, unavailable
+- [x] Graph validation rejects duplicate ids, invalid public ids, unavailable
   nodes without reasons, and raw Fabric/Yarn/Minecraft public names.
-- [ ] Fingerprints change when graph node ids, schemas, availability,
+- [x] Fingerprints change when graph node ids, schemas, availability,
   permissions, or runtime inputs change.
-- [ ] Driver contract can expose a graph snapshot without adding driver methods
+- [x] Driver contract can expose a graph snapshot without adding driver methods
   per gameplay action.
 
 Verification:

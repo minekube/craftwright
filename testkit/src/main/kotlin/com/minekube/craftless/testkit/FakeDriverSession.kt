@@ -15,6 +15,11 @@ import com.minekube.craftless.driver.api.intArgument
 import com.minekube.craftless.driver.api.requireChatMessage
 import com.minekube.craftless.driver.api.stringArgument
 import com.minekube.craftless.protocol.ClientState
+import com.minekube.craftless.protocol.RuntimeAvailability
+import com.minekube.craftless.protocol.RuntimeCapabilityGraph
+import com.minekube.craftless.protocol.RuntimeOperationNode
+import com.minekube.craftless.protocol.RuntimeResourceNode
+import com.minekube.craftless.protocol.RuntimeSchema
 
 class FakeDriverSession(
     override val clientId: String,
@@ -51,6 +56,29 @@ class FakeDriverSession(
         )
 
     override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
+
+    override fun runtimeGraph(): RuntimeCapabilityGraph =
+        RuntimeCapabilityGraph(
+            clientId = clientId,
+            resources = listOf(RuntimeResourceNode("player", RuntimeAvailability.available())),
+            operations =
+                listOf(
+                    RuntimeOperationNode(
+                        id = "player.chat",
+                        resource = "player",
+                        adapter = "fake.chat",
+                        arguments = mapOf("message" to RuntimeSchema("string")),
+                        availability = RuntimeAvailability.available(),
+                    ),
+                    RuntimeOperationNode(
+                        id = "player.move",
+                        resource = "player",
+                        adapter = "fake.move",
+                        arguments = mapOf("ticks" to RuntimeSchema("integer")),
+                        availability = RuntimeAvailability.available(),
+                    ),
+                ),
+        )
 
     override fun invoke(invocation: DriverActionInvocation): DriverActionResult {
         require(invocation.action.isNotBlank()) { "action is required" }

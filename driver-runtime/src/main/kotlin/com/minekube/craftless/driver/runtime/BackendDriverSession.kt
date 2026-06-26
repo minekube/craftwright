@@ -11,6 +11,7 @@ import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.ClientState
+import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 
 class BackendDriverSession(
     override val clientId: String,
@@ -47,6 +48,8 @@ class BackendDriverSession(
 
     override fun runtimeMetadata(): DriverRuntimeMetadata = backend.runtimeMetadata(clientId)
 
+    override fun runtimeGraph(): RuntimeCapabilityGraph = backend.runtimeGraph(clientId)
+
     override fun invoke(invocation: DriverActionInvocation): DriverActionResult {
         require(invocation.action.isNotBlank()) { "action is required" }
         val result = backend.invoke(clientId, invocation)
@@ -79,6 +82,8 @@ interface DriverBackend {
     fun actions(clientId: String): List<DriverActionDescriptor> = emptyList()
 
     fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = DriverRuntimeMetadata.runtimeAdapter()
+
+    fun runtimeGraph(clientId: String): RuntimeCapabilityGraph = RuntimeCapabilityGraph(clientId = clientId)
 
     fun invoke(
         clientId: String,

@@ -1,6 +1,7 @@
 package com.minekube.craftless.driver.api
 
 import com.minekube.craftless.protocol.ClientState
+import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import com.minekube.craftless.protocol.isCraftlessActionArgumentName
 import com.minekube.craftless.protocol.isCraftlessActionArgumentType
 import com.minekube.craftless.protocol.isCraftlessActionId
@@ -24,6 +25,8 @@ interface DriverSession {
     fun actions(): List<DriverActionDescriptor>
 
     fun runtimeMetadata(): DriverRuntimeMetadata
+
+    fun runtimeGraph(): RuntimeCapabilityGraph = RuntimeCapabilityGraph(clientId = clientId)
 
     fun invoke(invocation: DriverActionInvocation): DriverActionResult
 
