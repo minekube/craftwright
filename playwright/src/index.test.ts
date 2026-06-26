@@ -86,3 +86,42 @@ test("openapi action client discovers actions from the live client spec before i
     }),
   );
 });
+
+test("openapi action client discovers resources from the live client spec", async () => {
+  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  const resources = [
+    {
+      id: "inventory",
+      kind: "inventory",
+      availability: "available",
+      actions: ["inventory.query"],
+    },
+  ];
+  const fetchImpl = async (url: string, init?: RequestInit): Promise<Response> => {
+    calls.push({ url, init });
+    if (url.endsWith("/clients/alice/openapi.json")) {
+      return Response.json({
+        openapi: "3.1.0",
+        info: { title: "Craftless test API", version: "1" },
+        paths: {},
+        "x-craftless": {},
+        "x-craftless-resources": resources,
+      });
+    }
+    if (url.endsWith("/clients/alice/resources")) {
+      return Response.json([{ id: "stale-projection" }]);
+    }
+    return new Response("missing", { status: 404 });
+  };
+  const client = createOpenApiActionClient({
+    baseUrl: "http://127.0.0.1:8080",
+    clientId: "alice",
+    fetch: fetchImpl,
+  });
+
+  await expect(client.resources()).resolves.toEqual(resources);
+
+  expect(calls.map((call) => call.url)).toEqual([
+    "http://127.0.0.1:8080/clients/alice/openapi.json",
+  ]);
+});

@@ -24,9 +24,18 @@ export interface CraftlessOpenApiAction {
   availability?: "available" | "unavailable";
 }
 
+export interface CraftlessOpenApiResource {
+  id: string;
+  kind?: string;
+  availability?: "available" | "unavailable";
+  actions?: string[];
+  [key: string]: unknown;
+}
+
 export interface CraftlessOpenApiDocument {
   paths?: Record<string, unknown>;
   "x-craftless-actions"?: CraftlessOpenApiAction[];
+  "x-craftless-resources"?: CraftlessOpenApiResource[];
 }
 
 export interface OpenApiActionClientOptions {
@@ -37,6 +46,7 @@ export interface OpenApiActionClientOptions {
 
 export interface OpenApiActionClient {
   invoke(action: string, args?: Record<string, unknown>): Promise<unknown>;
+  resources(): Promise<CraftlessOpenApiResource[]>;
 }
 
 export function createOpenApiActionClient(options: OpenApiActionClientOptions): OpenApiActionClient {
@@ -45,6 +55,14 @@ export function createOpenApiActionClient(options: OpenApiActionClientOptions): 
   const clientId = options.clientId;
 
   return {
+    async resources(): Promise<CraftlessOpenApiResource[]> {
+      const openApi = await fetchJson<CraftlessOpenApiDocument>(
+        fetchImpl,
+        `${baseUrl}/clients/${clientId}/openapi.json`,
+      );
+      return openApi["x-craftless-resources"] ?? [];
+    },
+
     async invoke(action: string, args: Record<string, unknown> = {}): Promise<unknown> {
       const openApi = await fetchJson<CraftlessOpenApiDocument>(
         fetchImpl,

@@ -122,8 +122,8 @@ Verification:
   `x-craftless-actions` and `x-craftless-resources` from
   `/clients/{id}/openapi.json`, and the Playwright helper has a thin OpenAPI
   action client that fetches `/clients/{id}/openapi.json` before invoking
-  `POST /clients/{id}:run`; generated clients and agent-tool packaging remain
-  roadmap.
+  `POST /clients/{id}:run` or reading `x-craftless-resources`; generated
+  clients and agent-tool packaging remain roadmap.
 - [x] `DriverSession` remains lifecycle/events/runtime metadata plus
   `actions()` and `invoke(...)`; no static player/world/inventory methods.
 - [x] Fabric discovery/projection and execution bindings stay internal and
