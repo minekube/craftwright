@@ -95,10 +95,9 @@ data class FabricClientSmokeController(
                     )
                     val openApi = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/openapi.json"))
                     val actions = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/actions"))
-                    val resources = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/resources"))
                     writeArtifact("client-openapi.json", openApi)
                     writeArtifact("client-actions.json", actions)
-                    writeArtifact("client-resources.json", resources)
+                    writeArtifact("client-resources.json", openApi.smokeResourceArtifactFromOpenApi())
                     writeArtifact("runtime-metadata.json", smokeJson.encodeToString(backend.runtimeMetadata(SMOKE_CLIENT_ID)))
 
                     if (gateway.awaitReadyToConnect(connectTimeout, pollInterval)) {
@@ -111,10 +110,9 @@ data class FabricClientSmokeController(
                     if (gateway.awaitConnected(connectTimeout, pollInterval)) {
                         val connectedOpenApi = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/openapi.json"))
                         val connectedActions = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/actions"))
-                        val connectedResources = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/resources"))
                         writeArtifact("client-openapi-connected.json", connectedOpenApi)
                         writeArtifact("client-actions-connected.json", connectedActions)
-                        writeArtifact("client-resources-connected.json", connectedResources)
+                        writeArtifact("client-resources-connected.json", connectedOpenApi.smokeResourceArtifactFromOpenApi())
 
                         val chatResult =
                             http.runAvailableAction(
@@ -371,6 +369,13 @@ internal fun String.requireAvailableSmokeAction(action: String) {
             }
     check(available) { "fabric smoke action $action is not available in connected client OpenAPI" }
 }
+
+internal fun String.smokeResourceArtifactFromOpenApi(): String =
+    smokeJson.encodeToString(
+        smokeJson
+            .decodeFromString<OpenApiDocument>(this)
+            .resources,
+    )
 
 private fun String.findHotbarSlotForItem(itemName: String): Int? =
     inventorySlots()

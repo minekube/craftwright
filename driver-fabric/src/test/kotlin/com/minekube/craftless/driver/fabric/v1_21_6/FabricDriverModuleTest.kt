@@ -1018,6 +1018,41 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric smoke resource artifacts come from live openapi metadata`() {
+        val openApi =
+            """
+            {
+              "openapi": "3.1.0",
+              "info": { "title": "Craftless smoke API", "version": "1" },
+              "paths": {},
+              "x-craftless": {},
+              "x-craftless-actions": [],
+              "x-craftless-resources": [
+                {
+                  "id": "inventory",
+                  "actions": ["inventory.query"],
+                  "availability": "available",
+                  "availabilityReasons": [],
+                  "actionDescriptors": [
+                    {
+                      "id": "inventory.query",
+                      "schemaVersion": "1",
+                      "args": {},
+                      "availability": "available"
+                    }
+                  ]
+                }
+              ]
+            }
+            """.trimIndent()
+
+        val resources = openApi.smokeResourceArtifactFromOpenApi()
+
+        assertTrue(resources.contains("\"id\":\"inventory\""))
+        assertTrue(resources.contains("\"availability\":\"available\""))
+    }
+
+    @Test
     fun `fabric smoke controller waits for client readiness before connecting`() {
         val gateway = RecordingFabricClientGateway()
         gateway.ready = false

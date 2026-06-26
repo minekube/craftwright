@@ -70,8 +70,10 @@ Baseline evidence:
 - Current smoke controller re-fetches connected client OpenAPI/actions before
   invoking gameplay actions and writes `client-openapi-connected.json`,
   `client-actions-connected.json`, `client-resources-connected.json`, and
-  `gameplay-results.jsonl`; it now includes generated `world.block.interact`
-  invocation in addition to `world.block.break`.
+  `gameplay-results.jsonl`; resource artifacts are serialized from
+  `x-craftless-resources` in the live OpenAPI documents rather than fetched
+  from the projection endpoint, and smoke now includes generated
+  `world.block.interact` invocation in addition to `world.block.break`.
 - Key commands:
   - `mise run lint`
   - `mise run architecture-check`
