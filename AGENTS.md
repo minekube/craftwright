@@ -133,6 +133,7 @@ Follow them in order:
 19. sustained generic block break.
 20. public-agent material pickup.
 21. public-agent drop perception.
+22. bounded material exploration.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -177,6 +178,9 @@ not add pickup or collection shortcut actions.
 Phase 21 uses public `entity.query` perception to find dropped material
 entities and navigate to their positions before inventory verification. It must
 not add pickup or collection shortcut actions.
+Phase 22 makes public-agent material exploration use smaller overlapping
+generated-navigation steps. It must not increase product API breadth or add
+search shortcuts such as `find.tree`.
 
 ## Acceptance Scenarios Are Not Product APIs
 

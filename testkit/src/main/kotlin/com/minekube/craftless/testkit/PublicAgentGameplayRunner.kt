@@ -572,10 +572,14 @@ private data class CraftlessPoint(
 
     fun explorationWaypoints(): List<CraftlessPoint> =
         listOf(
-            copy(x = x + 48.0),
-            copy(z = z + 48.0),
-            copy(x = x - 48.0),
-            copy(z = z - 48.0),
+            copy(x = x + MATERIAL_EXPLORATION_STEP),
+            copy(z = z + MATERIAL_EXPLORATION_STEP),
+            copy(x = x - MATERIAL_EXPLORATION_STEP),
+            copy(z = z - MATERIAL_EXPLORATION_STEP),
+            copy(x = x + MATERIAL_EXPLORATION_STEP, z = z + MATERIAL_EXPLORATION_STEP),
+            copy(x = x - MATERIAL_EXPLORATION_STEP, z = z + MATERIAL_EXPLORATION_STEP),
+            copy(x = x + MATERIAL_EXPLORATION_STEP, z = z - MATERIAL_EXPLORATION_STEP),
+            copy(x = x - MATERIAL_EXPLORATION_STEP, z = z - MATERIAL_EXPLORATION_STEP),
         )
 
     fun lookAt(target: CraftlessPoint): CraftlessLook {
@@ -588,6 +592,8 @@ private data class CraftlessPoint(
         return CraftlessLook(yaw = yaw, pitch = pitch.coerceIn(-90.0, 90.0))
     }
 }
+
+private const val MATERIAL_EXPLORATION_STEP = 24.0
 
 private data class CraftlessLook(
     val yaw: Double,

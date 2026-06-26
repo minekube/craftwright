@@ -286,6 +286,8 @@ class PublicAgentGameplayRunnerTest {
                 result.actionLog.map { it.action },
             )
             assertTrue(server.requestBodies.count { it.contains(""""category":"log"""") } >= 2)
+            assertTrue(server.requestBodies.any { it.contains(""""x":35.0""") })
+            assertFalse(server.requestBodies.any { it.contains(""""x":59.0""") })
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 

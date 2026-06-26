@@ -73,6 +73,8 @@ Legend:
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-20-public-agent-material-pickup-plan.md`.
 - [x] Spec exists: `docs/superpowers/specs/2026-06-26-21-public-agent-drop-perception-design.md`.
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-21-public-agent-drop-perception-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-22-bounded-material-exploration-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-22-bounded-material-exploration-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -400,10 +402,9 @@ Verification:
   and verifies `selected-slot` with a follow-up `inventory.query`. Focused
   public-agent tests cover success and selected-slot failure paths.
 - [!] Live no-hold evidence is blocked before equip by
-  public material acquisition/exploration before final inventory proof. Phase
-  19 corrected one root cause by proving sustained block-state change; latest
-  live evidence is now blocked at `action-request-failed:navigation.follow`
-  during material exploration when local `world.block.query` returned no logs.
+  later survival primitives, not by material equip. Current live no-hold
+  evidence reaches `inventory.equip` for collected `Oak Log` in slot 1 and
+  verifies follow-up `inventory.query` with `selected-slot = 1`.
 
 Verification:
 
@@ -423,8 +424,9 @@ Verification:
   survival block. Current evidence: `world.block.break` returned
   `changed = true` with `ticks = 61` for `world.block:64:81:-287`.
 - [!] Inventory proof after the changed block is still blocked by public pickup
-  and exploration reliability; the generic block break primitive itself is no
-  longer the current blocker.
+  and later survival breadth in some seeds; the generic block break primitive
+  itself is no longer the current blocker. Current live no-hold evidence shows
+  material proof and equip after a changed block path.
 
 Verification:
 
@@ -441,9 +443,9 @@ Verification:
   `world.block.query` data. Focused tests cover lower-target selection.
 - [x] Public-agent runner composes pickup movement with `navigation.plan` and
   `navigation.follow` after `world.block.break` reports `changed = true`.
-- [!] Live no-hold evidence has not yet reached inventory material proof. Runs
-  either changed a high log and still had empty inventory, or later blocked
-  during exploration before reaching a material target.
+- [x] Live no-hold evidence reaches inventory material proof after pickup
+  movement. Current evidence: `inventory.query` shows `Oak Log` count 2 in slot
+  1 after `world.block.break` and pickup navigation.
 
 Verification:
 
@@ -459,9 +461,29 @@ Verification:
   movement, optionally navigates to observed material drop positions, and still
   verifies pickup through `inventory.query`. Focused tests cover public material
   drop navigation.
-- [!] Live no-hold evidence has not yet exercised drop perception after a
-  material break because the latest run blocked earlier during exploration with
-  `action-request-failed:navigation.follow`.
+- [x] Live no-hold evidence runs `entity.query` after the material break and
+  pickup movement, then verifies material inventory and equip state. Current
+  run did not need material-drop navigation because inventory pickup succeeded
+  before a matching log drop entity was observed.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
+
+## Phase 22: Bounded Material Exploration
+
+- [x] Spec and plan exist for shorter overlapping public-agent material
+  exploration without adding `find.tree`, `collect.wood`, `mine.log`, or
+  product API shortcuts.
+- [x] Public-agent runner uses shorter overlapping generated-navigation
+  waypoints after an empty local `world.block.query`. Focused tests verify the
+  first exploration waypoint is 24 blocks rather than the previous 48.
+- [x] Live no-hold evidence progressed through the material path without the
+  previous exploration timeout. Current public-agent state is `RAN`, with
+  `world.block.query`, `navigation.plan/follow`, `world.block.break`,
+  `entity.query`, `inventory.query`, `inventory.equip`, and selected-slot
+  verification.
 
 Verification:
 
