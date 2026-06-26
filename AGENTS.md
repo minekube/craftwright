@@ -123,6 +123,7 @@ Follow them in order:
 9. pathfinder-backed execution.
 10. diagnostic survival task execution.
 11. public-agent final gameplay.
+12. runtime block resource query.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -135,6 +136,9 @@ inventory, manual movement for Craftless, or static shortcut actions such as
 `kill.cow`, `find.tree`, or `craft.sword`.
 The Phase 10 diagnostic harness exposed more missing primitives and is not the
 durable completion boundary. Phase 11 is the corrected final completion path.
+Phase 12 resolves the first public-agent blocker by adding generic block
+resource perception through the runtime graph and graph adapter path, not by
+adding scenario-specific survival actions.
 
 ## Acceptance Scenarios Are Not Product APIs
 

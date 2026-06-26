@@ -9,6 +9,7 @@ import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.runtime.DriverBackendAction
+import com.minekube.craftless.protocol.RuntimeAvailabilityState
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
@@ -41,6 +42,17 @@ class FabricDriverModuleTest {
             .map { line -> line.substringBefore("#").trim() }
             .filter { line -> line.isNotBlank() }
             .sorted()
+
+    private fun blockQueryRuntimeMetadataProvider(): FabricRuntimeMetadataProvider =
+        SnapshotFabricRuntimeMetadataProvider(
+            FabricRuntimeMetadataSnapshot(
+                loaderVersion = "0.19.3",
+                driverVersion = "0.1.0-SNAPSHOT",
+                installedMods = listOf("minecraft@1.21.6", "fabricloader@0.19.3"),
+                registries = listOf("block:craftless-test"),
+                serverFeatures = listOf("environment:test"),
+            ),
+        )
 
     @Test
     fun `fabric metadata declares client entrypoint and mixin config`() {
@@ -982,6 +994,109 @@ class FabricDriverModuleTest {
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
         assertEquals(true, result.data["started"]?.jsonPrimitive?.boolean)
         assertEquals("1 64 1", result.data["block"]?.jsonPrimitive?.content)
+        assertEquals(listOf("client-query"), gateway.actions)
+        assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
+    fun `fabric runtime graph exposes block query from client state`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = false
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+            )
+
+        val unavailableQuery = backend.runtimeGraph("alice").operations.single { it.id == "world.block.query" }
+        val unavailableResult =
+            backend.operationAdapters("alice").invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = unavailableQuery,
+                    arguments = mapOf("radius" to JsonPrimitive(8.0)),
+                ),
+            )
+
+        assertEquals("fabric.world-block-query", unavailableQuery.adapter)
+        assertEquals(RuntimeAvailabilityState.UNAVAILABLE, unavailableQuery.availability.state)
+        assertEquals("client-not-connected", unavailableQuery.availability.reason)
+        assertEquals("number", unavailableQuery.arguments["radius"]?.type)
+        assertEquals("integer", unavailableQuery.arguments["limit"]?.type)
+        assertEquals("string", unavailableQuery.arguments["category"]?.type)
+        assertEquals("object", unavailableQuery.result.type)
+        assertEquals(DriverActionStatus.UNSUPPORTED, unavailableResult.status)
+        assertEquals("client-not-connected", unavailableResult.message)
+
+        gateway.connected = true
+        gateway.capabilities =
+            FabricClientCapabilitySnapshot(
+                connected = true,
+                player = true,
+                inventory = true,
+                camera = true,
+                interactionManager = true,
+                world = true,
+            )
+        gateway.screenOpen = false
+        gateway.queryResult =
+            buildJsonObject {
+                put("origin", buildJsonObject { put("x", 1.0) })
+                put("radius", 8.0)
+                put("count", 1)
+                put(
+                    "blocks",
+                    buildJsonArray {
+                        add(
+                            buildJsonObject {
+                                put("handle", "block.handle-1")
+                                put("category", "log")
+                                put(
+                                    "position",
+                                    buildJsonObject {
+                                        put("x", 2)
+                                        put("y", 64)
+                                        put("z", 3)
+                                    },
+                                )
+                            },
+                        )
+                    },
+                )
+            }
+
+        val blockQuery = backend.runtimeGraph("alice").operations.single { it.id == "world.block.query" }
+        gateway.actions.clear()
+        gateway.scheduled = 0
+        val result =
+            backend.operationAdapters("alice").invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = blockQuery,
+                    arguments =
+                        mapOf(
+                            "radius" to JsonPrimitive(8.0),
+                            "limit" to JsonPrimitive(5),
+                            "category" to JsonPrimitive("log"),
+                        ),
+                ),
+            )
+
+        assertEquals(RuntimeAvailabilityState.AVAILABLE, blockQuery.availability.state)
+        assertEquals(null, blockQuery.availability.reason)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertEquals(1, result.data["count"]?.jsonPrimitive?.int)
+        val block =
+            requireNotNull(
+                result.data["blocks"]
+                    ?.jsonArray
+                    ?.single()
+                    ?.jsonObject,
+            )
+        assertEquals(
+            "block.handle-1",
+            block["handle"]?.jsonPrimitive?.content,
+        )
         assertEquals(listOf("client-query"), gateway.actions)
         assertEquals(1, gateway.scheduled)
     }

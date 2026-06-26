@@ -49,12 +49,16 @@ class PublicAgentGameplayRunner(
             artifactsDir?.let { writeArtifacts(it, result) }
             return result
         }
-        val invocationResult =
-            http
-                .post("$baseUrl/clients/$clientId:run") {
-                    contentType(ContentType.Application.Json)
-                    setBody(publicAgentInvocation("entity.query"))
-                }.bodyAsText()
+        val actionLog =
+            publicAgentProbeInvocations.map { invocation ->
+                val invocationResult =
+                    http
+                        .post("$baseUrl/clients/$clientId:run") {
+                            contentType(ContentType.Application.Json)
+                            setBody(publicAgentInvocation(invocation.action, invocation.args))
+                        }.bodyAsText()
+                PublicAgentActionLog(action = invocation.action, response = invocationResult)
+            }
         val result =
             PublicAgentGameplayResult(
                 state = PublicAgentGameplayState.RAN,
@@ -62,7 +66,7 @@ class PublicAgentGameplayRunner(
                 clientSpec = clientSpec,
                 actions = actions,
                 eventStream = eventStream,
-                actionLog = listOf(PublicAgentActionLog(action = "entity.query", response = invocationResult)),
+                actionLog = actionLog,
                 availableActions = actionIds.sorted(),
             )
         artifactsDir?.let { writeArtifacts(it, result) }
@@ -143,12 +147,15 @@ class PublicAgentGameplayRunner(
             JsonObject(entries.toMap()),
         )
 
-    private fun publicAgentInvocation(action: String): String =
+    private fun publicAgentInvocation(
+        action: String,
+        args: JsonObject = JsonObject(emptyMap()),
+    ): String =
         publicAgentJson.encodeToString(
             JsonObject.serializer(),
             buildJsonObject {
                 put("action", JsonPrimitive(action))
-                put("arguments", JsonObject(emptyMap()))
+                put("args", args)
             },
         )
 }
@@ -197,6 +204,11 @@ data class PublicAgentActionLog(
     val response: String,
 )
 
+private data class PublicAgentProbeInvocation(
+    val action: String,
+    val args: JsonObject = JsonObject(emptyMap()),
+)
+
 enum class PublicAgentGameplayState {
     RAN,
     BLOCKED,
@@ -221,6 +233,20 @@ private val requiredActions =
         "player.raycast",
         "world.block.query",
         "world.block.break",
+    )
+
+private val publicAgentProbeInvocations =
+    listOf(
+        PublicAgentProbeInvocation("inventory.query"),
+        PublicAgentProbeInvocation(
+            action = "world.block.query",
+            args =
+                buildJsonObject {
+                    put("radius", JsonPrimitive(16.0))
+                    put("limit", JsonPrimitive(32))
+                },
+        ),
+        PublicAgentProbeInvocation("entity.query"),
     )
 
 private val publicAgentJson =

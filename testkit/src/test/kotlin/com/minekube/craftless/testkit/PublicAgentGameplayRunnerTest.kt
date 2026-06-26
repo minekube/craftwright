@@ -33,9 +33,12 @@ class PublicAgentGameplayRunnerTest {
                     "GET /clients/fabric-smoke/actions",
                     "GET /clients/fabric-smoke/events:stream",
                     "POST /clients/fabric-smoke:run",
+                    "POST /clients/fabric-smoke:run",
+                    "POST /clients/fabric-smoke:run",
                 ),
-                server.requests.take(5),
+                server.requests.take(7),
             )
+            assertEquals(listOf("inventory.query", "world.block.query", "entity.query"), result.actionLog.map { it.action })
         }
 
     @Test
@@ -91,6 +94,8 @@ class PublicAgentGameplayRunnerTest {
             val state = Files.readString(artifactsDir.resolve("public-agent-state.jsonl"))
             assertTrue(gameplay.contains("public-agent-action"))
             assertTrue(gameplay.contains("entity.query"))
+            assertTrue(gameplay.contains("world.block.query"))
+            assertTrue(gameplay.contains("inventory.query"))
             assertTrue(state.contains("public-agent-discovery"))
             assertTrue(state.contains("GET /clients/fabric-smoke/events:stream"))
             assertFalse(gameplay.contains("task.survival"))

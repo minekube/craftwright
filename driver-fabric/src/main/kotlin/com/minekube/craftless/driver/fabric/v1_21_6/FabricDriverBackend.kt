@@ -7,6 +7,7 @@ import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverOperationAdapter
 import com.minekube.craftless.driver.api.DriverOperationAdapters
+import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
@@ -27,13 +28,17 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.block.BlockState
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.mob.HostileEntity
 import net.minecraft.entity.passive.PassiveEntity
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
+import net.minecraft.registry.tag.BlockTags
+import net.minecraft.util.math.BlockPos
 import java.security.MessageDigest
+import kotlin.math.sqrt
 
 class FabricDriverBackend private constructor(
     private val mode: Mode,
@@ -165,6 +170,7 @@ class FabricDriverBackend private constructor(
             "navigation.default" to navigationOperationAdapter(),
             "task.executor" to taskOperationAdapter(),
             "fabric.entity-query" to entityQueryOperationAdapter(),
+            "fabric.world-block-query" to blockQueryOperationAdapter(),
         )
 
     private fun navigationOperationAdapter(): DriverOperationAdapter =
@@ -200,7 +206,15 @@ class FabricDriverBackend private constructor(
             queryEntities(invocation)
         }
 
-    private fun queryEntities(invocation: com.minekube.craftless.driver.api.DriverOperationInvocation): DriverActionResult {
+    private fun blockQueryOperationAdapter(): DriverOperationAdapter =
+        DriverOperationAdapter { invocation ->
+            if (invocation.operation.id != "world.block.query") {
+                return@DriverOperationAdapter unsupportedGraphOperation(invocation)
+            }
+            queryBlocks(invocation)
+        }
+
+    private fun queryEntities(invocation: DriverOperationInvocation): DriverActionResult {
         val radius = invocation.arguments["radius"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_ENTITY_QUERY_RADIUS
         val limit = invocation.arguments["limit"]?.jsonPrimitive?.intOrNull ?: DEFAULT_ENTITY_QUERY_LIMIT
         require(radius > 0.0) { "entity query radius must be positive" }
@@ -247,7 +261,75 @@ class FabricDriverBackend private constructor(
         )
     }
 
-    private fun planNavigation(invocation: com.minekube.craftless.driver.api.DriverOperationInvocation): DriverActionResult {
+    private fun queryBlocks(invocation: DriverOperationInvocation): DriverActionResult {
+        val radius = invocation.arguments["radius"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_BLOCK_QUERY_RADIUS
+        val limit = invocation.arguments["limit"]?.jsonPrimitive?.intOrNull ?: DEFAULT_BLOCK_QUERY_LIMIT
+        val category =
+            invocation.arguments["category"]
+                ?.jsonPrimitive
+                ?.contentOrNull
+                ?.trim()
+                ?.lowercase()
+                ?.takeIf { it.isNotEmpty() }
+        require(radius > 0.0 && radius <= MAX_BLOCK_QUERY_RADIUS) {
+            "block query radius must be between 0 and $MAX_BLOCK_QUERY_RADIUS"
+        }
+        require(limit in BLOCK_QUERY_LIMIT_RANGE) { "block query limit must be between 1 and 256" }
+        val clientGateway = gateway
+        if (clientGateway == null || !clientGateway.isConnected()) {
+            return DriverActionResult(
+                action = invocation.operation.id,
+                status = DriverActionStatus.UNSUPPORTED,
+                message = "client-not-connected",
+            )
+        }
+        val data =
+            clientGateway.queryOnClient {
+                val currentPlayer = requireNotNull(player) { "client is not connected to a server" }
+                val currentWorld = requireNotNull(world) { "client world is unavailable" }
+                val origin = currentPlayer.blockPos
+                val radiusBlocks = radius.toInt().coerceAtLeast(1)
+                val matches = mutableListOf<CraftlessBlockQueryMatch>()
+                for (x in (origin.x - radiusBlocks)..(origin.x + radiusBlocks)) {
+                    for (y in (origin.y - radiusBlocks)..(origin.y + radiusBlocks)) {
+                        for (z in (origin.z - radiusBlocks)..(origin.z + radiusBlocks)) {
+                            val pos = BlockPos(x, y, z)
+                            val distance = pos.distanceTo(origin)
+                            if (distance > radius) {
+                                continue
+                            }
+                            val state = currentWorld.getBlockState(pos)
+                            val blockCategory = state.toCraftlessBlockCategory()
+                            if (state.matchesCraftlessBlockCategory(blockCategory, category)) {
+                                matches += CraftlessBlockQueryMatch(pos, blockCategory, distance)
+                            }
+                        }
+                    }
+                }
+                val limited = matches.sortedBy { it.distance }.take(limit)
+                buildJsonObject {
+                    put("origin", origin.toCraftlessPositionJson())
+                    put("radius", radius)
+                    put("count", limited.size)
+                    put(
+                        "blocks",
+                        buildJsonArray {
+                            limited.forEach { match ->
+                                add(match.toCraftlessJson())
+                            }
+                        },
+                    )
+                }
+            }
+        return DriverActionResult(
+            action = invocation.operation.id,
+            status = DriverActionStatus.ACCEPTED,
+            message = "fabric ${mode.id} action ${invocation.operation.id} queried",
+            data = data,
+        )
+    }
+
+    private fun planNavigation(invocation: DriverOperationInvocation): DriverActionResult {
         val goalElement =
             invocation.arguments["goal"]
                 ?: return DriverActionResult(
@@ -270,7 +352,7 @@ class FabricDriverBackend private constructor(
         )
     }
 
-    private fun followNavigation(invocation: com.minekube.craftless.driver.api.DriverOperationInvocation): DriverActionResult {
+    private fun followNavigation(invocation: DriverOperationInvocation): DriverActionResult {
         val planId =
             invocation.arguments["plan"]?.navigationPlanId()
                 ?: return DriverActionResult(
@@ -291,7 +373,7 @@ class FabricDriverBackend private constructor(
         )
     }
 
-    private fun stopNavigation(invocation: com.minekube.craftless.driver.api.DriverOperationInvocation): DriverActionResult {
+    private fun stopNavigation(invocation: DriverOperationInvocation): DriverActionResult {
         val status = pathfinderBackend.stop()
         return DriverActionResult(
             action = invocation.operation.id,
@@ -305,7 +387,7 @@ class FabricDriverBackend private constructor(
         )
     }
 
-    private fun runTask(invocation: com.minekube.craftless.driver.api.DriverOperationInvocation): DriverActionResult {
+    private fun runTask(invocation: DriverOperationInvocation): DriverActionResult {
         val requestElement =
             invocation.arguments["request"]
                 ?: return DriverActionResult(
@@ -328,7 +410,7 @@ class FabricDriverBackend private constructor(
         )
     }
 
-    private fun queryTaskStatus(invocation: com.minekube.craftless.driver.api.DriverOperationInvocation): DriverActionResult {
+    private fun queryTaskStatus(invocation: DriverOperationInvocation): DriverActionResult {
         val taskId =
             invocation.arguments["task"]?.jsonPrimitive?.contentOrNull
                 ?: return DriverActionResult(
@@ -349,7 +431,7 @@ class FabricDriverBackend private constructor(
         )
     }
 
-    private fun unsupportedGraphOperation(invocation: com.minekube.craftless.driver.api.DriverOperationInvocation): DriverActionResult =
+    private fun unsupportedGraphOperation(invocation: DriverOperationInvocation): DriverActionResult =
         DriverActionResult(
             action = invocation.operation.id,
             status = DriverActionStatus.UNSUPPORTED,
@@ -444,6 +526,54 @@ private fun Entity.toCraftlessEntityCategory(): String =
         else -> "object"
     }
 
+private data class CraftlessBlockQueryMatch(
+    val position: BlockPos,
+    val category: String,
+    val distance: Double,
+) {
+    fun toCraftlessJson(): JsonObject =
+        buildJsonObject {
+            put("handle", "world.block:${position.x}:${position.y}:${position.z}")
+            put("category", category)
+            put("distance", distance)
+            put("position", position.toCraftlessPositionJson())
+        }
+}
+
+private fun BlockState.toCraftlessBlockCategory(): String =
+    when {
+        isAir -> "air"
+        isIn(BlockTags.LOGS) -> "log"
+        !fluidState.isEmpty -> "fluid"
+        else -> "block"
+    }
+
+private fun BlockState.matchesCraftlessBlockCategory(
+    projectedCategory: String,
+    requestedCategory: String?,
+): Boolean =
+    when (requestedCategory) {
+        null -> projectedCategory != "air"
+        "any" -> true
+        "non-air" -> projectedCategory != "air"
+        "block" -> projectedCategory == "block" || projectedCategory == "log"
+        else -> projectedCategory == requestedCategory
+    }
+
+private fun BlockPos.distanceTo(origin: BlockPos): Double {
+    val dx = x - origin.x
+    val dy = y - origin.y
+    val dz = z - origin.z
+    return sqrt((dx * dx + dy * dy + dz * dz).toDouble())
+}
+
+private fun BlockPos.toCraftlessPositionJson(): JsonObject =
+    buildJsonObject {
+        put("x", x)
+        put("y", y)
+        put("z", z)
+    }
+
 private fun kotlinx.serialization.json.JsonElement.navigationPlanId(): String? =
     when (this) {
         is JsonPrimitive -> content
@@ -460,6 +590,10 @@ private val fabricBackendJson = Json
 private const val DEFAULT_ENTITY_QUERY_RADIUS = 16.0
 private const val DEFAULT_ENTITY_QUERY_LIMIT = 25
 private val ENTITY_QUERY_LIMIT_RANGE = 1..100
+private const val DEFAULT_BLOCK_QUERY_RADIUS = 16.0
+private const val MAX_BLOCK_QUERY_RADIUS = 32.0
+private const val DEFAULT_BLOCK_QUERY_LIMIT = 64
+private val BLOCK_QUERY_LIMIT_RANGE = 1..256
 
 private fun String.toDriverActionStatus(): DriverActionStatus =
     when (this) {

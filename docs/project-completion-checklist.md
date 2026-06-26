@@ -181,9 +181,9 @@ Verification:
   `public-agent-state.jsonl`. The Fabric final harness now injects its live
   daemon URL into that external runner while the client is connected; completing
   the live survival proof through generated primitives is still open. Latest
-  no-hold live evidence reports
-  `missing-generic-primitive:world.block.query`, and the diagnostic internal
-  survival harness still fails with `no-material-source`.
+  no-hold live evidence shows the public agent progressed through
+  `inventory.query`, `world.block.query`, and `entity.query`; the diagnostic
+  internal survival harness still fails before material collection is complete.
 - [ ] Robin joins or observes the server session after a macOS `say` prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
@@ -222,12 +222,12 @@ Verification:
   require inventory proof and currently fail at `material-collect-timeout`, with
   post-task `inventory.query` showing no collected logs, weapon, beef, or
   leather.
-- [ ] The final survival proof is reproduced by an external public-agent runner
+- [!] The final survival proof is reproduced by an external public-agent runner
   over generated OpenAPI/SSE/CLI/skills, not by hard-coding the scenario as a
-  durable public `task.survival.*` API. Current blocker:
-  `world.block.query` or an equivalent generated resource projection is missing,
-  so an agent cannot discover nearby logs/material block handles before
-  navigating and mining.
+  durable public `task.survival.*` API. The previous
+  `missing-generic-primitive:world.block.query` blocker is resolved by Phase 12;
+  remaining work is to compose navigation, mining, inventory/crafting, combat,
+  chat, and state/event verification through the public API.
 
 ## Phase 9: Pathfinder-Backed Execution
 
@@ -248,6 +248,32 @@ Verification:
 - `mise exec -- gradle :driver-fabric:test`
 - `mise run lint`
 - `mise run architecture-check`
+
+## Phase 12: Runtime Block Resource Query
+
+- [x] Spec and plan exist for generic runtime block perception without adding
+  `find.tree`, `kill.cow`, `craft.sword`, or another static survival shortcut.
+- [x] `world.block.query` is projected from the Fabric runtime capability graph
+  with bounded `radius`, `limit`, and optional Craftless-owned `category`
+  arguments.
+- [x] `world.block.handle` is projected as a runtime handle for generated
+  OpenAPI/resource consumers.
+- [x] `fabric.world-block-query` executes through `DriverOperationAdapters`
+  and `POST /clients/{id}:run`, not through a new transitional
+  `FabricActionBindings.kt` descriptor.
+- [x] The public-agent no-hold gameplay run invokes `inventory.query`,
+  `world.block.query`, and `entity.query` from the generated action catalog and
+  records `publicAgentState=RAN` without calling `task.survival.*`.
+- [ ] A higher-level public agent policy uses these generic primitives to
+  navigate, mine/collect materials, craft/equip, fight, chat, and verify final
+  survival evidence with Robin.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test`
+- `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
+- Evidence: `driver-fabric/build/craftless-final-gameplay/artifacts/public-agent-gameplay-results.jsonl`
 
 Verification:
 

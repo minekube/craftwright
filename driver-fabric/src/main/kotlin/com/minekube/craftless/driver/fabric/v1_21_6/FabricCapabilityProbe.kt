@@ -160,6 +160,7 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
         val inventoryAvailability = capabilities.inventoryAvailability()
         val cameraAvailability = capabilities.cameraAvailability()
         val worldAvailability = capabilities.worldAvailability()
+        val blockQueryAvailability = capabilities.blockQueryAvailability()
         val blockBreakAvailability = capabilities.blockBreakAvailability()
         val blockInteractAvailability = capabilities.blockInteractAvailability()
         val screenCloseAvailability =
@@ -184,6 +185,19 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                         ),
                     result = RuntimeSchema.objectSchema(),
                     availability = capabilities.entityAvailability(),
+                ),
+                RuntimeOperationNode(
+                    id = "world.block.query",
+                    resource = "world",
+                    adapter = "fabric.world-block-query",
+                    arguments =
+                        mapOf(
+                            "radius" to RuntimeSchema("number"),
+                            "limit" to RuntimeSchema("integer"),
+                            "category" to RuntimeSchema("string"),
+                        ),
+                    result = RuntimeSchema.objectSchema(),
+                    availability = blockQueryAvailability,
                 ),
                 context.operation("world.time.query", "world", "fabric.world-time-query", worldAvailability),
                 context.operation("world.block.break", "world", "fabric.world-block-break", blockBreakAvailability),
@@ -210,6 +224,12 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                         resource = "inventory",
                         schema = RuntimeSchema.objectSchema(),
                         availability = inventoryAvailability,
+                    ),
+                    RuntimeHandleNode(
+                        id = "world.block.handle",
+                        resource = "world",
+                        schema = RuntimeSchema.objectSchema(),
+                        availability = blockQueryAvailability,
                     ),
                     RuntimeHandleNode(
                         id = "entity.handle",
@@ -281,6 +301,8 @@ private fun FabricClientCapabilitySnapshot.worldAvailability(): RuntimeAvailabil
 
 private fun FabricClientCapabilitySnapshot.entityAvailability(): RuntimeAvailability = availability(entityReason())
 
+private fun FabricClientCapabilitySnapshot.blockQueryAvailability(): RuntimeAvailability = availability(blockQueryReason())
+
 private fun FabricClientCapabilitySnapshot.blockBreakAvailability(): RuntimeAvailability = availability(blockBreakReason())
 
 private fun FabricClientCapabilitySnapshot.blockInteractAvailability(): RuntimeAvailability = availability(blockInteractReason())
@@ -331,6 +353,10 @@ private fun FabricClientCapabilitySnapshot.worldReason(): String? =
     }
 
 private fun FabricClientCapabilitySnapshot.entityReason(): String? =
+    playerReason()
+        ?: worldReason()
+
+private fun FabricClientCapabilitySnapshot.blockQueryReason(): String? =
     playerReason()
         ?: worldReason()
 
