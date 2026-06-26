@@ -102,7 +102,7 @@ Legend: 🟢 yes, 🟡 partial or limited, 🔵 planned, 🔴 no.
 
 | Area | Craftless | [Mineflayer](https://github.com/PrismarineJS/mineflayer) | [Baritone](https://github.com/cabaletta/baritone) |
 | --- | --- | --- | --- |
-| Real Minecraft Java client | 🟢 Fabric smoke proven for join/chat, target item acquisition/equip, block action, and driver-side movement event | 🔴 protocol bot | 🟢 |
+| Real Minecraft Java client | 🟢 Fabric smoke proven for join/chat, target item acquisition/equip, block action, and driver-side movement telemetry | 🔴 protocol bot | 🟢 |
 | Headless and visible operation | 🟡 supervisor API now; visible Fabric smoke proven | 🔴 | 🟡 visible client |
 | Live per-client OpenAPI/action schema | 🟢 | 🔴 | 🔴 |
 | Runtime discovery from version, mods, server features, and permissions | 🟢 | 🟡 protocol data | 🟡 in-client state |
@@ -146,7 +146,7 @@ Implemented now:
   Craftless-owned cache artifacts under the configured workspace.
 - Fabric/Loom driver module with internal version-aware bindings and
   gateway-backed runtime hooks for current action evidence.
-- Fabric-generated action descriptors for current chat, movement, player
+- Fabric-generated action descriptors for current chat/movement telemetry, player
   query/look, screen query, raycast, inventory query/equip, block
   break/interact, and world time query bindings, routed through an internal
   discovery projection. Broader gameplay actions are not advertised until they
@@ -166,12 +166,11 @@ Implemented now:
   provisions an `Iron Sword` through the server fixture as smoke setup, waits
   until the live inventory action observes it, equips the discovered slot, and
   verifies server-side join, target-item provisioning, chat, and disconnect
-  evidence plus driver-side movement and gameplay result artifacts.
+  evidence plus driver-side movement telemetry and gameplay result artifacts.
 
 Still roadmap:
 
-- stronger real-client movement proof using server-side position deltas or
-  richer measured in-client position telemetry;
+- stronger real-client movement proof using server-side position deltas;
 - runtime discovery/projection for broader gameplay resources and actions such
   as world/entity queries, screen interaction, crafting, richer handles,
   and events;

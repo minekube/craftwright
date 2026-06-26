@@ -143,6 +143,27 @@ class FabricDriverModuleTest {
     fun `fabric backend maps player move action to movement intent`() {
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)
+        gateway.queryResult =
+            buildJsonObject {
+                put("ticks", 20)
+                put(
+                    "input",
+                    buildJsonObject {
+                        put("forward", true)
+                        put("jump", true)
+                    },
+                )
+                put(
+                    "position-before",
+                    buildJsonObject {
+                        put("x", 10.0)
+                        put("y", 64.0)
+                        put("z", -3.5)
+                    },
+                )
+            }
+
+        val move = backend.actions("alice").single { it.id == "player.move" }
 
         val result =
             backend.invoke(
@@ -158,9 +179,16 @@ class FabricDriverModuleTest {
                 ),
             )
 
+        assertEquals("object", move.result.properties["data"]?.type)
         assertEquals("player.move", result.action)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
-        assertEquals(listOf("client-action"), gateway.actions)
+        assertEquals(20, result.data["ticks"]?.jsonPrimitive?.int)
+        val input = requireNotNull(result.data["input"]?.jsonObject)
+        assertEquals(true, input["forward"]?.jsonPrimitive?.boolean)
+        assertEquals(true, input["jump"]?.jsonPrimitive?.boolean)
+        val positionBefore = requireNotNull(result.data["position-before"]?.jsonObject)
+        assertEquals(-3.5, positionBefore["z"]?.jsonPrimitive?.content?.toDoubleOrNull())
+        assertEquals(listOf("client-query"), gateway.actions)
         assertEquals(1, gateway.scheduled)
     }
 
@@ -837,6 +865,18 @@ class FabricDriverModuleTest {
             )
         gateway.queryResults +=
             buildJsonObject {
+                put("ticks", 4)
+                put(
+                    "position-before",
+                    buildJsonObject {
+                        put("x", 0.0)
+                        put("y", 64.0)
+                        put("z", 0.0)
+                    },
+                )
+            }
+        gateway.queryResults +=
+            buildJsonObject {
                 put("open", false)
             }
         gateway.queryResults +=
@@ -894,7 +934,7 @@ class FabricDriverModuleTest {
             listOf(
                 "connect localhost:25567",
                 "client-action",
-                "client-action",
+                "client-query",
                 "client-query",
                 "client-query",
                 "client-query",
@@ -936,6 +976,7 @@ class FabricDriverModuleTest {
         assertTrue(connectedResources.contains("\"id\":\"world.time\""))
         assertTrue(connectedResources.contains("\"availability\":\"available\""))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("player.query"))
+        assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("position-before"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("screen.query"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("world.time.query"))
         assertTrue(Files.readString(artifactsDir.resolve("gameplay-results.jsonl")).contains("player.look"))
@@ -965,6 +1006,18 @@ class FabricDriverModuleTest {
                     "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
                 ),
             )
+        gateway.queryResults +=
+            buildJsonObject {
+                put("ticks", 4)
+                put(
+                    "position-before",
+                    buildJsonObject {
+                        put("x", 0.0)
+                        put("y", 64.0)
+                        put("z", 0.0)
+                    },
+                )
+            }
         gateway.queryResults +=
             buildJsonObject {
                 put("open", false)
@@ -1021,7 +1074,7 @@ class FabricDriverModuleTest {
             listOf(
                 "connect 127.0.0.1:25565",
                 "client-action",
-                "client-action",
+                "client-query",
                 "client-query",
                 "client-query",
                 "client-query",
@@ -1130,7 +1183,7 @@ class FabricDriverModuleTest {
             listOf(
                 "connect 127.0.0.1:25567",
                 "client-action",
-                "client-action",
+                "client-query",
                 "client-query",
                 "client-query",
                 "client-query",

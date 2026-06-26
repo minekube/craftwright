@@ -52,7 +52,7 @@ Craftless currently has:
   execution binding, and allows unbound actions only as unavailable runtime
   probes with machine-readable reasons;
 - Fabric/Loom driver scaffolding with current action evidence;
-- Fabric-generated action descriptors for current chat, movement, player
+- Fabric-generated action descriptors for current chat/movement telemetry, player
   query/look, raycast, inventory query/equip, block break/interact, and
   world time query bindings.
   Broader gameplay actions must come from real bindings or runtime discovery
@@ -86,7 +86,7 @@ Craftless currently has:
   waits until live `inventory.query` observes `Iron Sword`, equips the
   discovered slot, writes client artifacts next to server artifacts, and
   verifies server-side join/item-provision/chat/disconnect evidence plus
-  driver-side movement and gameplay result telemetry;
+  driver-side movement telemetry and gameplay result artifacts;
 - repo-local Kotlin/JVM agent skills scoped to this codebase.
 
 ## Completion Definition
@@ -124,11 +124,11 @@ the durable Fabric direction.
   item-provision/join/chat/disconnect evidence, observed and equipped
   `Iron Sword` through live inventory metadata, and recorded driver-side
   movement plus gameplay result telemetry. The current smoke controller also
-  invokes generated `screen.query`, `world.time.query`, and
-  `world.block.interact`; the next opt-in real smoke refresh should capture
-  those artifacts.
-- Strengthen generated `player.move` proof from accepted driver telemetry to
-  measured server-side position deltas or richer in-client position telemetry.
+  records generated `player.move` before-position telemetry and invokes
+  generated `screen.query`, `world.time.query`, and `world.block.interact`;
+  the next opt-in real smoke refresh should capture those artifacts.
+- Strengthen generated `player.move` proof further with measured server-side
+  position deltas.
 - Keep bridge evidence tests separate from Fabric smoke tests so the bridge
   cannot accidentally become the product path.
 

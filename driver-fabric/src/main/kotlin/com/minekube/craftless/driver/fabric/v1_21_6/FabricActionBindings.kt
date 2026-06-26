@@ -495,6 +495,7 @@ private object FabricPlayerMoveActionBinding : FabricActionBinding {
                     "sprint" to DriverActionArgument("boolean"),
                     "ticks" to DriverActionArgument("integer"),
                 ),
+            result = fabricObjectDataResultDescriptor(),
         )
 
     override fun invoke(
@@ -514,25 +515,29 @@ private object FabricPlayerMoveActionBinding : FabricActionBinding {
                 ticks = invocation.arguments.intArgument("ticks") ?: 1,
             )
         require(intent.ticks > 0) { "movement ticks must be positive" }
-        context.executeOnClient {
-            val player = requireNotNull(player) { "client is not connected to a server" }
-            val originalInput = player.input
-            player.input =
-                CraftlessMovementInput(
-                    delegate = originalInput,
-                    movementInput = intent.toPlayerInput(),
-                    ticks = intent.ticks,
-                    restore = {
-                        if (player.input is CraftlessMovementInput) {
-                            player.input = originalInput
-                        }
-                    },
-                )
-        }
+        val data =
+            context.queryOnClient {
+                val player = requireNotNull(player) { "client is not connected to a server" }
+                val telemetry = intent.toCraftlessMovementData(player.pos, player.yaw, player.pitch, player.isOnGround)
+                val originalInput = player.input
+                player.input =
+                    CraftlessMovementInput(
+                        delegate = originalInput,
+                        movementInput = intent.toPlayerInput(),
+                        ticks = intent.ticks,
+                        restore = {
+                            if (player.input is CraftlessMovementInput) {
+                                player.input = originalInput
+                            }
+                        },
+                    )
+                telemetry
+            }
         return DriverActionResult(
             action = invocation.action,
             status = DriverActionStatus.ACCEPTED,
             message = "fabric ${context.modeId} action ${invocation.action} accepted for ${intent.ticks} tick(s)",
+            data = data,
             eventType = DriverEventType.MOVEMENT,
         )
     }
@@ -549,6 +554,37 @@ private data class FabricMovementIntent(
     val ticks: Int = 1,
 ) {
     fun toPlayerInput(): PlayerInput = PlayerInput(forward, backward, left, right, jump, sneak, sprint)
+
+    fun toCraftlessMovementData(
+        positionBefore: Vec3d,
+        yaw: Float,
+        pitch: Float,
+        onGround: Boolean,
+    ): JsonObject =
+        buildJsonObject {
+            put("ticks", ticks)
+            put(
+                "input",
+                buildJsonObject {
+                    put("forward", forward)
+                    put("backward", backward)
+                    put("left", left)
+                    put("right", right)
+                    put("jump", jump)
+                    put("sneak", sneak)
+                    put("sprint", sprint)
+                },
+            )
+            put("position-before", positionBefore.toCraftlessJson())
+            put(
+                "rotation-before",
+                buildJsonObject {
+                    put("yaw", yaw)
+                    put("pitch", pitch)
+                },
+            )
+            put("on-ground-before", onGround)
+        }
 }
 
 private class CraftlessMovementInput(

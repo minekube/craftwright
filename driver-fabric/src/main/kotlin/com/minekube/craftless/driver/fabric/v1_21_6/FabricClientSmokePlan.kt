@@ -40,7 +40,7 @@ data class FabricClientSmokePlan(
                         ),
                         FabricSmokeStep(
                             FabricSmokeStepKind.INVOKE_GENERATED_MOVE_ACTION,
-                            "Invoke generated player.move through the per-client action API",
+                            "Invoke generated player.move through the per-client action API and record movement telemetry",
                         ),
                         FabricSmokeStep(
                             FabricSmokeStepKind.INVOKE_GENERATED_GAMEPLAY_ACTIONS,
@@ -48,11 +48,11 @@ data class FabricClientSmokePlan(
                         ),
                         FabricSmokeStep(
                             FabricSmokeStepKind.ASSERT_SERVER_EVIDENCE,
-                            "Assert server-side join, chat, movement, and disconnect evidence",
+                            "Assert server-side join, chat, disconnect, and driver-side movement telemetry",
                         ),
                         FabricSmokeStep(
                             FabricSmokeStepKind.COLLECT_ARTIFACTS,
-                            "Collect server logs, client OpenAPI, action metadata, events, and runtime metadata",
+                            "Collect server logs, client OpenAPI, action metadata, events, gameplay results, and runtime metadata",
                         ),
                     ),
                 artifacts =

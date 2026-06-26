@@ -41,7 +41,7 @@ Legend:
   and HTTP `ETag`/`If-None-Match` revalidation metadata; action/resource
   projection endpoints use the same fingerprint.
 - [x] Fabric smoke has proven real client launch, server join, generated chat,
-  generated movement invocation, generated look invocation, server-side target
+  generated movement telemetry, generated look invocation, server-side target
   item provisioning, generated inventory observation/equip, generated block
   action invocation, disconnect, and artifact capture.
 - [~] Current Fabric driver has real chat, movement, connected-client
@@ -193,7 +193,8 @@ Verification:
 ## 4. Fabric Driver Action Bindings
 
 - [x] `player.chat` has a real Fabric binding.
-- [x] `player.move` has a real Fabric binding and driver-side event evidence.
+- [x] `player.move` has a real Fabric binding plus driver-side event and
+  before-position telemetry evidence.
 - [x] Fabric action listing goes through an internal discovery snapshot instead
   of directly returning the binding map, and that snapshot is composed from
   runtime probes with duplicate action-id validation.
@@ -244,9 +245,10 @@ Verification:
   telemetry, or both. Current smoke artifacts include connected
   OpenAPI/actions/resources, server-side item provisioning, target-item
   observation, equip slot selection, generated inventory equip, generated look,
-  and generated block break telemetry. `screen.query` and generated
-  `world.time.query` are covered by the daemon-backed smoke controller test and
-  should appear in the next opt-in real smoke artifact refresh.
+  and generated block break telemetry. Generated `player.move`
+  before-position telemetry, `screen.query`, and generated `world.time.query`
+  are covered by the daemon-backed smoke controller test and should appear in
+  the next opt-in real smoke artifact refresh.
 
 Verification:
 
