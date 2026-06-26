@@ -1,3 +1,6 @@
+import java.net.URI
+import java.security.MessageDigest
+
 plugins {
     id("net.fabricmc.fabric-loom-remap")
 }
@@ -19,6 +22,56 @@ tasks.processResources {
     inputs.property("version", project.version)
     filesMatching("fabric.mod.json") {
         expand("version" to project.version)
+    }
+}
+
+val pathfinderRuntimeVersion = "1.15.0"
+val pathfinderRuntimeFileName = "baritone-standalone-fabric-$pathfinderRuntimeVersion.jar"
+val pathfinderRuntimeUrl =
+    "https://github.com/cabaletta/baritone/releases/download/v$pathfinderRuntimeVersion/$pathfinderRuntimeFileName"
+val pathfinderRuntimeSha256 = "18decb85df264ac1dbc61d01d9fbdc31090b26fe25571a9e0bf9846f50acebd0"
+val pathfinderRuntimeJar = layout.buildDirectory.file("pathfinder/$pathfinderRuntimeFileName")
+val pathfinderRuntimeEnabled =
+    listOf("CRAFTLESS_ENABLE_PATHFINDER_BACKEND", "CRAFTLESS_FINAL_GAMEPLAY")
+        .any { name ->
+            val value = System.getenv(name)
+            value == "1" || value.equals("true", ignoreCase = true)
+        }
+
+fun sha256(file: File): String =
+    MessageDigest
+        .getInstance("SHA-256")
+        .digest(file.readBytes())
+        .joinToString("") { byte -> "%02x".format(byte) }
+
+val preparePathfinderRuntime =
+    tasks.register("preparePathfinderRuntime") {
+        group = "verification"
+        description = "Downloads and verifies the pinned optional Fabric pathfinder runtime jar."
+        outputs.file(pathfinderRuntimeJar)
+
+        doLast {
+            val output = pathfinderRuntimeJar.get().asFile
+            output.parentFile.mkdirs()
+            if (!output.exists() || sha256(output) != pathfinderRuntimeSha256) {
+                URI(pathfinderRuntimeUrl).toURL().openStream().use { input ->
+                    output.outputStream().use { outputStream ->
+                        input.copyTo(outputStream)
+                    }
+                }
+            }
+            val actualSha256 = sha256(output)
+            check(actualSha256 == pathfinderRuntimeSha256) {
+                "Pathfinder runtime checksum mismatch: expected $pathfinderRuntimeSha256 but got $actualSha256"
+            }
+        }
+    }
+
+tasks.named<JavaExec>("runClient") {
+    if (pathfinderRuntimeEnabled) {
+        dependsOn(preparePathfinderRuntime)
+        classpath(pathfinderRuntimeJar)
+        jvmArgs("-Dfabric.addMods=${pathfinderRuntimeJar.get().asFile.absolutePath}")
     }
 }
 

@@ -6,6 +6,7 @@ data class FabricFinalGameplayPlan(
     val gradleTasks: List<String>,
     val artifactsDirectory: String,
     val steps: List<FabricFinalGameplayStep>,
+    val runtimePreparations: List<String>,
     val artifacts: List<String>,
     val completionGates: List<String>,
 ) {
@@ -46,6 +47,12 @@ data class FabricFinalGameplayPlan(
                             FabricFinalGameplayStepKind.WAIT_FOR_ROBIN_CHAT_CONFIRMATION,
                             "Keep the session open until Robin writes in Minecraft chat that the goal may be completed",
                         ),
+                    ),
+                runtimePreparations =
+                    listOf(
+                        "When CRAFTLESS_ENABLE_PATHFINDER_BACKEND=1 or CRAFTLESS_FINAL_GAMEPLAY=1 is set, prepare a pinned Fabric pathfinder runtime jar under driver-fabric/build/pathfinder.",
+                        "Verify the prepared runtime jar with SHA-256 before adding it to the visible Fabric runClient launch.",
+                        "Treat the pathfinder runtime as private execution evidence; public OpenAPI, SSE, CLI, and docs stay Craftless-owned.",
                     ),
                 artifacts =
                     listOf(

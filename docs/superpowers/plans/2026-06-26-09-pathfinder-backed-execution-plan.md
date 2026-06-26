@@ -126,13 +126,13 @@ Run the focused test again. Expected: PASS.
 - Modify: `driver-fabric/build.gradle.kts`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt`
 
-- [ ] **Step 1: Write failing Gradle task metadata test**
+- [x] **Step 1: Write failing Gradle task metadata test**
 
 Assert the final gameplay task documents opt-in pathfinder preparation and no
 server-side item provisioning. The test should inspect `FabricFinalGameplayPlan`
 metadata, not shell out to Gradle.
 
-- [ ] **Step 2: Run focused test and verify RED**
+- [x] **Step 2: Run focused test and verify RED**
 
 Run:
 
@@ -142,14 +142,14 @@ mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.f
 
 Expected: FAIL until plan metadata includes opt-in pathfinder preparation.
 
-- [ ] **Step 3: Add opt-in preparation**
+- [x] **Step 3: Add opt-in preparation**
 
 Add a Gradle task that downloads the pinned Fabric pathfinder runtime jar to
 `driver-fabric/build/pathfinder/`, verifies SHA-256, and wires it into
 `runClient` only when `CRAFTLESS_ENABLE_PATHFINDER_BACKEND=1` or
 `CRAFTLESS_FINAL_GAMEPLAY=1`. Do not expose the backend name in OpenAPI.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run the focused test and `mise exec -- gradle :driver-fabric:tasks --group verification`.
 Expected: PASS and the preparation task is listed.
