@@ -53,6 +53,33 @@ class BackendDriverSessionTest {
     }
 
     @Test
+    fun `runtime driver session does not mark connect successful without observed backend evidence`() {
+        val session =
+            BackendDriverSession(
+                clientId = "alice",
+                backend =
+                    object : DriverBackend {
+                        override fun connect(
+                            clientId: String,
+                            target: ConnectionTarget,
+                        ): DriverBackendResult =
+                            DriverBackendResult(
+                                action = DriverBackendAction.CONNECT,
+                                message = "connect requested",
+                                observed = false,
+                            )
+
+                        override fun stop(clientId: String): DriverBackendResult = DriverBackendResult(DriverBackendAction.STOP)
+                    },
+            )
+
+        val snapshot = session.connect(ConnectionTarget(host = "127.0.0.1", port = 25565))
+
+        assertEquals(ClientState.RUNNING, snapshot.state)
+        assertTrue(session.events().none { it.type == DriverEventType.CLIENT_CONNECTED })
+    }
+
+    @Test
     fun `runtime driver session invokes generic backend actions`() {
         val backend =
             RecordingDriverBackend(

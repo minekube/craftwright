@@ -35,13 +35,15 @@ class BackendDriverSession(
         require(target.port in 1..65535) { "connection port must be between 1 and 65535" }
         val result = backend.connect(clientId, target)
         require(result.action == DriverBackendAction.CONNECT) { "backend returned ${result.action} for connect" }
-        state = ClientState.CONNECTED
-        events +=
-            DriverEvent(
-                type = DriverEventType.CLIENT_CONNECTED,
-                client = clientId,
-                message = result.message ?: "connected $clientId to ${target.host}:${target.port}",
-            )
+        if (result.observed) {
+            state = ClientState.CONNECTED
+            events +=
+                DriverEvent(
+                    type = DriverEventType.CLIENT_CONNECTED,
+                    client = clientId,
+                    message = result.message ?: "connected $clientId to ${target.host}:${target.port}",
+                )
+        }
         return snapshot()
     }
 
@@ -106,6 +108,7 @@ interface DriverBackend {
 data class DriverBackendResult(
     val action: DriverBackendAction,
     val message: String? = null,
+    val observed: Boolean = true,
 )
 
 enum class DriverBackendAction {

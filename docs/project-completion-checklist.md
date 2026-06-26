@@ -603,8 +603,13 @@ Verification:
   the latter writes `artifacts/runtime-lane.json` with status `UNSUPPORTED`,
   Java 25, and reason `runtime-lane-missing` before launching the current
   Fabric client lane.
-- [ ] Connect success is backed by observed client/server join evidence, not
-  only by accepting a connect request.
+- [x] Connect success is backed by observed client/server join evidence, not
+  only by accepting a connect request. Evidence:
+  `mise exec -- gradle :driver-runtime:test --tests '*BackendDriverSessionTest.runtime driver session does not mark connect successful without observed backend evidence*' :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend reports connect as unobserved until gateway is connected*'`.
+  The runtime session no longer emits `CLIENT_CONNECTED` or returns
+  `CONNECTED` for an unobserved backend request, and the Fabric backend reports
+  connect observation from the gateway connection state; server-side join
+  remains asserted by the smoke fixture when an expected player is configured.
 - [ ] Supervisor API can prepare, install, and launch a real versioned client
   runtime instead of failing with an unavailable driver factory.
 - [ ] Cache preparation for large Minecraft/mod artifact sets is resumable and

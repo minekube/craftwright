@@ -66,7 +66,11 @@ class FabricDriverBackend private constructor(
         gateway?.execute {
             gateway.connect(target)
         }
-        return DriverBackendResult(DriverBackendAction.CONNECT, "fabric ${mode.id} connect requested")
+        return DriverBackendResult(
+            action = DriverBackendAction.CONNECT,
+            message = "fabric ${mode.id} connect requested",
+            observed = gateway?.isConnected() ?: true,
+        )
     }
 
     override fun actions(clientId: String): List<DriverActionDescriptor> = discoveredActions(clientId).map { it.descriptor }

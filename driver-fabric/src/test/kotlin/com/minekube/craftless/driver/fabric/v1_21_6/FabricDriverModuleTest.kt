@@ -429,6 +429,19 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend reports connect as unobserved until gateway is connected`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connectMarksConnected = false
+        val backend = FabricDriverBackend.real(gateway)
+
+        val result = backend.connect("alice", ConnectionTarget("127.0.0.1", 25565))
+
+        assertEquals(DriverBackendAction.CONNECT, result.action)
+        assertFalse(result.observed)
+        assertEquals(listOf("connect 127.0.0.1:25565"), gateway.actions)
+    }
+
+    @Test
     fun `fabric backend exposes bootstrap bindings as graph operation adapters`() {
         val gateway = RecordingFabricClientGateway()
         val backend = smokeBackend(gateway)
@@ -2065,6 +2078,8 @@ private class RecordingFabricClientGateway : FabricClientGateway {
     @Volatile
     var connected = false
 
+    var connectMarksConnected = true
+
     @Volatile
     var ready = true
 
@@ -2075,7 +2090,9 @@ private class RecordingFabricClientGateway : FabricClientGateway {
 
     override fun connect(target: ConnectionTarget) {
         actions += "connect ${target.host}:${target.port}"
-        connected = true
+        if (connectMarksConnected) {
+            connected = true
+        }
     }
 
     override fun executeOnClient(action: net.minecraft.client.MinecraftClient.() -> Unit) {
