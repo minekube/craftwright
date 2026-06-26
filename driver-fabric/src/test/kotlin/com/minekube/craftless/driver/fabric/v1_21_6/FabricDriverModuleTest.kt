@@ -123,6 +123,29 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric runtime metadata fingerprints runtime registry entries`() {
+        val provider =
+            SnapshotFabricRuntimeMetadataProvider(
+                FabricRuntimeMetadataSnapshot(
+                    loaderVersion = "0.19.3",
+                    driverVersion = "0.1.0-SNAPSHOT",
+                    installedMods = listOf("minecraft@1.21.6", "fabricloader@0.19.3"),
+                    registries = listOf("item:minecraft:iron_sword", "block:minecraft:stone"),
+                    serverFeatures = listOf("environment:dev"),
+                ),
+            )
+
+        val metadata = provider.runtimeMetadata("alice")
+
+        assertEquals("0.19.3", metadata.loaderVersion)
+        assertTrue(metadata.installedModsFingerprint.startsWith("mods:"))
+        assertTrue(metadata.registryFingerprint.startsWith("registries:"))
+        assertTrue(metadata.serverFeatureFingerprint.startsWith("server-features:"))
+        assertFalse(metadata.registryFingerprint.contains("client-boundary"))
+        assertFalse(metadata.registryFingerprint.contains("metadata-only"))
+    }
+
+    @Test
     fun `fabric client smoke plan is opt in and bridge independent`() {
         val plan = FabricClientSmokePlan.default()
 

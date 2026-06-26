@@ -10,6 +10,8 @@ import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.driver.runtime.DriverBackendResult
 import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.registry.Registries
+import net.minecraft.registry.Registry
 import java.security.MessageDigest
 
 class FabricDriverBackend private constructor(
@@ -167,18 +169,43 @@ private fun staticFabricRuntimeMetadataProvider(): FabricRuntimeMetadataProvider
         )
     }
 
-private object FabricLoaderRuntimeMetadataProvider : FabricRuntimeMetadataProvider {
-    override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata {
-        val loader = FabricLoader.getInstance()
-        return DriverRuntimeMetadata(
-            loaderVersion = loader.versionFor(FABRIC_LOADER_ID) ?: "unknown",
+internal data class FabricRuntimeMetadataSnapshot(
+    val loaderVersion: String,
+    val driverVersion: String,
+    val installedMods: List<String>,
+    val registries: List<String>,
+    val serverFeatures: List<String>,
+    val permissionsFingerprint: String = "permissions:local-client",
+)
+
+internal class SnapshotFabricRuntimeMetadataProvider(
+    private val snapshot: FabricRuntimeMetadataSnapshot,
+) : FabricRuntimeMetadataProvider {
+    override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
+        DriverRuntimeMetadata(
+            loaderVersion = snapshot.loaderVersion,
             driver = FABRIC_DRIVER_ID,
-            driverVersion = loader.versionFor(FABRIC_DRIVER_ID) ?: FABRIC_DRIVER_VERSION,
+            driverVersion = snapshot.driverVersion,
             mappings = FABRIC_MAPPINGS_FINGERPRINT,
-            installedModsFingerprint = loader.installedModsFingerprint(),
-            registryFingerprint = "registries:client-boundary",
-            serverFeatureFingerprint = "server-features:${if (loader.isDevelopmentEnvironment) "dev" else "runtime"}",
-            permissionsFingerprint = "permissions:local-client",
+            installedModsFingerprint = fingerprint("mods", snapshot.installedMods),
+            registryFingerprint = fingerprint("registries", snapshot.registries),
+            serverFeatureFingerprint = fingerprint("server-features", snapshot.serverFeatures),
+            permissionsFingerprint = snapshot.permissionsFingerprint,
+        )
+}
+
+private object FabricLoaderRuntimeMetadataProvider : FabricRuntimeMetadataProvider {
+    override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata =
+        SnapshotFabricRuntimeMetadataProvider(runtimeMetadataSnapshot()).runtimeMetadata(clientId)
+
+    private fun runtimeMetadataSnapshot(): FabricRuntimeMetadataSnapshot {
+        val loader = FabricLoader.getInstance()
+        return FabricRuntimeMetadataSnapshot(
+            loaderVersion = loader.versionFor(FABRIC_LOADER_ID) ?: "unknown",
+            driverVersion = loader.versionFor(FABRIC_DRIVER_ID) ?: FABRIC_DRIVER_VERSION,
+            installedMods = loader.installedMods(),
+            registries = runtimeRegistryEntries(),
+            serverFeatures = listOf("environment:${if (loader.isDevelopmentEnvironment) "dev" else "runtime"}"),
         )
     }
 }
@@ -188,14 +215,25 @@ private fun FabricLoader.versionFor(modId: String): String? =
         .map { it.metadata.version.friendlyString }
         .orElse(null)
 
-private fun FabricLoader.installedModsFingerprint(): String =
-    fingerprint(
-        label = "mods",
-        values =
-            allMods
-                .map { "${it.metadata.id}@${it.metadata.version.friendlyString}" }
-                .sorted(),
-    )
+private fun FabricLoader.installedMods(): List<String> =
+    allMods
+        .map { "${it.metadata.id}@${it.metadata.version.friendlyString}" }
+        .sorted()
+
+private fun runtimeRegistryEntries(): List<String> =
+    listOf(
+        registryEntries("block", Registries.BLOCK),
+        registryEntries("item", Registries.ITEM),
+        registryEntries("entity-type", Registries.ENTITY_TYPE),
+        registryEntries("screen-handler", Registries.SCREEN_HANDLER),
+        registryEntries("status-effect", Registries.STATUS_EFFECT),
+        registryEntries("game-event", Registries.GAME_EVENT),
+    ).flatten()
+
+private fun registryEntries(
+    label: String,
+    registry: Registry<*>,
+): List<String> = registry.ids.map { id -> "$label:$id" }
 
 private fun fingerprint(
     label: String,
