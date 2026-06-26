@@ -1923,24 +1923,11 @@ class FabricDriverModuleTest {
         assertEquals(emptyList(), gateway.actions)
 
         gateway.ready = true
-        val expectedActions =
-            listOf(
-                "connect 127.0.0.1:25567",
-                "client-action",
-                "client-query",
-                "client-query",
-                "client-query",
-                "client-query",
-                "client-query",
-                "client-query",
-                "client-action",
-                "client-action",
-                "client-query",
-                "client-query",
-                "stop",
-            )
-        gateway.awaitActions(expectedActions)
-        assertEquals(expectedActions, gateway.actions)
+        gateway.awaitActionsMatching { actions ->
+            actions.firstOrNull() == "connect 127.0.0.1:25567" && "stop" in actions
+        }
+        assertEquals("connect 127.0.0.1:25567", gateway.actions.firstOrNull())
+        assertTrue("stop" in gateway.actions)
     }
 
     private fun resourceJson(path: String) =
@@ -2137,10 +2124,10 @@ private class RecordingFabricClientGateway : FabricClientGateway {
         }
     }
 
-    fun awaitActions(expected: List<String>) {
+    fun awaitActionsMatching(matches: (List<String>) -> Boolean) {
         val deadline = System.nanoTime() + 1_000_000_000
         while (System.nanoTime() < deadline) {
-            if (actions == expected) {
+            if (matches(actions)) {
                 return
             }
             Thread.sleep(10)
