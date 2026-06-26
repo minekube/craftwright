@@ -25,7 +25,9 @@ Legend:
   revalidation.
 - [x] Current Fabric smoke proves a real client can launch, join a local
   server, chat, move, observe inventory, equip an iron sword, invoke block
-  interactions, and write evidence artifacts.
+  interactions, and write evidence artifacts. This is diagnostic smoke only:
+  the earlier iron sword was server-provisioned and does not count as final
+  completion evidence.
 - [x] Root `AGENTS.md` now states that existing hand-written gameplay bindings
   are transitional bootstrap/evidence code, not the durable API shape.
 
@@ -45,6 +47,8 @@ Legend:
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-06-sse-json-rpc-consumers-plan.md`.
 - [x] Spec exists: `docs/superpowers/specs/2026-06-26-07-final-gameplay-completion-design.md`.
 - [x] Plan exists: `docs/superpowers/plans/2026-06-26-07-final-gameplay-completion-plan.md`.
+- [x] Spec exists: `docs/superpowers/specs/2026-06-26-08-honest-survival-navigation-design.md`.
+- [x] Plan exists: `docs/superpowers/plans/2026-06-26-08-honest-survival-navigation-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -159,12 +163,36 @@ Verification:
 - `mise run ci`
 - Evidence directory: `driver-fabric/build/craftless-final-gameplay/artifacts/`
 
+## Phase 8: Honest Survival Navigation Correction
+
+- [x] Baritone and SwarmBot prior art were cloned under
+  `/tmp/craftless-pathfinder-research` and reviewed for navigation, movement,
+  pathing, and task-composition design input.
+- [ ] Navigation and task protocol models exist with Craftless-owned public
+  names and no Baritone/SwarmBot/raw Minecraft public leakage.
+- [ ] Runtime graph discovery can expose navigation/task affordances from the
+  running client without static gameplay shortcut descriptors.
+- [ ] Optional Baritone integration is internal backend evidence only; public
+  OpenAPI remains Craftless-owned.
+- [ ] A no-cheat final gameplay harness rejects server-side item provisioning
+  as completion evidence.
+- [ ] Craftless obtains weapon materials through ordinary survival gameplay,
+  crafts or obtains a weapon legitimately, finds a cow, navigates to it without
+  manual movement, kills it, writes chat, and records SSE/artifact evidence.
+
+Verification:
+
+- `mise exec -- gradle :protocol:test :driver-api:test :driver-fabric:test`
+- `mise run architecture-check`
+- No-cheat live gameplay run with empty or ordinary survival inventory.
+
 ## Final Completion Gate
 
 - [ ] All phases above are checked with current evidence.
 - [ ] `mise run lint` passes.
 - [ ] `mise run architecture-check` passes.
 - [ ] `mise run ci` passes.
-- [ ] Final real gameplay evidence is captured.
+- [ ] Final real gameplay evidence is captured without server-provisioned
+  inventory or manual movement for Craftless.
 - [ ] Robin confirms in Minecraft chat that the goal may be completed.
 - [ ] Changes are committed and pushed to `main`.

@@ -25,10 +25,13 @@ CRAFTLESS_FINAL_GAMEPLAY=1 mise exec -- gradle :driver-fabric:fabricFinalGamepla
 ```
 
 The task starts the local Minecraft server fixture, launches the
-Craftless-controlled Fabric client, provisions an iron sword after the client
-joins, invokes discovered graph-backed operations through `POST
-/clients/{id}:run`, captures `/clients/{id}/events:stream`, and keeps the
-client alive for a bounded human play window.
+Craftless-controlled Fabric client, invokes discovered graph-backed operations
+through `POST /clients/{id}:run`, captures `/clients/{id}/events:stream`, and
+keeps the client alive for a bounded human play window.
+
+The old provisioned-item smoke is diagnostic only. It must not be used as final
+completion evidence. The final run must start with empty or ordinary survival
+inventory and obtain equipment through normal gameplay.
 
 Default evidence path:
 
@@ -72,4 +75,9 @@ Do not call `update_goal(status = "complete")` until all of these are true:
 - Final gameplay artifacts exist in the evidence path.
 - The gameplay did not bypass the runtime graph with a new static public action
   surface.
+- No item was granted through a server command, pre-seeded inventory, or manual
+  operator intervention for Craftless.
+- Craftless obtained materials, crafted or otherwise legitimately obtained a
+  weapon, found a cow, navigated to it, and killed it through discovered
+  capabilities.
 - Robin writes in Minecraft chat that the goal may be completed.
