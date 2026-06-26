@@ -180,7 +180,7 @@ Expected: PASS.
 - Create: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricNavigationDiscovery.kt`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricNavigationDiscoveryTest.kt`
 
-- [ ] **Step 1: Write failing discovery tests**
+- [x] **Step 1: Write failing discovery tests**
 
 Test two cases:
 
@@ -199,7 +199,7 @@ fun `missing pathfinder records unavailable navigation with reason`() {
 }
 ```
 
-- [ ] **Step 2: Run focused test and verify RED**
+- [x] **Step 2: Run focused test and verify RED**
 
 Run:
 
@@ -209,13 +209,13 @@ mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.f
 
 Expected: FAIL because discovery seam does not exist.
 
-- [ ] **Step 3: Implement discovery seam**
+- [x] **Step 3: Implement discovery seam**
 
 Detect optional Baritone classes privately, emit Craftless graph nodes for
 navigation/task affordances, and record private source evidence outside public
 OpenAPI.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run:
 

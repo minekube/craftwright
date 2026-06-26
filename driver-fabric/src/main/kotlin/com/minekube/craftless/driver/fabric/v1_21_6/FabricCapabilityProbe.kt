@@ -51,6 +51,7 @@ private fun defaultFabricCapabilityProbes(): List<FabricCapabilityProbe> =
     listOf(
         FabricRuntimeMetadataCapabilityProbe,
         FabricClientStateCapabilityProbe,
+        FabricNavigationDiscovery(),
     )
 
 internal object FabricRuntimeMetadataCapabilityProbe : FabricCapabilityProbe {

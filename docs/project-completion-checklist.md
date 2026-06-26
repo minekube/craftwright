@@ -173,7 +173,7 @@ Verification:
 - [x] Runtime graph projection can expose navigation/task affordances from a
   `RuntimeCapabilityGraph` without static route catalog entries or public
   Baritone/SwarmBot leakage.
-- [ ] Runtime graph discovery can expose navigation/task affordances from the
+- [x] Runtime graph discovery can expose navigation/task affordances from the
   running client without static gameplay shortcut descriptors.
 - [ ] Optional Baritone integration is internal backend evidence only; public
   OpenAPI remains Craftless-owned.
