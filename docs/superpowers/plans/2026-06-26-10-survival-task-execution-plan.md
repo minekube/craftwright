@@ -148,7 +148,7 @@ Run the executor test. Expected: PASS.
 - Modify: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricSurvivalTaskExecutor.kt`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricSurvivalTaskExecutorTest.kt`
 
-- [ ] **Step 1: Write failing execution tests**
+- [x] **Step 1: Write failing execution tests**
 
 With fake execution ports, assert the successful cow-hunt sequence:
 
@@ -157,11 +157,11 @@ assertEquals(listOf("observe", "plan-material", "follow-material", "break-materi
 assertEquals(NavigationTaskState.SUCCEEDED, result.state)
 ```
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run the executor test. Expected: FAIL until execution ports are called.
 
-- [ ] **Step 3: Implement execution ports**
+- [x] **Step 3: Implement execution ports**
 
 Keep Minecraft-specific calls behind internal ports:
 
@@ -174,7 +174,7 @@ The real port must use client-thread Fabric/Minecraft APIs and return honest
 failure states; it must not mutate inventory without consuming real observed
 materials.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run the executor test. Expected: PASS.
 

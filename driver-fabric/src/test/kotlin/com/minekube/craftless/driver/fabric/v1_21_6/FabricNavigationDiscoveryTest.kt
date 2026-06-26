@@ -211,7 +211,7 @@ class FabricNavigationDiscoveryTest {
         assertEquals(DriverActionStatus.ACCEPTED, runResult.status)
         assertEquals("task.run", runResult.action)
         assertEquals("task.survival.honest-cow-hunt", runResult.data["task"]?.jsonPrimitive?.content)
-        assertEquals("running", runResult.data["state"]?.jsonPrimitive?.content)
+        assertEquals("succeeded", runResult.data["state"]?.jsonPrimitive?.content)
         assertEquals(DriverActionStatus.ACCEPTED, statusResult.status)
         assertEquals("task.status", statusResult.action)
         assertEquals("task:survival:honest-cow-hunt:0001", statusResult.data["task-id"]?.jsonPrimitive?.content)

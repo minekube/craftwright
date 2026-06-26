@@ -1,5 +1,6 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
+import com.minekube.craftless.protocol.NavigationGoal
 import com.minekube.craftless.protocol.NavigationProgressEvent
 import com.minekube.craftless.protocol.NavigationTaskRequest
 import com.minekube.craftless.protocol.NavigationTaskState
@@ -9,7 +10,9 @@ import net.minecraft.entity.passive.CowEntity
 import net.minecraft.entity.passive.PassiveEntity
 import net.minecraft.item.Items
 import net.minecraft.registry.tag.BlockTags
+import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 import java.util.concurrent.atomic.AtomicInteger
 
 internal interface FabricSurvivalTaskExecutor {
@@ -23,6 +26,7 @@ internal interface FabricSurvivalTaskExecutor {
 internal class RecordingSurvivalExecutor(
     private val observations: FabricSurvivalObservationProvider = ReadySurvivalObservationProvider,
     private val pathfinderBackend: FabricPathfinderBackend = ReadySurvivalPathfinderBackend,
+    private val executionPorts: FabricSurvivalExecutionPorts = ReadySurvivalExecutionPorts,
     private val nextTaskId: () -> String = ::nextSurvivalTaskId,
 ) : FabricSurvivalTaskExecutor {
     private val statuses = linkedMapOf<String, NavigationTaskStatus>()
@@ -88,24 +92,77 @@ internal class RecordingSurvivalExecutor(
                 ),
             )
         }
-        record(
-            taskId = taskId,
-            type = "task.navigate",
-            message = "navigation-ready",
-        )
-        val status =
+        record(taskId = taskId, type = "task.navigate", message = "navigation-ready")
+        return executeHonestCowHunt(taskId = taskId, observation = observation)
+    }
+
+    private fun executeHonestCowHunt(
+        taskId: String,
+        observation: FabricSurvivalObservation,
+    ): NavigationTaskStatus {
+        val material = observation.materialSources.firstOrNull()
+        if (!observation.inventory.hasWeapon && material != null) {
+            val materialPlan = pathfinderBackend.plan(material.position.toNavigationGoal())
+            if (materialPlan.status.state == NavigationTaskState.FAILED) {
+                return failTask(taskId, materialPlan.status.message ?: "material-navigation-failed")
+            }
+            val materialFollow = pathfinderBackend.follow(materialPlan.id)
+            if (materialFollow.state == NavigationTaskState.FAILED) {
+                return failTask(taskId, materialFollow.message ?: "material-navigation-failed")
+            }
+            val breakMaterial = executionPorts.breakMaterial(material)
+            if (breakMaterial.state == NavigationTaskState.FAILED) {
+                return failTask(taskId, breakMaterial.message ?: "material-break-failed")
+            }
+            val craftWeapon = executionPorts.craftWeapon()
+            if (craftWeapon.state == NavigationTaskState.FAILED) {
+                return failTask(taskId, craftWeapon.message ?: "weapon-craft-failed")
+            }
+            val equipWeapon = executionPorts.equipWeapon()
+            if (equipWeapon.state == NavigationTaskState.FAILED) {
+                return failTask(taskId, equipWeapon.message ?: "weapon-equip-failed")
+            }
+        }
+        val cow =
+            observation.passiveEntities.firstOrNull { it.kind == COW_ENTITY_KIND }
+                ?: return failTask(taskId, "no-cow-observed")
+        val cowPlan = pathfinderBackend.plan(cow.position.toNavigationGoal())
+        if (cowPlan.status.state == NavigationTaskState.FAILED) {
+            return failTask(taskId, cowPlan.status.message ?: "cow-navigation-failed")
+        }
+        val cowFollow = pathfinderBackend.follow(cowPlan.id)
+        if (cowFollow.state == NavigationTaskState.FAILED) {
+            return failTask(taskId, cowFollow.message ?: "cow-navigation-failed")
+        }
+        val attack = executionPorts.attackEntity(cow)
+        if (attack.state == NavigationTaskState.FAILED) {
+            return failTask(taskId, attack.message ?: "cow-attack-failed")
+        }
+        return storeStatus(
             NavigationTaskStatus(
                 id = taskId,
-                state = NavigationTaskState.RUNNING,
-                message = "ready-to-execute",
-            )
-        return storeStatus(status)
+                state = NavigationTaskState.SUCCEEDED,
+                message = "cow-hunt-complete",
+            ),
+        )
     }
 
     private fun storeStatus(status: NavigationTaskStatus): NavigationTaskStatus {
         statuses[status.id] = status
         return status
     }
+
+    private fun failTask(
+        taskId: String,
+        message: String,
+    ): NavigationTaskStatus =
+        storeStatus(
+            NavigationTaskStatus(
+                id = taskId,
+                state = NavigationTaskState.FAILED,
+                message = message,
+            ),
+        )
 
     private fun record(
         taskId: String,
@@ -212,6 +269,67 @@ internal class StaticSurvivalObservationProvider(
     override fun observe(): FabricSurvivalObservation = observation
 }
 
+internal interface FabricSurvivalExecutionPorts {
+    fun breakMaterial(target: FabricSurvivalMaterialSource): NavigationTaskStatus
+
+    fun craftWeapon(): NavigationTaskStatus
+
+    fun equipWeapon(): NavigationTaskStatus
+
+    fun attackEntity(target: FabricSurvivalEntity): NavigationTaskStatus
+}
+
+internal class FabricClientSurvivalExecutionPorts(
+    private val gateway: FabricClientGateway,
+) : FabricSurvivalExecutionPorts {
+    override fun breakMaterial(target: FabricSurvivalMaterialSource): NavigationTaskStatus =
+        gateway.queryOnClient {
+            val currentPlayer = player ?: return@queryOnClient failedExecutionStatus("player-unavailable")
+            val manager = interactionManager ?: return@queryOnClient failedExecutionStatus("interaction-unavailable")
+            val blockPosition = target.position.toBlockPos()
+            val started = manager.attackBlock(blockPosition, Direction.UP)
+            if (started) {
+                currentPlayer.swingHand(Hand.MAIN_HAND)
+                succeededExecutionStatus("break-material")
+            } else {
+                failedExecutionStatus("material-break-unavailable")
+            }
+        }
+
+    override fun craftWeapon(): NavigationTaskStatus = failedExecutionStatus("crafting-unavailable")
+
+    override fun equipWeapon(): NavigationTaskStatus =
+        gateway.queryOnClient {
+            val currentPlayer = player ?: return@queryOnClient failedExecutionStatus("player-unavailable")
+            for (slot in 0 until currentPlayer.inventory.size()) {
+                if (currentPlayer.inventory.getStack(slot).isSurvivalWeapon()) {
+                    currentPlayer.inventory.selectedSlot = slot
+                    return@queryOnClient succeededExecutionStatus("equip-weapon")
+                }
+            }
+            failedExecutionStatus("weapon-unavailable")
+        }
+
+    override fun attackEntity(target: FabricSurvivalEntity): NavigationTaskStatus =
+        gateway.queryOnClient {
+            val currentPlayer = player ?: return@queryOnClient failedExecutionStatus("player-unavailable")
+            val currentWorld = world ?: return@queryOnClient failedExecutionStatus("world-unavailable")
+            val manager = interactionManager ?: return@queryOnClient failedExecutionStatus("interaction-unavailable")
+            val targetEntityId =
+                target.handle.substringAfterLast(":").toIntOrNull()
+                    ?: return@queryOnClient failedExecutionStatus("entity-handle-unavailable")
+            val entity =
+                currentWorld
+                    .getOtherEntities(currentPlayer, currentPlayer.boundingBox.expand(ENTITY_SCAN_RADIUS)) { entity ->
+                        entity.id == targetEntityId
+                    }.singleOrNull()
+                    ?: return@queryOnClient failedExecutionStatus("entity-unavailable")
+            manager.attackEntity(currentPlayer, entity)
+            currentPlayer.swingHand(Hand.MAIN_HAND)
+            succeededExecutionStatus("attack-cow")
+        }
+}
+
 private object ReadySurvivalObservationProvider : FabricSurvivalObservationProvider {
     override fun observe(): FabricSurvivalObservation =
         FabricSurvivalObservation(
@@ -237,17 +355,53 @@ private object ReadySurvivalPathfinderBackend : FabricPathfinderBackend {
     override fun available(): Boolean = true
 
     override fun plan(goal: com.minekube.craftless.protocol.NavigationGoal): FabricPathfinderPlan =
-        error("RecordingSurvivalExecutor does not plan navigation in observation mode")
+        FabricPathfinderPlan(
+            id = "navigation.plan.survival.ready",
+            goal = goal,
+            status =
+                NavigationTaskStatus(
+                    id = "task:navigation:survival:ready",
+                    state = NavigationTaskState.PENDING,
+                    message = "planned",
+                ),
+        )
 
     override fun follow(planId: String): NavigationTaskStatus =
-        error("RecordingSurvivalExecutor does not follow navigation in observation mode")
+        NavigationTaskStatus(
+            id = "task:navigation:survival:ready",
+            state = NavigationTaskState.RUNNING,
+            message = "following",
+        )
 
     override fun stop(): NavigationTaskStatus = error("RecordingSurvivalExecutor does not stop navigation in observation mode")
 
     override fun events(): List<NavigationProgressEvent> = emptyList()
 }
 
+private object ReadySurvivalExecutionPorts : FabricSurvivalExecutionPorts {
+    override fun breakMaterial(target: FabricSurvivalMaterialSource): NavigationTaskStatus = succeededExecutionStatus("break-material")
+
+    override fun craftWeapon(): NavigationTaskStatus = succeededExecutionStatus("craft-weapon")
+
+    override fun equipWeapon(): NavigationTaskStatus = succeededExecutionStatus("equip-weapon")
+
+    override fun attackEntity(target: FabricSurvivalEntity): NavigationTaskStatus = succeededExecutionStatus("attack-cow")
+}
+
 private fun nextSurvivalTaskId(): String = "task:survival:honest-cow-hunt:%04d".format(taskIdCounter.incrementAndGet())
+
+private fun FabricSurvivalBlockPosition.toNavigationGoal(): NavigationGoal =
+    NavigationGoal(
+        kind = "block",
+        position =
+            mapOf(
+                "x" to x.toDouble(),
+                "y" to y.toDouble(),
+                "z" to z.toDouble(),
+            ),
+    )
+
+private fun FabricSurvivalBlockPosition.toBlockPos(): BlockPos = BlockPos(x, y, z)
 
 private fun BlockPos.nearbyPositions(
     horizontalRange: Int,
@@ -274,18 +428,34 @@ private fun BlockPos.toSurvivalBlockPosition(): FabricSurvivalBlockPosition =
 private fun net.minecraft.entity.player.PlayerInventory.hasSurvivalWeapon(): Boolean {
     for (slot in 0 until size()) {
         val stack = getStack(slot)
-        if (stack.isOf(Items.WOODEN_SWORD) ||
-            stack.isOf(Items.STONE_SWORD) ||
-            stack.isOf(Items.IRON_SWORD) ||
-            stack.isOf(Items.GOLDEN_SWORD) ||
-            stack.isOf(Items.DIAMOND_SWORD) ||
-            stack.isOf(Items.NETHERITE_SWORD)
-        ) {
+        if (stack.isSurvivalWeapon()) {
             return true
         }
     }
     return false
 }
+
+private fun net.minecraft.item.ItemStack.isSurvivalWeapon(): Boolean =
+    isOf(Items.WOODEN_SWORD) ||
+        isOf(Items.STONE_SWORD) ||
+        isOf(Items.IRON_SWORD) ||
+        isOf(Items.GOLDEN_SWORD) ||
+        isOf(Items.DIAMOND_SWORD) ||
+        isOf(Items.NETHERITE_SWORD)
+
+private fun succeededExecutionStatus(action: String): NavigationTaskStatus =
+    NavigationTaskStatus(
+        id = "task:survival:$action",
+        state = NavigationTaskState.SUCCEEDED,
+        message = "$action-complete",
+    )
+
+private fun failedExecutionStatus(message: String): NavigationTaskStatus =
+    NavigationTaskStatus(
+        id = "task:survival:execution",
+        state = NavigationTaskState.FAILED,
+        message = message,
+    )
 
 private const val HONEST_COW_HUNT = "task.survival.honest-cow-hunt"
 private const val COW_ENTITY_KIND = "cow"

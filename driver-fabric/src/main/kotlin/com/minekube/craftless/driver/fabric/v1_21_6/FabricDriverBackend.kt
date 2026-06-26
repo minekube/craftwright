@@ -399,15 +399,22 @@ class FabricDriverBackend private constructor(
             gateway: FabricClientGateway,
             actionDiscovery: FabricActionDiscovery = defaultFabricActionDiscovery(),
             runtimeMetadataProvider: FabricRuntimeMetadataProvider,
-        ): FabricDriverBackend =
-            FabricDriverBackend(
+        ): FabricDriverBackend {
+            val pathfinderBackend = ReflectiveFabricPathfinderBackend(gateway = gateway)
+            return FabricDriverBackend(
                 mode = Mode.REAL_CLIENT,
                 gateway = gateway,
                 actionDiscovery = actionDiscovery,
                 runtimeMetadataProvider = runtimeMetadataProvider,
-                pathfinderBackend = ReflectiveFabricPathfinderBackend(gateway = gateway),
-                survivalTaskExecutor = RecordingSurvivalExecutor(),
+                pathfinderBackend = pathfinderBackend,
+                survivalTaskExecutor =
+                    RecordingSurvivalExecutor(
+                        observations = FabricClientSurvivalObservationProvider(gateway),
+                        pathfinderBackend = pathfinderBackend,
+                        executionPorts = FabricClientSurvivalExecutionPorts(gateway),
+                    ),
             )
+        }
 
         fun install(backend: FabricDriverBackend) {
             installed = backend
