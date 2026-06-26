@@ -331,7 +331,7 @@ Expected: PASS.
 - Create: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/SurvivalTaskGraph.kt`
 - Test: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/SurvivalTaskGraphTest.kt`
 
-- [ ] **Step 1: Write failing task graph tests**
+- [x] **Step 1: Write failing task graph tests**
 
 Assert the task graph requires real observations before claiming progress:
 
@@ -343,7 +343,7 @@ assertTrue(graph.steps.any { it.id == "craft.weapon" })
 assertTrue(graph.steps.any { it.id == "combat.attack_entity" })
 ```
 
-- [ ] **Step 2: Run focused test and verify RED**
+- [x] **Step 2: Run focused test and verify RED**
 
 Run:
 
@@ -353,12 +353,12 @@ mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.f
 
 Expected: FAIL until the task graph model exists.
 
-- [ ] **Step 3: Implement the task graph model**
+- [x] **Step 3: Implement the task graph model**
 
 Add a declarative internal task graph for the first honest scenario. It should
 describe required observations and invocations, not fake execution.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run:
 

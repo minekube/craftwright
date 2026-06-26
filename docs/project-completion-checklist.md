@@ -181,6 +181,9 @@ Verification:
   OpenAPI remains Craftless-owned.
 - [x] A no-cheat final gameplay harness rejects server-side item provisioning
   as completion evidence.
+- [x] Internal honest survival task graph describes observation, navigation,
+  collection, inventory, crafting, entity observation, and combat steps without
+  server shortcuts or public static gameplay actions.
 - [ ] Craftless obtains weapon materials through ordinary survival gameplay,
   crafts or obtains a weapon legitimately, finds a cow, navigates to it without
   manual movement, kills it, writes chat, and records SSE/artifact evidence.
