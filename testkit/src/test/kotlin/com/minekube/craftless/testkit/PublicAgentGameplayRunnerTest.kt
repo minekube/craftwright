@@ -153,6 +153,40 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner retries bounded public pickup evidence before blocking`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog(),
+                    inventoryResponses =
+                        listOf(
+                            """{"action":"inventory.query","status":"ACCEPTED","data":{"slots":[]}}""",
+                            """{"action":"inventory.query","status":"ACCEPTED","data":{"slots":[]}}""",
+                            """
+                            {
+                              "action": "inventory.query",
+                              "status": "ACCEPTED",
+                              "data": {
+                                "selected-slot": 0,
+                                "slots": [
+                                  {"slot": 0, "empty": false, "count": 1, "item-name": "Oak Log"}
+                                ]
+                              }
+                            }
+                            """.trimIndent(),
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.count { it == "entity.query" } >= 2)
+            assertTrue(result.actionLog.map { it.action }.count { it == "inventory.query" } >= 3)
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner invokes generic entity attack from discovered public handle when available`() =
         runBlocking {
             val server =
@@ -480,6 +514,7 @@ private class RecordingCraftlessHttpServer(
     private val actions: List<String>,
     private val actionArguments: Map<String, List<String>> = emptyMap(),
     private val blockQueryResponses: List<String> = listOf(logBlockQueryResponse),
+    private val inventoryResponses: List<String>? = null,
     private val blockBreakResponse: String =
         """{"action":"world.block.break","status":"ACCEPTED","data":{"hit":true,"target-kind":"block","started":true,"changed":true}}""",
     private val blockInteractResponse: String =
@@ -559,6 +594,9 @@ private class RecordingCraftlessHttpServer(
 
     private fun inventoryQueryResponse(): String {
         inventoryQueryCount += 1
+        inventoryResponses?.let { responses ->
+            return responses.getOrElse(inventoryQueryCount - 1) { responses.last() }
+        }
         return if (inventoryQueryCount == 1) {
             """{"action":"inventory.query","status":"ACCEPTED","data":{"slots":[]}}"""
         } else {

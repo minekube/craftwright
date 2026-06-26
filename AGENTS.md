@@ -134,6 +134,10 @@ Follow them in order:
 20. public-agent material pickup.
 21. public-agent drop perception.
 22. bounded material exploration.
+23. runtime entity attack.
+24. targetable block interact.
+25. distribution usability.
+26. version-agnostic driver architecture.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -192,6 +196,11 @@ Phase 25 adds distribution surfaces: release workflow, install script, runtime
 Docker image, reusable GitHub Action, and README quickstarts. Docker must copy
 the already-built Craftless CLI distribution and must not compile the project
 inside the image. Do not add Homebrew in this phase.
+Phase 26 prevents the Fabric driver from hardening around one Minecraft
+version. Version-specific code belongs behind internal runtime/provider
+facades, compatibility matrix evidence, and private probe metadata. Do not add
+new version support by expanding public action catalogs, public route families,
+or scenario shortcuts.
 
 ## Acceptance Scenarios Are Not Product APIs
 

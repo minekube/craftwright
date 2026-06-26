@@ -559,6 +559,27 @@ Verification:
 - `docker run --rm craftless:local /opt/craftless/bin/craftless server start --once --port 0 --workspace /tmp/craftless`
 - `mise run ci`
 
+## Phase 26: Version-Agnostic Driver Architecture
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-26-26-version-agnostic-driver-architecture-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-26-26-version-agnostic-driver-architecture-plan.md`.
+- [ ] Current 1.21.6-specific Fabric code is audited and classified as build
+  lane, internal provider, runtime evidence, fixture, or public-facing debt.
+- [ ] Stable internal runtime/provider facades exist before adding more
+  Minecraft version breadth.
+- [ ] Compatibility matrix and provider-selection tests cover the current lane
+  plus at least one simulated or additional lane.
+- [ ] Runtime probe metadata records version/provider support and unavailable
+  reasons without leaking Fabric/Yarn/Minecraft names into public API.
+
+Verification:
+
+- `git diff --check`
+- focused tests from the Phase 26 implementation plan.
+- `mise run ci` before marking implementation complete.
+
 Verification:
 
 - `mise exec -- gradle :protocol:test :driver-api:test :driver-fabric:test`

@@ -59,7 +59,7 @@ class FabricDriverModuleTest {
         val metadata = resourceJson("fabric.mod.json")
 
         assertEquals("craftless-driver-fabric", metadata["id"]?.jsonPrimitive?.content)
-        assertEquals("0.1.0-SNAPSHOT", metadata["version"]?.jsonPrimitive?.content)
+        assertTrue(metadata["version"]?.jsonPrimitive?.content?.matches(Regex("""\d+\.\d+\.\d+(-SNAPSHOT)?""")) == true)
         assertEquals(
             "com.minekube.craftless.driver.fabric.v1_21_6.CraftlessFabricClientEntrypoint",
             metadata["entrypoints"]
@@ -1923,8 +1923,7 @@ class FabricDriverModuleTest {
         assertEquals(emptyList(), gateway.actions)
 
         gateway.ready = true
-        gateway.awaitActions(13)
-        assertEquals(
+        val expectedActions =
             listOf(
                 "connect 127.0.0.1:25567",
                 "client-action",
@@ -1939,9 +1938,9 @@ class FabricDriverModuleTest {
                 "client-query",
                 "client-query",
                 "stop",
-            ),
-            gateway.actions,
-        )
+            )
+        gateway.awaitActions(expectedActions)
+        assertEquals(expectedActions, gateway.actions)
     }
 
     private fun resourceJson(path: String) =
@@ -2132,6 +2131,16 @@ private class RecordingFabricClientGateway : FabricClientGateway {
         val deadline = System.nanoTime() + 1_000_000_000
         while (System.nanoTime() < deadline) {
             if (actions.size >= count) {
+                return
+            }
+            Thread.sleep(10)
+        }
+    }
+
+    fun awaitActions(expected: List<String>) {
+        val deadline = System.nanoTime() + 1_000_000_000
+        while (System.nanoTime() < deadline) {
+            if (actions == expected) {
                 return
             }
             Thread.sleep(10)

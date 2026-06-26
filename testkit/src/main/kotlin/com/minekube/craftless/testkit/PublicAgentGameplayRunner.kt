@@ -211,25 +211,36 @@ class PublicAgentGameplayRunner(
             }
             navigateTo(position = discoveredMaterialPosition, radius = 1.5)
                 ?.let { blocker -> return blockedAndWrite(blocker) }
-            val materialDrop =
-                invokeGenerated(
-                    action = "entity.query",
-                    args =
-                        buildJsonObject {
-                            put("radius", JsonPrimitive(16.0))
-                            put("limit", JsonPrimitive(20))
-                        },
-                )
-            materialDrop.responseObject()?.materialDropPosition()?.let { dropPosition ->
-                navigateTo(position = dropPosition, radius = 1.0)
-                    ?.let { blocker -> return blockedAndWrite(blocker) }
+            var finalInventory: PublicAgentActionLog? = null
+            for (attempt in 1..PICKUP_EVIDENCE_ATTEMPTS) {
+                val materialDrop =
+                    invokeGenerated(
+                        action = "entity.query",
+                        args =
+                            buildJsonObject {
+                                put("radius", JsonPrimitive(16.0))
+                                put("limit", JsonPrimitive(20))
+                            },
+                    )
+                materialDrop.responseObject()?.materialDropPosition()?.let { dropPosition ->
+                    navigateTo(position = dropPosition, radius = 1.0)
+                        ?.let { blocker -> return blockedAndWrite(blocker) }
+                }
+                finalInventory = invokeGenerated("inventory.query")
+                if (finalInventory.responseObject()?.hasLogItem() == true) {
+                    break
+                }
+                if (attempt < PICKUP_EVIDENCE_ATTEMPTS) {
+                    navigateTo(position = discoveredMaterialPosition, radius = 1.0)
+                        ?.let { blocker -> return blockedAndWrite(blocker) }
+                }
             }
-            val finalInventory = invokeGenerated("inventory.query")
-            if (finalInventory.responseObject()?.hasLogItem() != true) {
+            val finalInventoryObject = finalInventory?.responseObject()
+            if (finalInventoryObject?.hasLogItem() != true) {
                 return blockedAndWrite("insufficient-public-evidence:inventory.query.log")
             }
             val logSlot =
-                finalInventory.responseObject()?.logHotbarSlot()
+                finalInventoryObject.logHotbarSlot()
                     ?: return blockedAndWrite("insufficient-public-evidence:inventory.query.hotbar-log")
             invokeGenerated(
                 action = "inventory.equip",
@@ -714,6 +725,7 @@ private data class CraftlessPoint(
 }
 
 private const val MATERIAL_EXPLORATION_STEP = 24.0
+private const val PICKUP_EVIDENCE_ATTEMPTS = 4
 
 private data class CraftlessLook(
     val yaw: Double,
