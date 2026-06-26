@@ -319,6 +319,8 @@ data class FabricClientSmokeController(
                     builder.environment()["CRAFTLESS_PUBLIC_AGENT_BASE_URL"] = baseUrl
                     builder.environment()["CRAFTLESS_PUBLIC_AGENT_CLIENT_ID"] = SMOKE_CLIENT_ID
                     builder.environment()["CRAFTLESS_PUBLIC_AGENT_ARTIFACTS_DIR"] = dir.toString()
+                    builder.environment()["CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS"] =
+                        actionTimeout.inWholeMilliseconds.toString()
                 }.start()
         val exited = process.waitFor(actionTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
         if (!exited) {

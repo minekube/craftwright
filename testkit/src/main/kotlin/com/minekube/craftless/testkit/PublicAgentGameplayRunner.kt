@@ -2,6 +2,7 @@ package com.minekube.craftless.testkit
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -33,9 +34,14 @@ import kotlin.math.sqrt
 class PublicAgentGameplayRunner(
     private val baseUrl: String,
     private val clientId: String,
-    private val http: HttpClient = HttpClient(CIO),
+    private val http: HttpClient = publicAgentHttpClient(DEFAULT_ACTION_REQUEST_TIMEOUT_MS),
     private val combatPause: suspend () -> Unit = {},
+    private val combatEvidenceAttempts: Int = DEFAULT_COMBAT_EVIDENCE_ATTEMPTS,
 ) {
+    init {
+        require(combatEvidenceAttempts > 0) { "combat evidence attempts must be positive" }
+    }
+
     suspend fun runOnce(artifactsDir: Path? = null): PublicAgentGameplayResult {
         val supervisorSpec = http.get("$baseUrl/openapi.json").bodyAsText()
         val clientSpec = http.get("$baseUrl/clients/$clientId/openapi.json").bodyAsText()
@@ -195,16 +201,29 @@ class PublicAgentGameplayRunner(
                 navigateTo(position = position, radius = 2.5)
                     ?.let { blocker -> return FocusedAttackTarget(blocker = blocker) }
             }
-            val combatPlayer =
+            var combatPlayerPosition =
                 invokeGenerated("player.query")
-            val combatPlayerPosition =
-                combatPlayer.responseObject()?.playerPosition()
+                    .responseObject()
+                    ?.playerPosition()
                     ?: return FocusedAttackTarget(blocker = "insufficient-public-evidence:player.query.position")
             queryAttackTarget(radius = ATTACK_MAX_DISTANCE)?.let { closeTarget ->
                 if (!closeTarget.isReachableForAttack(combatPlayerPosition)) {
-                    return FocusedAttackTarget(blocker = "insufficient-public-evidence:entity.query.attack-target.reachable")
+                    closeTarget.position
+                        ?.let { position -> navigateTo(position = position, radius = 2.5) }
+                        ?.let { blocker -> return FocusedAttackTarget(blocker = blocker) }
+                    combatPlayerPosition =
+                        invokeGenerated("player.query")
+                            .responseObject()
+                            ?.playerPosition()
+                            ?: return FocusedAttackTarget(blocker = "insufficient-public-evidence:player.query.position")
+                    val repositionedTarget = queryAttackTarget(radius = ATTACK_MAX_DISTANCE) ?: closeTarget
+                    if (!repositionedTarget.isReachableForAttack(combatPlayerPosition)) {
+                        return FocusedAttackTarget(blocker = "insufficient-public-evidence:entity.query.attack-target.reachable")
+                    }
+                    focusedTarget = repositionedTarget
+                } else {
+                    focusedTarget = closeTarget
                 }
-                focusedTarget = closeTarget
             }
             if (!focusedTarget.isReachableForAttack(combatPlayerPosition)) {
                 return FocusedAttackTarget(blocker = "insufficient-public-evidence:entity.query.attack-target.reachable")
@@ -464,7 +483,7 @@ class PublicAgentGameplayRunner(
                         ?: return blockedAndWrite("insufficient-public-evidence:entity.query.attack-target")
                 var combatOutcomeProved = false
                 var combatAttempts = 0
-                while (!combatOutcomeProved && combatAttempts < COMBAT_EVIDENCE_ATTEMPTS) {
+                while (!combatOutcomeProved && combatAttempts < combatEvidenceAttempts) {
                     combatAttempts += 1
                     val attackResult =
                         invokeGenerated(
@@ -492,7 +511,7 @@ class PublicAgentGameplayRunner(
                         combatOutcomeProved = true
                         break
                     }
-                    if (combatAttempts < COMBAT_EVIDENCE_ATTEMPTS) {
+                    if (combatAttempts < combatEvidenceAttempts) {
                         combatPause()
                         val refreshedAttackTarget =
                             queryAttackTarget(radius = 16.0)
@@ -622,11 +641,15 @@ data class PublicAgentGameplayRunnerConfig(
     val baseUrl: String,
     val clientId: String = "fabric-smoke",
     val artifactsDir: Path = Path.of("build", "craftless-public-agent-gameplay", "artifacts"),
+    val actionRequestTimeoutMillis: Long = DEFAULT_ACTION_REQUEST_TIMEOUT_MS,
+    val combatEvidenceAttempts: Int = DEFAULT_COMBAT_EVIDENCE_ATTEMPTS,
     val combatRetryDelayMillis: Long = DEFAULT_COMBAT_RETRY_DELAY_MS,
 ) {
     init {
         require(baseUrl.isNotBlank()) { "public agent base URL is required" }
         require(clientId.isNotBlank()) { "public agent client id is required" }
+        require(actionRequestTimeoutMillis > 0L) { "public agent action request timeout must be positive" }
+        require(combatEvidenceAttempts > 0) { "combat evidence attempts must be positive" }
         require(combatRetryDelayMillis >= 0L) { "combat retry delay must not be negative" }
     }
 
@@ -634,6 +657,9 @@ data class PublicAgentGameplayRunnerConfig(
         private const val BASE_URL = "CRAFTLESS_PUBLIC_AGENT_BASE_URL"
         private const val CLIENT_ID = "CRAFTLESS_PUBLIC_AGENT_CLIENT_ID"
         private const val ARTIFACTS_DIR = "CRAFTLESS_PUBLIC_AGENT_ARTIFACTS_DIR"
+        private const val ACTION_REQUEST_TIMEOUT_MS = "CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS"
+        private const val SMOKE_ACTION_TIMEOUT_MS = "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS"
+        private const val COMBAT_EVIDENCE_ATTEMPTS = "CRAFTLESS_PUBLIC_AGENT_COMBAT_EVIDENCE_ATTEMPTS"
         private const val COMBAT_RETRY_DELAY_MS = "CRAFTLESS_PUBLIC_AGENT_COMBAT_RETRY_DELAY_MS"
 
         fun fromEnvironment(env: Map<String, String> = System.getenv()): PublicAgentGameplayRunnerConfig =
@@ -645,12 +671,29 @@ data class PublicAgentGameplayRunnerConfig(
                         ?.takeIf { it.isNotBlank() }
                         ?.let(Path::of)
                         ?: Path.of("build", "craftless-public-agent-gameplay", "artifacts"),
+                actionRequestTimeoutMillis =
+                    env[ACTION_REQUEST_TIMEOUT_MS]
+                        ?.takeIf { it.isNotBlank() }
+                        ?.toLongStrict(ACTION_REQUEST_TIMEOUT_MS)
+                        ?: env[SMOKE_ACTION_TIMEOUT_MS]
+                            ?.takeIf { it.isNotBlank() }
+                            ?.toLongStrict(SMOKE_ACTION_TIMEOUT_MS)
+                        ?: DEFAULT_ACTION_REQUEST_TIMEOUT_MS,
+                combatEvidenceAttempts =
+                    env[COMBAT_EVIDENCE_ATTEMPTS]
+                        ?.takeIf { it.isNotBlank() }
+                        ?.toIntStrict(COMBAT_EVIDENCE_ATTEMPTS)
+                        ?: DEFAULT_COMBAT_EVIDENCE_ATTEMPTS,
                 combatRetryDelayMillis =
                     env[COMBAT_RETRY_DELAY_MS]
                         ?.takeIf { it.isNotBlank() }
                         ?.toLongOrNull()
                         ?: DEFAULT_COMBAT_RETRY_DELAY_MS,
             )
+
+        private fun String.toIntStrict(name: String): Int = toIntOrNull() ?: error("$name must be an integer")
+
+        private fun String.toLongStrict(name: String): Long = toLongOrNull() ?: error("$name must be a long integer")
     }
 }
 
@@ -674,6 +717,17 @@ private class PublicAgentActionRequestFailure(
     val blocker: String,
     cause: Throwable,
 ) : RuntimeException(blocker, cause)
+
+internal fun publicAgentHttpClient(actionRequestTimeoutMillis: Long): HttpClient {
+    require(actionRequestTimeoutMillis > 0L) { "public agent action request timeout must be positive" }
+    return HttpClient(CIO) {
+        install(HttpTimeout) {
+            requestTimeoutMillis = actionRequestTimeoutMillis
+            connectTimeoutMillis = actionRequestTimeoutMillis.coerceAtMost(DEFAULT_CONNECT_TIMEOUT_MS)
+            socketTimeoutMillis = actionRequestTimeoutMillis
+        }
+    }
+}
 
 enum class PublicAgentGameplayState {
     RAN,
@@ -819,7 +873,6 @@ private fun JsonObject.materialDropPosition(): JsonObject? {
 
 private fun JsonObject.attackTarget(): PublicEntityTarget? {
     val data = this["data"] as? JsonObject ?: return null
-    val origin = (data["origin"] as? JsonObject)?.toCraftlessPoint()
     val entities = data["entities"]?.jsonArray ?: return null
     return entities
         .mapNotNull { element ->
@@ -844,10 +897,6 @@ private fun JsonObject.attackTarget(): PublicEntityTarget? {
                 return@mapNotNull null
             }
             val position = entity["position"] as? JsonObject
-            val point = position?.toCraftlessPoint()
-            if (origin != null && point != null && abs(point.y - origin.y) > ATTACK_VERTICAL_REACH) {
-                return@mapNotNull null
-            }
             PublicEntityTarget(
                 handle = handle,
                 position = position,
@@ -1048,7 +1097,9 @@ private data class CraftlessPoint(
 
 private const val EXPLORATION_STEP = 24.0
 private const val PICKUP_EVIDENCE_ATTEMPTS = 4
-private const val COMBAT_EVIDENCE_ATTEMPTS = 4
+private const val DEFAULT_COMBAT_EVIDENCE_ATTEMPTS = 12
+private const val DEFAULT_ACTION_REQUEST_TIMEOUT_MS = 300_000L
+private const val DEFAULT_CONNECT_TIMEOUT_MS = 30_000L
 private const val DEFAULT_COMBAT_RETRY_DELAY_MS = 700L
 private const val PLACEMENT_TARGET_ATTEMPTS = 6
 private const val ATTACK_MAX_DISTANCE = 4.5
@@ -1118,13 +1169,14 @@ private val placementSidePreference = listOf("north", "south", "west", "east", "
 fun main() {
     val config = PublicAgentGameplayRunnerConfig.fromEnvironment()
     runBlocking {
-        HttpClient(CIO).use { http ->
+        publicAgentHttpClient(config.actionRequestTimeoutMillis).use { http ->
             val result =
                 PublicAgentGameplayRunner(
                     baseUrl = config.baseUrl,
                     clientId = config.clientId,
                     http = http,
                     combatPause = { delay(config.combatRetryDelayMillis) },
+                    combatEvidenceAttempts = config.combatEvidenceAttempts,
                 ).runOnce(artifactsDir = config.artifactsDir)
             println("publicAgentState=${result.state}")
             result.blocker?.let { blocker -> println("publicAgentBlocker=$blocker") }

@@ -338,6 +338,32 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner uses configured bounded generated attack attempts before blocking without outcome evidence`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(EMPTY_ENTITY_QUERY_RESPONSE) +
+                            List(40) { aliveCowEntityQueryResponse },
+                )
+            val runner =
+                PublicAgentGameplayRunner(
+                    baseUrl = server.url,
+                    clientId = "fabric-smoke",
+                    http = server.http,
+                    combatEvidenceAttempts = 7,
+                )
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
+            assertEquals("insufficient-public-evidence:entity.attack.outcome", result.blocker)
+            assertEquals(7, result.actionLog.map { it.action }.count { it == "entity.attack" })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner refreshes public attack target position between unproven attacks`() =
         runBlocking {
             val server =
@@ -361,6 +387,55 @@ class PublicAgentGameplayRunnerTest {
             assertTrue(result.actionLog.map { it.action }.count { it == "entity.attack" } >= 2)
             assertTrue(result.actionLog.map { it.action }.count { it == "navigation.plan" } >= 4)
             assertTrue(server.requestBodies.any { it.contains(""""x":24.0""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner repositions when refreshed public attack target moves out of reach`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            movedCowEntityQueryResponse,
+                            reachableMovedCowEntityQueryResponse,
+                            deadMovedCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(result.actionLog.map { it.action }.count { it == "navigation.plan" } >= 4)
+            assertTrue(server.requestBodies.any { it.contains(""""x":24.0""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner navigates to vertically offset public attack targets`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        List(4) { EMPTY_ENTITY_QUERY_RESPONSE } +
+                            listOf(
+                                verticallyOffsetCowEntityQueryResponse,
+                                reachableMovedCowEntityQueryResponse,
+                                deadMovedCowEntityQueryResponse,
+                            ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertTrue(server.requestBodies.any { it.contains(""""x":24.0""") })
+            assertTrue(server.requestBodies.any { it.contains(""""y":70.0""") })
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
@@ -1144,12 +1219,29 @@ class PublicAgentGameplayRunnerTest {
                     "CRAFTLESS_PUBLIC_AGENT_BASE_URL" to "http://127.0.0.1:18080",
                     "CRAFTLESS_PUBLIC_AGENT_CLIENT_ID" to "fabric-smoke",
                     "CRAFTLESS_PUBLIC_AGENT_ARTIFACTS_DIR" to "/tmp/craftless-public-agent-artifacts",
+                    "CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS" to "120000",
+                    "CRAFTLESS_PUBLIC_AGENT_COMBAT_EVIDENCE_ATTEMPTS" to "12",
                 ),
             )
 
         assertEquals("http://127.0.0.1:18080", config.baseUrl)
         assertEquals("fabric-smoke", config.clientId)
         assertEquals(Path.of("/tmp/craftless-public-agent-artifacts"), config.artifactsDir)
+        assertEquals(120_000, config.actionRequestTimeoutMillis)
+        assertEquals(12, config.combatEvidenceAttempts)
+    }
+
+    @Test
+    fun `runner config uses smoke action timeout as generated action request timeout`() {
+        val config =
+            PublicAgentGameplayRunnerConfig.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_PUBLIC_AGENT_BASE_URL" to "http://127.0.0.1:18080",
+                    "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS" to "300000",
+                ),
+            )
+
+        assertEquals(300_000, config.actionRequestTimeoutMillis)
     }
 }
 
@@ -1397,6 +1489,27 @@ private val movedCowEntityQueryResponse =
             "alive": true,
             "distance": 8.0,
             "position": {"x": 24.0, "y": 64.0, "z": -10.0}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val verticallyOffsetCowEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "origin": {"x": 14.0, "y": 64.0, "z": -6.0},
+        "entities": [
+          {
+            "handle": "entity.handle-42",
+            "label": "Cow",
+            "category": "passive",
+            "alive": true,
+            "distance": 8.0,
+            "position": {"x": 24.0, "y": 70.0, "z": -10.0}
           }
         ]
       }

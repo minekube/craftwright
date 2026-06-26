@@ -1975,8 +1975,9 @@ class FabricDriverModuleTest {
                     "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
                     "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
                     "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
+                    "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS" to "120000",
                     "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON" to
-                        """["/bin/sh","-c","printf '%s\n%s\n%s\n' \"${'$'}CRAFTLESS_PUBLIC_AGENT_BASE_URL\" \"${'$'}CRAFTLESS_PUBLIC_AGENT_CLIENT_ID\" \"${'$'}CRAFTLESS_PUBLIC_AGENT_ARTIFACTS_DIR\" > '$envOutput'"]""",
+                        """["/bin/sh","-c","printf '%s\n%s\n%s\n%s\n' \"${'$'}CRAFTLESS_PUBLIC_AGENT_BASE_URL\" \"${'$'}CRAFTLESS_PUBLIC_AGENT_CLIENT_ID\" \"${'$'}CRAFTLESS_PUBLIC_AGENT_ARTIFACTS_DIR\" \"${'$'}CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS\" > '$envOutput'"]""",
                 ),
             )
         enqueueBasicSmokeQueryResults(gateway)
@@ -1988,6 +1989,7 @@ class FabricDriverModuleTest {
         assertTrue(envLines[0].startsWith("http://127.0.0.1:"))
         assertEquals("fabric-smoke", envLines[1])
         assertEquals(artifactsDir.toString(), envLines[2])
+        assertEquals("120000", envLines[3])
         assertTrue(Files.exists(artifactsDir.resolve("public-agent-command.log")))
     }
 

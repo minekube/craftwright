@@ -191,10 +191,12 @@ Verification:
   a real Craftless-controlled Fabric client and recording artifacts. Task
   registration evidence: `mise exec -- gradle :driver-fabric:tasks --group
   verification` lists `fabricFinalGameplay`.
-- [ ] Craftless joins a server, fetches graph-backed OpenAPI, subscribes to SSE,
-  writes chat, observes world/inventory state, equips a tool, mines, places or
-  builds a small structure, and records evidence.
-- [ ] A public-agent gameplay runner uses only the generated per-client
+- [~] Craftless joins a server, fetches graph-backed OpenAPI, subscribes to SSE,
+  writes chat, observes world/inventory state, equips an item, mines, places a
+  block, attacks an entity, and records evidence. Latest no-hold evidence is
+  under `driver-fabric/build/craftless-final-gameplay/artifacts/`; the held
+  Robin-observed session remains open.
+- [~] A public-agent gameplay runner uses only the generated per-client
   OpenAPI/actions/resources, SSE/JSON-RPC events, adaptive CLI or HTTP, and
   repository agent skills/docs to complete the survival scenario. Current
   implementation evidence exists for a runner contract, JSONL artifact writer,
@@ -208,10 +210,12 @@ Verification:
   `navigation.plan`, `navigation.follow`, `world.block.break`, `entity.query`,
   `inventory.query`, `inventory.equip`, `world.block.interact`,
   `player.look`, and `entity.attack`; it mined a log, recovered material into
-  public inventory state, equipped it, placed/interacted with a block, attacked
-  passive entities, and finally observed `entity.handle-11` with `alive:false`
-  plus `Feather` and `Raw Chicken` drops. The final Robin-observed gameplay
-  gate is still open.
+  public inventory state, equipped it, placed/interacted with a block, followed
+  moving passive entities with generated navigation, attacked through generated
+  `entity.attack`, and finally observed `entity.handle-19` with `alive:false`
+  plus `Gray Wool`, `Raw Mutton`, and `Experience Orb` drops. Recipe progress,
+  held multiplayer observation, and Robin's Minecraft chat confirmation remain
+  open.
 - [ ] Robin joins or observes the server session after a macOS `say` prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
@@ -528,14 +532,14 @@ Verification:
   generated `entity.attack` after material pickup and placement. Focused
   public-agent tests require post-attack entity or inventory proof, bounded
   generated-navigation exploration when no target is visible, vertically
-  reachable target preference, fresh close-range target revalidation before
-  attack, a bounded pause between unproven attacks, and target refresh between
-  unproven attacks. Latest live no-hold evidence records generated combat
-  outcome proof: `entity.attack` hit a passive entity, a follow-up
-  `entity.query` reported `entity.handle-11` with `alive:false`, and public
-  entity perception showed `Feather` and `Raw Chicken` drops. The final
-  project remains open on exact final survival acceptance and Robin
-  confirmation.
+  offset target navigation, fresh close-range target revalidation before
+  attack, target repositioning when a refreshed target moves, a bounded pause
+  between unproven attacks, and target refresh between unproven attacks.
+  Latest live no-hold evidence records generated combat outcome proof:
+  `entity.attack` hit a passive entity, a follow-up `entity.query` reported
+  `entity.handle-19` with `alive:false`, and public entity perception showed
+  `Gray Wool`, `Raw Mutton`, and `Experience Orb` drops. The final project
+  remains open on recipe progress and Robin confirmation.
 
 Verification:
 
