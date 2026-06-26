@@ -461,6 +461,33 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `server validates generic invocation through generated openapi authority before driver invocation`() =
+        withHttpClient { http ->
+            val driver = DuplicateActionDriverSession("alice")
+            LocalSessionApiServer
+                .inMemory(
+                    driverFactory =
+                        DriverSessionFactory {
+                            driver
+                        },
+                ).use { server ->
+                    server.start()
+                    createAlice(http, server)
+
+                    http
+                        .post(server.url("/clients/alice:run")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"action":"player.chat","args":{"message":"hello"}}""")
+                        }.let { response ->
+                            assertEquals(HttpStatusCode.BadRequest, response.status)
+                            assertError(response.bodyAsText(), "INVALID_ACTION_INPUT", "duplicate action id player.chat")
+                        }
+
+                    assertEquals(0, driver.invokeCount)
+                }
+        }
+
+    @Test
     fun `server returns generic action result data payload`() =
         withHttpClient { http ->
             LocalSessionApiServer
@@ -923,6 +950,41 @@ private class UnavailableActionDriverSession(
                 source = DriverActionSource.RUNTIME_PROBE,
                 availability = DriverActionAvailability.UNAVAILABLE,
                 availabilityReason = "client-not-connected",
+            ),
+        )
+
+    override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
+
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult {
+        invokeCount += 1
+        return DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED)
+    }
+
+    override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
+
+    override fun events(): List<DriverEvent> = emptyList()
+}
+
+private class DuplicateActionDriverSession(
+    override val clientId: String,
+) : DriverSession {
+    var invokeCount = 0
+
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.CONNECTED)
+
+    override fun actions(): List<DriverActionDescriptor> =
+        listOf(
+            DriverActionDescriptor(
+                id = "player.chat",
+                schemaVersion = "1",
+                arguments = mapOf("message" to DriverActionArgument("string", required = true)),
+            ),
+            DriverActionDescriptor(
+                id = "player.chat",
+                schemaVersion = "2",
+                arguments = mapOf("message" to DriverActionArgument("string", required = true)),
             ),
         )
 

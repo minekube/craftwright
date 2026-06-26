@@ -33,9 +33,9 @@ Legend:
   and `craftless clients <id> resources` no longer gate on projection
   endpoints; live OpenAPI is the action/resource existence and schema
   authority.
-- [x] Daemon generic and generated-alias action dispatch validate driver result
-  payloads against the advertised action result descriptor before returning
-  success.
+- [x] Daemon generic and generated-alias action dispatch use the live
+  per-client OpenAPI action descriptor for action existence, availability,
+  argument validation, and result payload validation before returning success.
 - [x] Fabric smoke has proven real client launch, server join, generated chat,
   generated movement invocation, generated look invocation, server-side target
   item provisioning, generated inventory observation/equip, generated block
@@ -157,10 +157,10 @@ Verification:
 - [x] Define the rule for unavailable-but-detected operations: they may appear
   in OpenAPI only when a runtime probe discovered them and produced a
   machine-readable availability reason.
-- [x] Daemon generic and alias action routes reject unavailable action
-  descriptors before driver invocation.
+- [x] Daemon generic and alias action routes reject unavailable live OpenAPI
+  action descriptors before driver invocation.
 - [x] Daemon generic and alias action routes reject driver results that do not
-  match the advertised action result descriptor.
+  match the live OpenAPI action result descriptor.
 - [x] Ensure generated aliases are derived only from the running client's
   OpenAPI/action descriptors.
 - [x] Ensure public OpenAPI does not expose Fabric/Yarn/intermediary names,

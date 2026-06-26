@@ -1,9 +1,6 @@
 package com.minekube.craftless.daemon
 
 import com.minekube.craftless.driver.api.ConnectionTarget
-import com.minekube.craftless.driver.api.DriverActionArgument
-import com.minekube.craftless.driver.api.DriverActionAvailability
-import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
@@ -16,6 +13,9 @@ import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
+import com.minekube.craftless.protocol.OpenApiAction
+import com.minekube.craftless.protocol.OpenApiActionArgument
+import com.minekube.craftless.protocol.OpenApiActionAvailability
 import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.isCraftlessActionId
 import io.ktor.http.ContentType
@@ -210,8 +210,9 @@ class LocalSessionApiServer private constructor(
                         throw InvalidActionInput("invalid action id ${request.action}")
                     }
                     val driver = service.requireActiveDriver(clientId)
+                    val openApi = service.openApiFor(clientId)
                     val action =
-                        driver.actionDescriptor(request.action)
+                        openApi.actionDescriptor(request.action)
                             ?: throw UnsupportedAction("action ${request.action} is not available for client $clientId")
                     action.requireAvailable(clientId)
                     action.requireArguments(request.args)
@@ -268,10 +269,10 @@ class LocalSessionApiServer private constructor(
                 runCatching {
                     val actionId = actionAlias.toActionId()
                     val driver = service.requireActiveDriver(clientId)
-                    val action = driver.actionDescriptor(actionId)
-                    if (action == null) {
-                        throw UnsupportedAction("action $actionId is not available for client $clientId")
-                    }
+                    val openApi = service.openApiFor(clientId)
+                    val action =
+                        openApi.actionDescriptor(actionId)
+                            ?: throw UnsupportedAction("action $actionId is not available for client $clientId")
                     val arguments = call.receiveActionArguments()
                     action.requireAvailable(clientId)
                     action.requireArguments(arguments)
@@ -357,7 +358,7 @@ private suspend fun ApplicationCall.receiveActionArguments(): Map<String, JsonEl
     return if (body.isBlank()) emptyMap() else Json.decodeFromString(body)
 }
 
-private fun DriverSession.actionDescriptor(actionId: String): DriverActionDescriptor? = actions().firstOrNull { it.id == actionId }
+private fun OpenApiDocument.actionDescriptor(actionId: String): OpenApiAction? = actions.firstOrNull { it.id == actionId }
 
 private fun ClientSessionService.requireActiveClient(clientId: String): Client {
     val client =
@@ -377,7 +378,7 @@ private fun ClientSessionService.requireActiveDriver(clientId: String): DriverSe
     }
 }
 
-private fun DriverActionDescriptor.requireArguments(arguments: Map<String, JsonElement>) {
+private fun OpenApiAction.requireArguments(arguments: Map<String, JsonElement>) {
     val undeclared = arguments.keys.firstOrNull { it !in this.arguments }
     require(undeclared == null) { "action $id does not declare argument $undeclared" }
     val missingRequired =
@@ -391,13 +392,13 @@ private fun DriverActionDescriptor.requireArguments(arguments: Map<String, JsonE
     }
 }
 
-private fun DriverActionDescriptor.requireAvailable(clientId: String) {
-    if (availability == DriverActionAvailability.UNAVAILABLE) {
+private fun OpenApiAction.requireAvailable(clientId: String) {
+    if (availability == OpenApiActionAvailability.UNAVAILABLE) {
         throw UnsupportedAction(availabilityReason ?: "action $id is not available for client $clientId")
     }
 }
 
-private fun DriverActionDescriptor.requireResult(result: DriverActionResult) {
+private fun OpenApiAction.requireResult(result: DriverActionResult) {
     if (result.action != id) {
         throw DriverResultMismatch("action $id returned result for ${result.action}")
     }
@@ -431,7 +432,7 @@ private fun DriverActionResult.responseFields(): Map<String, JsonElement> =
         }
     }
 
-private fun DriverActionArgument.requireValueType(
+private fun OpenApiActionArgument.requireValueType(
     actionId: String,
     name: String,
     value: JsonElement,
