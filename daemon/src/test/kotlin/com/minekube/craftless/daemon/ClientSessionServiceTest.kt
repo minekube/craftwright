@@ -371,6 +371,11 @@ class ClientSessionServiceTest {
         val player = resources.single { it.id == "player" }
         assertEquals(listOf("player.query", "player.raycast"), player.actions)
         assertEquals(OpenApiResourceAvailability.PARTIAL, player.availability)
+        assertEquals(listOf("player.query", "player.raycast"), player.actionDescriptors.map { it.id })
+        assertEquals(
+            "client-not-connected",
+            player.actionDescriptors.single { it.id == "player.raycast" }.availabilityReason,
+        )
     }
 
     @Test

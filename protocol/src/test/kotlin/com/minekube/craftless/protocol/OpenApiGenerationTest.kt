@@ -230,9 +230,16 @@ class OpenApiGenerationTest {
         val player = document.resources.single { it.id == "player" }
         assertEquals(listOf("player.query", "player.raycast"), player.actions)
         assertEquals(OpenApiResourceAvailability.PARTIAL, player.availability)
+        assertEquals(listOf("player.query", "player.raycast"), player.actionDescriptors.map { it.id })
+        val raycast = player.actionDescriptors.single { it.id == "player.raycast" }
+        assertEquals("1", raycast.schemaVersion)
+        assertEquals(OpenApiActionSource.RUNTIME_PROBE, raycast.source)
+        assertEquals(OpenApiActionAvailability.UNAVAILABLE, raycast.availability)
+        assertEquals("client-not-connected", raycast.availabilityReason)
         val block = document.resources.single { it.id == "world.block" }
         assertEquals(listOf("world.block.break"), block.actions)
         assertEquals(OpenApiResourceAvailability.AVAILABLE, block.availability)
+        assertEquals(listOf("world.block.break"), block.actionDescriptors.map { it.id })
     }
 
     @Test
@@ -535,6 +542,7 @@ class OpenApiGenerationTest {
         assertEquals("object", schema.properties["x-craftless"]?.type)
         assertEquals(true, schema.properties["x-craftless"]?.additionalProperties)
         assertEquals("array", schema.properties["x-craftless-actions"]?.type)
+        assertEquals("array", schema.properties["x-craftless-resources"]?.type)
     }
 
     private fun assertClientSchema(schema: OpenApiSchema) {

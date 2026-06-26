@@ -22,7 +22,8 @@ Legend:
 - [x] Generic action invocation exists at `POST /clients/{id}:run`.
 - [x] Live resource projection exists at `GET /clients/{id}/resources` and in
   `x-craftless-resources`, derived from the same action snapshot as
-  per-client OpenAPI.
+  per-client OpenAPI, including the action descriptors that produced each
+  resource.
 - [x] CLI binary is `craftless` and uses adaptive action metadata.
 - [x] CLI generic and generated-alias action dispatch use the live per-client
   OpenAPI action descriptor for argument schema validation, help, positional
@@ -137,9 +138,9 @@ Verification:
   client/world/inventory/screen probes are still roadmap.
 - [~] Define how internal Fabric/Minecraft/mod/registry/server data becomes
   Craftless-owned actions, resources, handles, schemas, availability, and
-  events. Action-derived resource projection is implemented; richer handles,
-  object schemas, registry/server-feature resources, and event/resource
-  relationships are still roadmap.
+  events. Action-derived resource projection now includes the source action
+  descriptors; richer object handles, registry/server-feature resources, and
+  event/resource relationships are still roadmap.
 - [x] Define the rule for unavailable-but-detected operations: they may appear
   in OpenAPI only when a runtime probe discovered them and produced a
   machine-readable availability reason.

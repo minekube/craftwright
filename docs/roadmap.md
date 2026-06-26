@@ -142,8 +142,9 @@ or static placeholder descriptors.
   `player.raycast`, `inventory.query`, `inventory.equip`, and
   `world.block.break`.
 - Current resource projection groups discovered action ids into live resources
-  such as `player`, `inventory`, and `world.block`; richer handles and
-  resource schemas are still roadmap.
+  such as `player`, `inventory`, and `world.block`, and includes the action
+  descriptor schemas that produced each resource. Richer object handles,
+  registry/server-feature resources, and event relationships are still roadmap.
 - Project discovered runtime affordances into Craftless-owned actions,
   resources, handles, schemas, availability metadata, and events.
 - Add real execution bindings before treating an action as supported.

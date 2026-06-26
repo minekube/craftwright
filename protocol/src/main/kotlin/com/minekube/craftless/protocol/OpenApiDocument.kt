@@ -149,6 +149,7 @@ data class OpenApiResource(
     val id: String,
     val actions: List<String>,
     val availability: OpenApiResourceAvailability,
+    val actionDescriptors: List<OpenApiResourceActionDescriptor>,
 ) {
     init {
         require(id.isCraftlessResourceId()) { "invalid resource id $id" }
@@ -157,6 +158,31 @@ data class OpenApiResource(
         actions.forEach { actionId ->
             require(actionId.isCraftlessActionId()) { "invalid resource action id $actionId" }
             require(actionId.startsWith("$id.")) { "resource $id cannot reference action $actionId" }
+        }
+        require(actionDescriptors.map { it.id } == actions) {
+            "resource $id action descriptors must match resource actions"
+        }
+    }
+}
+
+@Serializable
+data class OpenApiResourceActionDescriptor(
+    val id: String,
+    val schemaVersion: String,
+    @SerialName("args")
+    val arguments: Map<String, OpenApiActionArgument> = emptyMap(),
+    val result: OpenApiActionResult = OpenApiActionResult(),
+    val source: OpenApiActionSource = OpenApiActionSource.BINDING,
+    val availability: OpenApiActionAvailability = OpenApiActionAvailability.AVAILABLE,
+    val availabilityReason: String? = null,
+) {
+    init {
+        require(id.isCraftlessActionId()) { "invalid resource action id $id" }
+        require(schemaVersion.isNotBlank()) { "resource action schema version is required" }
+        if (availability == OpenApiActionAvailability.UNAVAILABLE) {
+            require(!availabilityReason.isNullOrBlank()) { "unavailable resource action $id requires availability reason" }
+        } else {
+            require(availabilityReason == null) { "available resource action $id must not declare availability reason" }
         }
     }
 }
@@ -269,10 +295,22 @@ fun List<OpenApiAction>.toOpenApiResources(): List<OpenApiResource> =
                 id = resourceId,
                 actions = sortedActions.map { it.id },
                 availability = sortedActions.toResourceAvailability(),
+                actionDescriptors = sortedActions.map { it.toOpenApiResourceActionDescriptor() },
             )
         }
 
 private fun OpenApiAction.resourceId(): String = id.substringBeforeLast(".")
+
+private fun OpenApiAction.toOpenApiResourceActionDescriptor(): OpenApiResourceActionDescriptor =
+    OpenApiResourceActionDescriptor(
+        id = id,
+        schemaVersion = schemaVersion,
+        arguments = arguments,
+        result = result,
+        source = source,
+        availability = availability,
+        availabilityReason = availabilityReason,
+    )
 
 private fun List<OpenApiAction>.toResourceAvailability(): OpenApiResourceAvailability =
     when {
@@ -541,8 +579,13 @@ private fun resourceDescriptorSchema(): OpenApiSchema =
                 "id" to OpenApiSchema(type = "string"),
                 "actions" to OpenApiSchema(type = "array", items = OpenApiSchema(type = "string")),
                 "availability" to OpenApiSchema(type = "string"),
+                "actionDescriptors" to
+                    OpenApiSchema(
+                        type = "array",
+                        items = actionDescriptorSchema(),
+                    ),
             ),
-        required = listOf("id", "actions", "availability"),
+        required = listOf("id", "actions", "availability", "actionDescriptors"),
     )
 
 private fun genericActionRequestBody(): OpenApiRequestBody =
