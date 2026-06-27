@@ -625,6 +625,10 @@ Verification:
 - [x] `entity.query` invalid bounds now return machine-readable
   generated-action failures with `invalid-radius` or `invalid-limit` and empty
   public `entities` evidence instead of throwing.
+- [x] `entity.attack` invalid public arguments now return machine-readable
+  generated-action failures with `hit=false` and `reason` values such as
+  `invalid-max-distance`, `missing-target`, or `invalid-entity-handle`;
+  the runtime graph advertises those result fields for generated clients.
 - [x] Focused driver and public-agent tests pass.
 - [x] Recent live no-hold evidence reaches generic attack invocation through
   generated `entity.attack` after material pickup and placement. Focused
@@ -647,6 +651,7 @@ Verification:
 Verification:
 
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricCapabilityProbeTest*' --tests '*FabricDriverModuleTest.fabric backend invokes entity attack through runtime graph adapter'`
+- `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric backend returns machine readable entity attack failures for invalid arguments'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 
 ## Phase 24: Targetable Block Interact

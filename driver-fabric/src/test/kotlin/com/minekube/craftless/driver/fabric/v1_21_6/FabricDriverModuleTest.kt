@@ -712,6 +712,8 @@ class FabricDriverModuleTest {
         assertEquals(true, unavailableAttack.arguments["target"]?.required)
         assertEquals("number", unavailableAttack.arguments["max-distance"]?.type)
         assertEquals("object", unavailableAttack.result.type)
+        assertEquals("boolean", unavailableAttack.result.properties["hit"]?.type)
+        assertEquals("string", unavailableAttack.result.properties["reason"]?.type)
         assertEquals(DriverActionStatus.UNSUPPORTED, unavailableResult.status)
         assertEquals("client-not-connected", unavailableResult.message)
 
@@ -752,6 +754,59 @@ class FabricDriverModuleTest {
         assertEquals("entity.handle-42", result.data["handle"]?.jsonPrimitive?.content)
         assertEquals(listOf("client-query"), gateway.actions)
         assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
+    fun `fabric backend returns machine readable entity attack failures for invalid arguments`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        val backend = smokeBackend(gateway)
+        val attack = backend.runtimeGraph("alice").operations.single { it.id == "entity.attack" }
+        val adapters = backend.operationAdapters("alice")
+
+        fun invoke(arguments: Map<String, kotlinx.serialization.json.JsonElement>) =
+            adapters.invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = attack,
+                    arguments = arguments,
+                ),
+            )
+
+        val invalidDistance =
+            invoke(
+                mapOf(
+                    "target" to
+                        buildJsonObject {
+                            put("handle", "entity.handle-42")
+                        },
+                    "max-distance" to JsonPrimitive(-1.0),
+                ),
+            )
+        val missingTarget = invoke(emptyMap())
+        val invalidTarget =
+            invoke(
+                mapOf(
+                    "target" to
+                        buildJsonObject {
+                            put("handle", "not-an-entity-handle")
+                        },
+                ),
+            )
+
+        assertEquals(DriverActionStatus.FAILED, invalidDistance.status)
+        assertEquals("invalid-max-distance", invalidDistance.message)
+        assertEquals(false, invalidDistance.data["hit"]?.jsonPrimitive?.boolean)
+        assertEquals("invalid-max-distance", invalidDistance.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(DriverActionStatus.FAILED, missingTarget.status)
+        assertEquals("missing-target", missingTarget.message)
+        assertEquals(false, missingTarget.data["hit"]?.jsonPrimitive?.boolean)
+        assertEquals("missing-target", missingTarget.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(DriverActionStatus.FAILED, invalidTarget.status)
+        assertEquals("invalid-entity-handle", invalidTarget.message)
+        assertEquals(false, invalidTarget.data["hit"]?.jsonPrimitive?.boolean)
+        assertEquals("invalid-entity-handle", invalidTarget.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(0, gateway.scheduled)
     }
 
     @Test

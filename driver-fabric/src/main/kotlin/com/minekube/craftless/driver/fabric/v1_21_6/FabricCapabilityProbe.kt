@@ -229,7 +229,7 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                             "target" to RuntimeSchema("object", required = true),
                             "max-distance" to RuntimeSchema("number"),
                         ),
-                    result = RuntimeSchema.objectSchema(),
+                    result = entityAttackResultSchema(),
                     availability = capabilities.entityAttackAvailability(),
                 ),
                 RuntimeOperationNode(
@@ -360,6 +360,23 @@ private fun blockQueryResultSchema(): RuntimeSchema =
                 "radius" to RuntimeSchema("number"),
                 "count" to RuntimeSchema("integer"),
                 "blocks" to RuntimeSchema("array", items = RuntimeSchema.objectSchema()),
+                "reason" to RuntimeSchema("string"),
+            ),
+    )
+
+private fun entityAttackResultSchema(): RuntimeSchema =
+    RuntimeSchema(
+        type = "object",
+        properties =
+            mapOf(
+                "handle" to RuntimeSchema("string"),
+                "label" to RuntimeSchema("string"),
+                "category" to RuntimeSchema("string"),
+                "distance" to RuntimeSchema("number"),
+                "position" to RuntimeSchema.objectSchema(),
+                "hit" to RuntimeSchema("boolean"),
+                "alive" to RuntimeSchema("boolean"),
+                "origin" to RuntimeSchema.objectSchema(),
                 "reason" to RuntimeSchema("string"),
             ),
     )

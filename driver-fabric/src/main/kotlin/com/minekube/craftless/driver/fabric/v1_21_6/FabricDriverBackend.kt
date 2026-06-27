@@ -744,7 +744,14 @@ class FabricDriverBackend private constructor(
 
     private fun attackEntity(invocation: DriverOperationInvocation): DriverActionResult {
         val maxDistance = invocation.arguments["max-distance"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_ENTITY_ATTACK_DISTANCE
-        require(maxDistance > 0.0) { "entity attack max-distance must be positive" }
+        if (maxDistance <= 0.0) {
+            return DriverActionResult(
+                action = invocation.operation.id,
+                status = DriverActionStatus.FAILED,
+                message = "invalid-max-distance",
+                data = entityAttackFailure(reason = "invalid-max-distance"),
+            )
+        }
         val targetHandle =
             invocation.arguments["target"]
                 ?.entityTargetHandle()
@@ -752,6 +759,7 @@ class FabricDriverBackend private constructor(
                     action = invocation.operation.id,
                     status = DriverActionStatus.FAILED,
                     message = "missing-target",
+                    data = entityAttackFailure(reason = "missing-target"),
                 )
         val entityId =
             targetHandle.entityHandleId()
@@ -759,6 +767,7 @@ class FabricDriverBackend private constructor(
                     action = invocation.operation.id,
                     status = DriverActionStatus.FAILED,
                     message = "invalid-entity-handle",
+                    data = entityAttackFailure(handle = targetHandle, reason = "invalid-entity-handle"),
                 )
         val clientGateway = gateway
         if (clientGateway == null || !clientGateway.isConnected()) {
@@ -770,26 +779,31 @@ class FabricDriverBackend private constructor(
         }
         val data =
             clientGateway.queryOnClient {
-                val currentPlayer = requireNotNull(player) { "client is not connected to a server" }
-                val currentWorld = requireNotNull(world) { "client world is unavailable" }
+                val currentPlayer = player ?: return@queryOnClient entityAttackFailure(targetHandle, "client-not-connected")
+                val currentWorld = world ?: return@queryOnClient entityAttackFailure(targetHandle, "world-unavailable")
                 val currentInteractionManager =
-                    requireNotNull(interactionManager) { "client interaction manager is unavailable" }
+                    interactionManager
+                        ?: return@queryOnClient entityAttackFailure(targetHandle, "interaction-manager-unavailable")
                 val target =
                     currentWorld
                         .getOtherEntities(currentPlayer, currentPlayer.boundingBox.expand(maxDistance)) { entity ->
                             entity.id == entityId && !entity.isSpectator
                         }.firstOrNull()
-                        ?: error("entity target is not loaded or within max-distance")
+                        ?: return@queryOnClient entityAttackFailure(targetHandle, "entity-target-unavailable")
                 val distance = target.distanceTo(currentPlayer).toDouble()
-                require(distance <= maxDistance) { "entity target exceeds max-distance" }
+                if (distance > maxDistance) {
+                    return@queryOnClient entityAttackFailure(targetHandle, "entity-target-out-of-range", distance)
+                }
                 currentInteractionManager.attackEntity(currentPlayer, target)
                 currentPlayer.swingHand(Hand.MAIN_HAND)
                 target.toCraftlessEntityAttackData(currentPlayer, distance)
             }
+        val hit = data["hit"]?.jsonPrimitive?.booleanOrNull == true
+        val reason = data["reason"]?.jsonPrimitive?.contentOrNull
         return DriverActionResult(
             action = invocation.operation.id,
-            status = DriverActionStatus.ACCEPTED,
-            message = "fabric ${mode.id} action ${invocation.operation.id} accepted",
+            status = if (hit) DriverActionStatus.ACCEPTED else DriverActionStatus.FAILED,
+            message = reason ?: "fabric ${mode.id} action ${invocation.operation.id} accepted",
             data = data,
         )
     }
@@ -1341,6 +1355,18 @@ private fun blockQueryFailure(reason: String): JsonObject =
     buildJsonObject {
         put("count", 0)
         put("blocks", buildJsonArray {})
+        put("reason", reason)
+    }
+
+private fun entityAttackFailure(
+    handle: String? = null,
+    reason: String,
+    distance: Double? = null,
+): JsonObject =
+    buildJsonObject {
+        handle?.let { put("handle", it) }
+        distance?.let { put("distance", it) }
+        put("hit", false)
         put("reason", reason)
     }
 
