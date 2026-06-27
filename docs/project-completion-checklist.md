@@ -1687,6 +1687,9 @@ Verification:
   `CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS` below the Fabric helper
   action timeout so blocker artifacts can be written before the smoke
   controller times out the helper process.
+- [x] `FabricClientSmokeController` gives the public-agent helper process the
+  long outer smoke timeout while keeping generated-action requests on the
+  shorter Fabric action timeout.
 - [x] `mise run architecture-check` runs Gradle test targets as separate
   invocations before the Bun Playwright tests so the local verification gate
   does not hit Gradle binary test-result collisions.
@@ -1701,6 +1704,7 @@ Verification:
 Verification:
 
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest.runner config prefers fabric smoke action timeout over outer smoke timeout*' :driver-fabric:test --tests '*FabricDriverModuleTest.final gameplay config exports public agent action request timeout below fabric action timeout*'`
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric smoke controller gives public agent process the outer smoke timeout*'`
 - `git diff --check`
 - `mise exec -- gradle :testkit:test :driver-fabric:test`
 - `mise run lint`

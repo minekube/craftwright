@@ -34,7 +34,13 @@
   `CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS` from the final gameplay
   task.
 
-- [x] **Step 4: Verify RED**
+- [x] **Step 4: Add controller process-timeout test**
+
+  Add a controller test proving the public-agent helper process uses the long
+  outer smoke timeout while generated action requests keep the shorter Fabric
+  action timeout.
+
+- [x] **Step 5: Verify RED**
 
   Run:
 
@@ -65,7 +71,13 @@
   export it as `CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS` in
   `fabricFinalGameplay`.
 
-- [x] **Step 3: Verify focused tests GREEN**
+- [x] **Step 3: Split public-agent process timeout from generated action timeout**
+
+  Give `FabricClientSmokeController` a separate public-agent helper process
+  timeout sourced from the long outer smoke timeout, while still passing the
+  shorter action timeout to `CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS`.
+
+- [x] **Step 4: Verify focused tests GREEN**
 
   Run:
 

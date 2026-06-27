@@ -52,6 +52,7 @@ data class FabricClientSmokeController(
     val requireEquipItem: Boolean = false,
     val connectTimeout: Duration = 30_000.milliseconds,
     val actionTimeout: Duration = 30_000.milliseconds,
+    val publicAgentCommandTimeout: Duration = actionTimeout,
     val startupSettleDelay: Duration = 0.milliseconds,
     val holdAfterActions: Duration = 0.milliseconds,
     val artifactsDir: Path? = null,
@@ -65,6 +66,7 @@ data class FabricClientSmokeController(
         require(!holdAfterActions.isNegative()) { "fabric smoke hold after actions delay must not be negative" }
         require(!readyNotificationReminder.isNegative()) { "fabric smoke ready reminder delay must not be negative" }
         require(actionTimeout.isPositive()) { "fabric smoke action timeout must be positive" }
+        require(publicAgentCommandTimeout.isPositive()) { "fabric smoke public agent command timeout must be positive" }
         require(publicAgentCommand.none { it.isBlank() }) { "fabric smoke public agent command entries must not be blank" }
         require(readyNotificationCommand.none { it.isBlank() }) { "fabric smoke ready notification command entries must not be blank" }
         require(confirmationChatContains == null || confirmationChatContains.isNotBlank()) {
@@ -336,10 +338,10 @@ data class FabricClientSmokeController(
                     builder.environment()["CRAFTLESS_PUBLIC_AGENT_ACTION_REQUEST_TIMEOUT_MS"] =
                         actionTimeout.inWholeMilliseconds.toString()
                 }.start()
-        val exited = process.waitFor(actionTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+        val exited = process.waitFor(publicAgentCommandTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
         if (!exited) {
             process.destroyForcibly()
-            error("public agent command timed out after ${actionTimeout.inWholeMilliseconds}ms; log=$log")
+            error("public agent command timed out after ${publicAgentCommandTimeout.inWholeMilliseconds}ms; log=$log")
         }
         check(process.exitValue() == 0) {
             "public agent command exited with ${process.exitValue()}; log=$log"
@@ -504,6 +506,13 @@ data class FabricClientSmokeController(
                 } else {
                     ACTION_TIMEOUT
                 }
+            val actionTimeout = (env[actionTimeoutName]?.toLongStrict(actionTimeoutName) ?: 30_000).milliseconds
+            val publicAgentCommandTimeout =
+                env[ACTION_TIMEOUT]
+                    ?.takeIf { it.isNotBlank() }
+                    ?.toLongStrict(ACTION_TIMEOUT)
+                    ?.milliseconds
+                    ?: actionTimeout
             return FabricClientSmokeController(
                 enabled = env.isEnabled(ENABLED),
                 target =
@@ -517,7 +526,8 @@ data class FabricClientSmokeController(
                 equipItemName = env[EQUIP_ITEM]?.takeIf { it.isNotBlank() } ?: "Iron Sword",
                 requireEquipItem = env.isEnabled(REQUIRE_EQUIP_ITEM),
                 connectTimeout = (env[CONNECT_TIMEOUT]?.toLongStrict(CONNECT_TIMEOUT) ?: 30_000).milliseconds,
-                actionTimeout = (env[actionTimeoutName]?.toLongStrict(actionTimeoutName) ?: 30_000).milliseconds,
+                actionTimeout = actionTimeout,
+                publicAgentCommandTimeout = publicAgentCommandTimeout,
                 startupSettleDelay = (env[STARTUP_SETTLE]?.toLongStrict(STARTUP_SETTLE) ?: 0).milliseconds,
                 holdAfterActions = (env[HOLD_AFTER_ACTIONS]?.toLongStrict(HOLD_AFTER_ACTIONS) ?: 0).milliseconds,
                 artifactsDir = env[ARTIFACTS_DIR]?.takeIf { it.isNotBlank() }?.let(Path::of),

@@ -519,6 +519,21 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric smoke controller gives public agent process the outer smoke timeout`() {
+        val controller =
+            FabricClientSmokeController.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                    "CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS" to "1500000",
+                    "CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS" to "120000",
+                ),
+            )
+
+        assertEquals(120_000.milliseconds, controller.actionTimeout)
+        assertEquals(1_500_000.milliseconds, controller.publicAgentCommandTimeout)
+    }
+
+    @Test
     fun `fabric client smoke passes runtime lane evidence before launching client`() {
         val buildScript = Files.readString(repositoryRoot().resolve("driver-fabric/build.gradle.kts"))
 
