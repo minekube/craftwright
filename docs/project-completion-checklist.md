@@ -2042,7 +2042,15 @@ Verification:
   `install.sh` installed published `craftless 0.1.0` into a temp directory and
   that installed binary returned `ok=true` for `server start --once --port 0`.
 - [x] Final real gameplay evidence is captured without server-provisioned
-  inventory or manual movement for Craftless.
+  inventory or manual movement for Craftless. Current 2026-06-28 held run
+  evidence under `driver-fabric/build/craftless-final-gameplay/artifacts/`
+  reached `final-gameplay-ready.json` for server `127.0.0.1:50182`, fetched
+  generated per-client OpenAPI/actions/resources, subscribed to SSE, collected
+  `Cherry Log`, crafted `Cherry Planks`, crafted and opened a `Crafting Table`,
+  crafted and equipped a `Wooden Sword`, killed a Sheep through generated
+  `entity.attack`, observed `Raw Mutton` and `White Wool` drops through
+  generated `entity.query`, and wrote `final-gameplay-confirmation-timeout.json`
+  because no server chat line contained `goal may be completed`.
 - [ ] Robin confirms in Minecraft chat that the goal may be completed.
 - [x] Changes are committed and pushed to `main`. This entry is current only
   after the checklist update that changes it is also pushed.
