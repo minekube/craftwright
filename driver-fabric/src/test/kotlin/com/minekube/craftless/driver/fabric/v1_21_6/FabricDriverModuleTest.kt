@@ -162,6 +162,20 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `stable fabric entrypoint delegates through bootstrap selector only`() {
+        val source =
+            Files.readString(
+                repositoryRoot().resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/CraftlessFabricClientEntrypoint.kt",
+                ),
+            )
+
+        assertTrue(source.contains("FabricBootstrapSelector"))
+        assertFalse(source.contains("driver.fabric.v1_21_6"))
+        assertFalse(source.contains("FabricCurrentLaneBootstrap"))
+    }
+
+    @Test
     fun `compiled lane literals do not drift in product runtime code`() {
         val root = repositoryRoot()
         val runtimeFiles =

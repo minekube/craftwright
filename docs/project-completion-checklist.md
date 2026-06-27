@@ -1583,19 +1583,47 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 51: Fabric Bootstrap Selection Boundary
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-51-fabric-bootstrap-selection-boundary-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-51-fabric-bootstrap-selection-boundary-plan.md`.
+- [x] Stable Fabric entrypoint calls a non-versioned internal bootstrap
+  selector instead of importing the current version-scoped bootstrap directly.
+- [x] A stable internal `FabricDriverBootstrap` contract exposes provider id,
+  Minecraft version, and initialization.
+- [x] The current compiled-lane bootstrap implements that contract while
+  retaining current startup behavior.
+- [x] Selector tests prove current compiled-lane metadata without initializing
+  Minecraft.
+- [x] This phase changes internal Fabric startup selection only and adds no
+  public gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, or public
+  version-specific API.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.stable fabric entrypoint delegates through bootstrap selector only*' --tests '*FabricBootstrapSelectorTest*'`
+- `git diff --check`
+- `mise exec -- gradle :driver-fabric:test`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
   completion remains open on Robin's Minecraft chat confirmation.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully inside `mise run ci` after the Phase 50 latest release lane
-  evidence cleanup.
+  successfully inside `mise run ci` after the Phase 51 Fabric bootstrap
+  selection boundary.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after the Phase 50 latest
-  release lane evidence cleanup.
+  architecture tests and Bun Playwright helper tests after the Phase 51 Fabric
+  bootstrap selection boundary.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after the Phase 50 latest release lane evidence cleanup.
+  successfully after the Phase 51 Fabric bootstrap selection boundary.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,

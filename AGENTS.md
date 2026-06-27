@@ -162,6 +162,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 48. stable Fabric entrypoint boundary.
 49. README current status alignment.
 50. latest release lane evidence.
+51. Fabric bootstrap selection boundary.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -357,6 +358,11 @@ Minecraft release such as `26.2` must be represented as a real runtime input
 with `UNSUPPORTED` and a machine-readable reason when no compatible Fabric
 client lane exists; it must not be described as simulated support, must not
 claim new version support, and must not add gameplay actions.
+Phase 51 keeps the stable Fabric entrypoint behind a non-versioned internal
+bootstrap selector. The entrypoint must not import a version-scoped bootstrap
+directly; current compiled-lane startup remains registered behind the selector.
+It must not add a new compiled lane, claim new Minecraft version support, add
+public version-specific APIs, or add gameplay actions.
 
 ## Acceptance Scenarios Are Not Product APIs
 
