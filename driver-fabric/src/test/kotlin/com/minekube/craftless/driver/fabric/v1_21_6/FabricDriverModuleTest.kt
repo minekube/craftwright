@@ -53,14 +53,17 @@ class FabricDriverModuleTest {
         name: String,
     ): String {
         val path = artifactsDir.resolve(name)
-        val deadline = System.nanoTime() + 1_000_000_000
+        val deadline = System.nanoTime() + 30_000_000_000
         while (System.nanoTime() < deadline) {
             if (Files.isRegularFile(path)) {
                 return Files.readString(path)
             }
             Thread.sleep(10)
         }
-        return Files.readString(path)
+        error(
+            "timed out waiting for artifact $name in $artifactsDir; " +
+                "observed=${Files.list(artifactsDir).use { stream -> stream.map { it.fileName.toString() }.sorted().toList() }}",
+        )
     }
 
     private fun blockQueryRuntimeMetadataProvider(): FabricRuntimeMetadataProvider =
@@ -3629,6 +3632,7 @@ private class RecordingFabricClientGateway : FabricClientGateway {
             }
             Thread.sleep(10)
         }
+        error("timed out waiting for $count gateway actions; observed=${actionSnapshot()}")
     }
 
     fun awaitAction(action: String) {
@@ -3639,6 +3643,7 @@ private class RecordingFabricClientGateway : FabricClientGateway {
             }
             Thread.sleep(10)
         }
+        error("timed out waiting for gateway action $action; observed=${actionSnapshot()}")
     }
 
     fun actionSnapshot(): List<String> = synchronized(actions) { actions.toList() }
