@@ -351,7 +351,8 @@ data class OpenApiActionSchema(
 
 fun String.isCraftlessActionId(): Boolean =
     matches(Regex("[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+")) &&
-        !containsForbiddenPublicNamespaceToken()
+        !containsForbiddenPublicNamespaceToken() &&
+        !isForbiddenPublicScenarioShortcutActionId()
 
 fun String.isCraftlessResourceId(): Boolean =
     matches(Regex("[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)*")) &&
@@ -396,10 +397,30 @@ private val FORBIDDEN_PUBLIC_NAMESPACE_TOKENS =
         "swarmbot",
     )
 
+private val FORBIDDEN_PUBLIC_SCENARIO_SHORTCUT_ACTION_IDS =
+    setOf(
+        "find.tree",
+        "find.cow",
+        "mine.log",
+        "collect.wood",
+        "craft.sword",
+        "craft.planks",
+        "craft.table",
+        "make.weapon",
+        "kill.cow",
+        "hunt.animal",
+        "pickup.log",
+        "equip.log",
+        "build.house",
+        "place.log",
+    )
+
 internal fun String.containsForbiddenPublicNamespaceToken(): Boolean {
     val normalized = lowercase()
     return FORBIDDEN_PUBLIC_NAMESPACE_TOKENS.any { token -> token in normalized }
 }
+
+private fun String.isForbiddenPublicScenarioShortcutActionId(): Boolean = lowercase() in FORBIDDEN_PUBLIC_SCENARIO_SHORTCUT_ACTION_IDS
 
 fun List<OpenApiAction>.toOpenApiResources(): List<OpenApiResource> =
     groupBy { it.resourceId() }

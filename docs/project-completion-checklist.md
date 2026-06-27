@@ -1182,16 +1182,36 @@ Verification:
 - `mise exec -- gradle :protocol:test --tests 'com.minekube.craftless.protocol.NavigationModelsTest'`
 - `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricNavigationDiscoveryTest.fabric backend task adapter keeps generic tasks unavailable without executor'`
 
+## Phase 37: Scenario Shortcut Action Guard
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-37-scenario-shortcut-action-guard-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-37-scenario-shortcut-action-guard-plan.md`.
+- [x] Public OpenAPI action descriptors reject known scenario shortcut ids such
+  as `find.tree`, `mine.log`, `craft.sword`, and `kill.cow`.
+- [x] Runtime graph operation nodes reject the same shortcut ids through the
+  shared action-id validator.
+- [x] Existing generic action ids remain valid; this guard does not remove
+  generic primitives such as `recipe.craft`, `inventory.equip`,
+  `world.block.break`, or `entity.attack`.
+
+Verification:
+
+- `mise exec -- gradle :protocol:test --tests 'com.minekube.craftless.protocol.NamespacePolicyTest.public action descriptors reject scenario shortcut action ids'`
+- `mise exec -- gradle :protocol:test`
+
 ## Final Completion Gate
 
 - [ ] All phases above are checked with current evidence.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully after the Phase 32 reach-evidence correction.
+  successfully after the Phase 37 shortcut guard.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests.
-- [x] `mise run ci` passes. Current remote evidence: GitHub Actions run
-  `28280248680` passed `mise run ci` on `main` for commit `e1a417f`.
+  architecture tests and Bun Playwright helper tests after the Phase 37
+  shortcut guard.
+- [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
+  successfully after the Phase 37 shortcut guard.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,

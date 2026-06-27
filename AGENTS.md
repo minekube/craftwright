@@ -266,6 +266,11 @@ Phase 36 rejects removed `task.survival.*` scenario ids at the protocol task
 request and progress-event boundaries. It must keep generic future task ids
 valid as metadata, must not add a generic task executor, and must not
 reintroduce survival task macros as valid public API.
+Phase 37 rejects known scenario shortcut action ids such as `find.tree`,
+`mine.log`, `craft.sword`, and `kill.cow` at the shared public action-id
+boundary. It must preserve generic runtime primitives such as `recipe.craft`,
+`inventory.equip`, `world.block.break`, and `entity.attack`, and must not turn
+the shortcut blocklist into a public gameplay catalog.
 
 ## Acceptance Scenarios Are Not Product APIs
 

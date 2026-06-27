@@ -331,6 +331,42 @@ class NamespacePolicyTest {
     }
 
     @Test
+    fun `public action descriptors reject scenario shortcut action ids`() {
+        listOf(
+            "find.tree",
+            "find.cow",
+            "mine.log",
+            "collect.wood",
+            "craft.sword",
+            "craft.planks",
+            "craft.table",
+            "make.weapon",
+            "kill.cow",
+            "hunt.animal",
+            "pickup.log",
+            "equip.log",
+            "build.house",
+            "place.log",
+        ).forEach { actionId ->
+            assertFailsWith<IllegalArgumentException> {
+                OpenApiAction(
+                    id = actionId,
+                    schemaVersion = "1",
+                )
+            }
+
+            assertFailsWith<IllegalArgumentException> {
+                RuntimeOperationNode(
+                    id = actionId,
+                    resource = actionId.substringBeforeLast("."),
+                    adapter = "runtime-probe",
+                    availability = RuntimeAvailability.available(),
+                )
+            }
+        }
+    }
+
+    @Test
     fun `public route metadata rejects implementation namespace leaks`() {
         listOf(
             {
