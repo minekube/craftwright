@@ -423,9 +423,12 @@ Verification:
 - [x] Public-agent runner now continues into target-facing, raycast,
   `world.block.break`, and final inventory verification without using
   `task.survival.*`.
+- [x] Invalid generated `player.move` tick budgets now return
+  machine-readable `invalid-ticks` failures before scheduling client work.
 
 Verification:
 
+- `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric backend returns machine readable movement failure before scheduling gateway'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 
@@ -436,6 +439,9 @@ Verification:
 - [x] Public-agent runner invokes `player.query`, derives `player.look` from
   public positions, invokes `player.raycast`, invokes `world.block.break`, and
   re-queries `inventory.query`.
+- [x] Invalid generated `player.look` arguments now return machine-readable
+  failures such as `missing-yaw` or `invalid-pitch` before scheduling client
+  work.
 - [x] Public-agent runner blocks with
   `insufficient-public-evidence:inventory.query.log` when an accepted break
   does not produce public inventory evidence.
@@ -448,6 +454,7 @@ Verification:
 
 Verification:
 
+- `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric player look returns machine readable failures before scheduling gateway'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 
@@ -525,6 +532,9 @@ Verification:
   hotbar slot from public `inventory.query` state, invokes `inventory.equip`,
   and verifies `selected-slot` with a follow-up `inventory.query`. Focused
   public-agent tests cover success and selected-slot failure paths.
+- [x] Invalid generated `inventory.equip` slot arguments now return
+  machine-readable failures such as `missing-slot` or `invalid-slot` before
+  scheduling client work.
 - [x] Live no-hold evidence reaches `inventory.equip` for collected material
   and verifies follow-up `inventory.query` selected-slot state before
   placement. The final project still remains open on broader survival
@@ -532,6 +542,7 @@ Verification:
 
 Verification:
 
+- `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric inventory equip returns machine readable failures before scheduling gateway'`
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=120000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 

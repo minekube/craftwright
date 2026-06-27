@@ -123,9 +123,30 @@ internal object FabricPlayerLookActionBinding : FabricActionBinding {
         invocation: DriverActionInvocation,
         context: FabricActionContext,
     ): DriverActionResult {
-        val yaw = requireNotNull(invocation.arguments.numberArgument("yaw")) { "yaw is required" }
-        val pitch = requireNotNull(invocation.arguments.numberArgument("pitch")) { "pitch is required" }
-        require(pitch in MIN_PITCH..MAX_PITCH) { "look pitch must be between -90 and 90" }
+        val yaw =
+            invocation.arguments.numberArgument("yaw")
+                ?: return DriverActionResult(
+                    action = invocation.action,
+                    status = DriverActionStatus.FAILED,
+                    message = "missing-yaw",
+                    data = actionFailure("missing-yaw", "applied"),
+                )
+        val pitch =
+            invocation.arguments.numberArgument("pitch")
+                ?: return DriverActionResult(
+                    action = invocation.action,
+                    status = DriverActionStatus.FAILED,
+                    message = "missing-pitch",
+                    data = actionFailure("missing-pitch", "applied"),
+                )
+        if (pitch !in MIN_PITCH..MAX_PITCH) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.FAILED,
+                message = "invalid-pitch",
+                data = actionFailure("invalid-pitch", "applied"),
+            )
+        }
         context.executeOnClient {
             val player = requireNotNull(player) { "client is not connected to a server" }
             val yawFloat = yaw.toFloat()
@@ -193,8 +214,22 @@ internal object FabricInventoryEquipActionBinding : FabricActionBinding {
         invocation: DriverActionInvocation,
         context: FabricActionContext,
     ): DriverActionResult {
-        val slot = requireNotNull(invocation.arguments.intArgument("slot")) { "slot is required" }
-        require(slot in HOTBAR_SLOT_RANGE) { "inventory equip slot must be between 0 and 8" }
+        val slot =
+            invocation.arguments.intArgument("slot")
+                ?: return DriverActionResult(
+                    action = invocation.action,
+                    status = DriverActionStatus.FAILED,
+                    message = "missing-slot",
+                    data = actionFailure("missing-slot", "equipped"),
+                )
+        if (slot !in HOTBAR_SLOT_RANGE) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.FAILED,
+                message = "invalid-slot",
+                data = actionFailure("invalid-slot", "equipped"),
+            )
+        }
         context.executeOnClient {
             val player = requireNotNull(player) { "client is not connected to a server" }
             player.inventory.selectedSlot = slot
@@ -761,7 +796,14 @@ private object FabricPlayerMoveActionBinding : FabricActionBinding {
                 sprint = invocation.arguments.booleanArgument("sprint"),
                 ticks = invocation.arguments.intArgument("ticks") ?: 1,
             )
-        require(intent.ticks > 0) { "movement ticks must be positive" }
+        if (intent.ticks <= 0) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.FAILED,
+                message = "invalid-ticks",
+                data = actionFailure("invalid-ticks", "moved"),
+            )
+        }
         val data =
             context.queryOnClient {
                 val player = requireNotNull(player) { "client is not connected to a server" }
@@ -789,6 +831,15 @@ private object FabricPlayerMoveActionBinding : FabricActionBinding {
         )
     }
 }
+
+private fun actionFailure(
+    reason: String,
+    flag: String,
+): JsonObject =
+    buildJsonObject {
+        put(flag, false)
+        put("reason", reason)
+    }
 
 private data class FabricMovementIntent(
     val forward: Boolean = false,

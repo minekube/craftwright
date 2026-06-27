@@ -541,11 +541,12 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric backend rejects nonpositive movement ticks before scheduling gateway`() {
+    fun `fabric backend returns machine readable movement failure before scheduling gateway`() {
         val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
         val backend = FabricDriverBackend.real(gateway)
 
-        assertFailsWith<IllegalArgumentException> {
+        val result =
             backend.invoke(
                 "alice",
                 DriverActionInvocation(
@@ -557,8 +558,11 @@ class FabricDriverModuleTest {
                         ),
                 ),
             )
-        }
 
+        assertEquals(DriverActionStatus.FAILED, result.status)
+        assertEquals("invalid-ticks", result.message)
+        assertEquals(false, result.data["moved"]?.jsonPrimitive?.boolean)
+        assertEquals("invalid-ticks", result.data["reason"]?.jsonPrimitive?.content)
         assertEquals(emptyList(), gateway.actions)
         assertEquals(0, gateway.scheduled)
     }
@@ -1104,6 +1108,45 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric player look returns machine readable failures before scheduling gateway`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        val backend = FabricDriverBackend.real(gateway)
+
+        val missingYaw =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "player.look",
+                    arguments = mapOf("pitch" to JsonPrimitive(12.5)),
+                ),
+            )
+        val invalidPitch =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "player.look",
+                    arguments =
+                        mapOf(
+                            "yaw" to JsonPrimitive(90.0),
+                            "pitch" to JsonPrimitive(120.0),
+                        ),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.FAILED, missingYaw.status)
+        assertEquals("missing-yaw", missingYaw.message)
+        assertEquals(false, missingYaw.data["applied"]?.jsonPrimitive?.boolean)
+        assertEquals("missing-yaw", missingYaw.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(DriverActionStatus.FAILED, invalidPitch.status)
+        assertEquals("invalid-pitch", invalidPitch.message)
+        assertEquals(false, invalidPitch.data["applied"]?.jsonPrimitive?.boolean)
+        assertEquals("invalid-pitch", invalidPitch.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(emptyList(), gateway.actions)
+        assertEquals(0, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric runtime discovery exposes inventory query only from client state`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connected = false
@@ -1201,6 +1244,38 @@ class FabricDriverModuleTest {
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
         assertEquals(listOf("client-action"), gateway.actions)
         assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
+    fun `fabric inventory equip returns machine readable failures before scheduling gateway`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        val backend = FabricDriverBackend.real(gateway)
+
+        val missingSlot =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(action = "inventory.equip"),
+            )
+        val invalidSlot =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "inventory.equip",
+                    arguments = mapOf("slot" to JsonPrimitive(9)),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.FAILED, missingSlot.status)
+        assertEquals("missing-slot", missingSlot.message)
+        assertEquals(false, missingSlot.data["equipped"]?.jsonPrimitive?.boolean)
+        assertEquals("missing-slot", missingSlot.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(DriverActionStatus.FAILED, invalidSlot.status)
+        assertEquals("invalid-slot", invalidSlot.message)
+        assertEquals(false, invalidSlot.data["equipped"]?.jsonPrimitive?.boolean)
+        assertEquals("invalid-slot", invalidSlot.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(emptyList(), gateway.actions)
+        assertEquals(0, gateway.scheduled)
     }
 
     @Test
