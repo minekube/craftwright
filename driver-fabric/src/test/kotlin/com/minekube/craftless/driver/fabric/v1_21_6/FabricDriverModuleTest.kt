@@ -1725,6 +1725,49 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend returns schema shaped recipe craft failure when target is missing`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        gateway.capabilities =
+            FabricClientCapabilitySnapshot(
+                connected = true,
+                player = true,
+                inventory = true,
+                camera = true,
+                interactionManager = true,
+                world = true,
+                recipes = true,
+                recipeCrafting = true,
+            )
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+            )
+        val recipeCraft = backend.runtimeGraph("alice").operations.single { it.id == "recipe.craft" }
+
+        val result =
+            backend.operationAdapters("alice").invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = recipeCraft,
+                    arguments = mapOf("count" to JsonPrimitive(3)),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.FAILED, result.status)
+        assertEquals("missing-target", result.message)
+        val data = result.data.jsonObject
+        assertEquals(false, data["accepted"]?.jsonPrimitive?.boolean)
+        assertEquals(false, data["changed"]?.jsonPrimitive?.boolean)
+        assertEquals(3, data["requested-count"]?.jsonPrimitive?.int)
+        assertEquals(0, data["crafted-count"]?.jsonPrimitive?.int)
+        assertEquals("target-validation-failed", data["phase"]?.jsonPrimitive?.content)
+        assertEquals("missing-target", data["reason"]?.jsonPrimitive?.content)
+        assertEquals(0, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric backend confirms recipe craft inventory after output take`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connected = true
@@ -1810,6 +1853,26 @@ class FabricDriverModuleTest {
         )
         assertEquals(listOf("client-query", "client-query", "client-query"), gateway.actions)
         assertEquals(3, gateway.scheduled)
+    }
+
+    @Test
+    fun `fabric recipe craft failures include requested count and phase`() {
+        val root = repositoryRoot()
+        val source =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt",
+                ),
+            )
+        val recipeCraftFailureSource =
+            source
+                .substringAfter("private fun recipeCraftFailure(")
+                .substringBefore("private fun JsonObject.matchesCraftlessRecipeOutput(")
+
+        assertTrue(recipeCraftFailureSource.contains("requestedCount: Int"))
+        assertTrue(recipeCraftFailureSource.contains("phase: String"))
+        assertTrue(recipeCraftFailureSource.contains("put(\"requested-count\", requestedCount)"))
+        assertTrue(recipeCraftFailureSource.contains("put(\"phase\", phase)"))
     }
 
     @Test

@@ -75,6 +75,10 @@ confirmation still remain open.
   accepted/changed state, counts, inventory fingerprints, phase,
   output/confirmation attempt evidence, slot evidence, item projections, and
   machine-readable reasons from the live spec.
+- [x] Keep validation, stale-handle, craftability, output, and confirmation
+  failure results schema-shaped with `requested-count`, `crafted-count`,
+  `phase`, and machine-readable `reason` fields so adaptive agents can parse
+  failures through the generated result contract.
 - [x] Run the focused test and confirm it passes.
 
 ### Task 4: Public-Agent Composition
@@ -98,7 +102,7 @@ confirmation still remain open.
 - Modify: `docs/superpowers/specs/2026-06-26-28-generic-recipe-crafting-design.md`
 - Modify: `docs/superpowers/plans/2026-06-26-28-generic-recipe-crafting-plan.md`
 
-- [ ] Add Phase 28 to the active checklist with honest implemented and remaining evidence.
+- [x] Add Phase 28 to the active checklist with honest implemented and remaining evidence.
 - [ ] Run `git diff --check`.
 - [ ] Run focused driver and testkit tests from Tasks 1-4.
 - [ ] Run `mise run lint`.
