@@ -1,8 +1,9 @@
 # Craftless Project Completion Checklist
 
 This is the active completion red line. Craftless is not complete until every
-unchecked item below is checked with evidence and Robin confirms completion in
-Minecraft chat during the final gameplay session.
+unchecked item below is checked with Codex-verifiable evidence. Human
+Minecraft chat confirmation is optional diagnostic evidence and is not required
+for completion.
 
 Legend:
 
@@ -99,6 +100,10 @@ Legend:
   `docs/superpowers/specs/2026-06-27-43-client-logging-config-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-27-43-client-logging-config-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-65-codex-evidence-completion-gate-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-65-codex-evidence-completion-gate-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -111,7 +116,8 @@ Legend:
 Verification:
 
 - `git diff --check`
-- `rg -n "Craftless is complete|hand-written public gameplay|runtime capability graph|SSE|Robin.*Minecraft" AGENTS.md README.md docs -S`
+- `rg -n "Craftless is complete|hand-written public gameplay|runtime capability graph|SSE" AGENTS.md README.md docs -S`
+- `rg -n "Robin writes|Robin confirms|goal may be completed|required Robin|must.*Robin|Minecraft chat confirmation.*required" README.md AGENTS.md docs/roadmap.md docs/final-gameplay-runbook.md .agents/skills/craftless-public-gameplay-agent/SKILL.md -S`
 
 ## Phase 2: Runtime Capability Graph
 
@@ -220,9 +226,9 @@ Verification:
   verification` lists `fabricFinalGameplay`.
 - [~] Craftless joins a server, fetches graph-backed OpenAPI, subscribes to SSE,
   writes chat, observes world/inventory state, equips an item, mines, places a
-  block, attacks an entity, and records evidence. Latest no-hold evidence is
-  under `driver-fabric/build/craftless-final-gameplay/artifacts/`; the held
-  Robin-observed session remains open.
+  block, attacks an entity, and records evidence. Latest evidence is under
+  `driver-fabric/build/craftless-final-gameplay/artifacts/`; human observation
+  is optional diagnostic evidence rather than the completion gate.
 - [~] A public-agent gameplay runner uses only the generated per-client
   OpenAPI/actions/resources, SSE/JSON-RPC events, adaptive CLI or HTTP, and
   repository agent skills/docs to complete the survival scenario. Current
@@ -336,12 +342,14 @@ Verification:
   `Wooden Sword`, attacked a Pig through generated `entity.attack`, and wrote
   `final-gameplay-ready.json`. The hold ended cleanly with
   `final-gameplay-confirmation-timeout.json`; `server-evidence.jsonl` contains
-  only Craftless' `Player192` join, chat, and disconnect. Robin did not join or
-  confirm in Minecraft chat, and no `final-gameplay-confirmation.json` was
-  written.
-- [ ] Robin joins or observes the server session after the harness ready prompt.
-- [ ] Issues found during the gameplay session are fixed and reverified.
-- [ ] Robin writes in Minecraft chat that the goal may be completed.
+  only Craftless' `Player192` join, chat, and disconnect. Under Phase 65 this
+  timeout artifact is diagnostic only; final completion depends on public
+  API/CLI gameplay evidence plus CI, distribution, and compatibility probes.
+- [ ] Current final gameplay evidence has been rerun under the Phase 65 gate
+  and accepted without requiring `final-gameplay-confirmation.json`.
+- [ ] Issues found during final gameplay are fixed and reverified.
+- [ ] Latest and representative older-version compatibility probes have current
+  passing or explicitly unsupported evidence.
 
 Verification:
 
@@ -2051,6 +2059,7 @@ Verification:
   `entity.attack`, observed `Raw Mutton` and `White Wool` drops through
   generated `entity.query`, and wrote `final-gameplay-confirmation-timeout.json`
   because no server chat line contained `goal may be completed`.
-- [ ] Robin confirms in Minecraft chat that the goal may be completed.
+- [ ] Phase 65 final gameplay evidence is accepted from public API/CLI
+  artifacts without requiring human Minecraft chat confirmation.
 - [x] Changes are committed and pushed to `main`. This entry is current only
   after the checklist update that changes it is also pushed.

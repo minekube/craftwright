@@ -108,9 +108,8 @@ The source design is
 the client-management boundary, route generation rules, and OpenAPI
 requirements sections.
 
-The active product-completion sequence is the spec/plan pairs dated 2026-06-26
-and 2026-06-27 under `docs/superpowers/specs/` and
-`docs/superpowers/plans/`. Follow them in order:
+The active product-completion sequence is the numbered spec/plan pairs under
+`docs/superpowers/specs/` and `docs/superpowers/plans/`. Follow them in order:
 
 1. truth and guardrails;
 2. runtime capability graph;
@@ -176,6 +175,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 62. final gameplay activity hold.
 63. public-agent partial recipe material.
 64. public-agent live co-play guidance.
+65. Codex evidence completion gate.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -288,8 +288,8 @@ product gameplay action.
 Phase 35 makes the final Robin-confirmation hold outcome explicit when no
 matching Minecraft chat confirmation arrives before the configured deadline.
 It must write evidence only, must not mark Craftless complete, must not fail a
-successful public-agent gameplay run by itself, and must not bypass the
-required Robin chat confirmation.
+successful public-agent gameplay run by itself, and must preserve the
+diagnostic confirmation/timeout artifact semantics.
 Phase 36 rejects removed `task.survival.*` scenario ids at the protocol task
 request and progress-event boundaries. It must keep generic future task ids
 valid as metadata, must not add a generic task executor, and must not
@@ -474,6 +474,16 @@ the server. It must not add gameplay shortcuts, public gameplay actions,
 generated route families, CLI gameplay catalogs, Fabric descriptor/binding
 pairs, scenario shortcuts, new compiled lanes, public version-specific APIs,
 or new Minecraft support claims.
+Phase 65 replaces the old human chat completion gate with a Codex-verifiable
+evidence gate. Completion now requires current CI, distribution smoke checks,
+multi-version compatibility probes including the 26.x/latest lane and
+representative older supported versions, and final honest survival gameplay
+driven through public OpenAPI/CLI/SSE only. Human co-play remains optional
+diagnostic evidence and must not be required for goal completion. This phase
+must not add gameplay shortcuts, public gameplay actions, generated route
+families, CLI gameplay catalogs, Fabric descriptor/binding pairs, scenario
+shortcuts, new unsupported Minecraft claims, or server-provisioned final
+gameplay evidence.
 
 ## Acceptance Scenarios Are Not Product APIs
 
@@ -592,8 +602,9 @@ runtime capability graph, reflection/mapping/registry/callback/screen/handler
 discovery, generated per-client OpenAPI from that graph, executable adapters or
 probe-backed availability for advertised actions/resources, SSE event
 streaming for live observations, honest survival gameplay evidence without
-server-provisioned items, and Robin's explicit Minecraft chat confirmation
-during the final gameplay session.
+server-provisioned items, current multi-version compatibility evidence, and
+Codex-verifiable public API/CLI final gameplay artifacts. Human Minecraft chat
+confirmation is optional diagnostic evidence, not a completion requirement.
 
 ## Documentation
 

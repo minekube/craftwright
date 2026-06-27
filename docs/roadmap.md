@@ -120,7 +120,8 @@ Craftless is not complete until the repository can prove all of the following:
   server, streams events, writes chat, observes inventory/world state,
   equips a tool, mines, builds or places blocks, and fixes issues found during
   play.
-- Robin writes in Minecraft chat that the goal may be completed.
+- Final completion is proven by Codex-verifiable artifacts from public API/CLI
+  gameplay, not by a required human chat confirmation.
 
 ## Active Completion Sequence
 

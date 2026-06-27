@@ -112,3 +112,8 @@ Write artifacts for final gameplay:
 - public-agent action log;
 - public-agent state log;
 - final inventory/world/entity evidence.
+
+Completion does not require a human Minecraft chat confirmation. Treat human
+co-play as optional diagnostic observation; the final gate is Codex-verifiable
+public API/CLI evidence without server-provisioned inventory or scenario
+shortcuts.

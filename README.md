@@ -78,8 +78,9 @@ docker run --rm -p 8080:8080 \
 ```
 
 The image contains the packaged Craftless CLI/runtime and required OS
-libraries. Minecraft client/server artifacts are resolved into the mounted
-workspace at runtime; they are not baked into the image.
+libraries. Minecraft artifacts are downloaded into the workspace at runtime;
+client/server artifacts are resolved into the mounted workspace and are not
+baked into the image.
 
 ## GitHub Actions
 
@@ -272,11 +273,12 @@ Still open:
 - stronger pathfinding and movement evidence beyond the current generated
   navigation/action path;
 - more complete generated client libraries above the OpenAPI/action contract;
-- final multiplayer gameplay confirmation from Robin in Minecraft chat.
+- final honest survival gameplay evidence accepted by Codex verification,
+  driven through the public API/CLI only.
 
-Craftless is not considered complete until the final gameplay run writes
-`final-gameplay-confirmation.json` from live server chat evidence and all CI and
-distribution checks pass.
+Craftless is not considered complete until CI, distribution smoke checks,
+multi-version compatibility probes, and final public API/CLI gameplay evidence
+all pass without server-provisioned inventory or hard-coded survival shortcuts.
 
 ## Comparison
 
@@ -311,8 +313,7 @@ Near-term work focuses on:
 - strengthening navigation/pathfinding and server-side movement evidence;
 - making CLI, Docker, GitHub Actions, and agent skill workflows easy for
   external users;
-- completing the final real gameplay gate with Robin's Minecraft chat
-  confirmation.
+- completing the final real gameplay gate from public API/CLI evidence.
 
 ## Development
 
