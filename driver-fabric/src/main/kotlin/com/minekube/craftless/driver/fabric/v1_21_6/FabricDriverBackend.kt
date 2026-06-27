@@ -1254,6 +1254,7 @@ private fun recipeCraftPending(
         put("inventory-after", before)
         syncId?.let { value -> put("sync-id", value) }
         put("attempt", attempt)
+        put("phase", "crafting-output-pending")
         put("reason", reason)
     }
 

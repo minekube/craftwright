@@ -1835,6 +1835,13 @@ class FabricDriverModuleTest {
         assertTrue(craftRecipeSource.contains("SlotActionType.QUICK_MOVE"))
         assertTrue(craftRecipeSource.contains("val outputStackCount = outputSlot.stack.count"))
         assertTrue(craftRecipeSource.contains("put(\"crafted-count\", if (changed) outputStackCount else 0)"))
+        val recipeCraftPendingSource =
+            source
+                .substringAfter("private fun recipeCraftPending(")
+                .substringBefore("private fun JsonObject.withCraftingConfirmation(")
+        assertTrue(
+            recipeCraftPendingSource.contains("put(\"phase\""),
+        )
         assertTrue(craftRecipeSource.indexOf("clickRecipe(") < craftRecipeSource.indexOf("clickSlot("))
     }
 
