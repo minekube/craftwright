@@ -34,6 +34,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.time.Duration
@@ -42,6 +43,7 @@ import kotlin.time.Duration.Companion.milliseconds
 private data class FinalGameplayConfirmationEvidence(
     val player: String,
     val message: String,
+    val line: Int = 0,
 )
 
 data class FabricClientSmokeController(
@@ -60,11 +62,13 @@ data class FabricClientSmokeController(
     val readyNotificationCommand: List<String> = emptyList(),
     val readyNotificationReminder: Duration = 0.milliseconds,
     val confirmationChatContains: String? = null,
+    val activityExtendsHold: Duration = 0.milliseconds,
 ) {
     init {
         require(!startupSettleDelay.isNegative()) { "fabric smoke startup settle delay must not be negative" }
         require(!holdAfterActions.isNegative()) { "fabric smoke hold after actions delay must not be negative" }
         require(!readyNotificationReminder.isNegative()) { "fabric smoke ready reminder delay must not be negative" }
+        require(!activityExtendsHold.isNegative()) { "fabric smoke activity hold extension must not be negative" }
         require(actionTimeout.isPositive()) { "fabric smoke action timeout must be positive" }
         require(publicAgentCommandTimeout.isPositive()) { "fabric smoke public agent command timeout must be positive" }
         require(publicAgentCommand.none { it.isBlank() }) { "fabric smoke public agent command entries must not be blank" }
@@ -301,6 +305,20 @@ data class FabricClientSmokeController(
         Files.writeString(dir.resolve(name), content)
     }
 
+    private fun appendArtifact(
+        name: String,
+        content: String,
+    ) {
+        val dir = artifactsDir ?: return
+        Files.createDirectories(dir)
+        Files.writeString(
+            dir.resolve(name),
+            content + "\n",
+            StandardOpenOption.CREATE,
+            StandardOpenOption.APPEND,
+        )
+    }
+
     private fun writeJsonArrayLinesArtifact(
         name: String,
         content: String,
@@ -423,14 +441,29 @@ data class FabricClientSmokeController(
             return
         }
         val pollDelay = pollInterval.takeIf { it.isPositive() } ?: 250.milliseconds
-        val deadline = System.nanoTime() + holdAfterActions.inWholeNanoseconds
+        var deadline = System.nanoTime() + holdAfterActions.inWholeNanoseconds
         val reminderIntervalNanos = readyNotificationReminder.takeIf { it.isPositive() }?.inWholeNanoseconds
         var nextReminderAt = reminderIntervalNanos?.let { System.nanoTime() + it }
+        var observedChatLine = latestChatEvidenceLine()
         while (System.nanoTime() < deadline) {
             if (phrase != null) {
                 findConfirmationEvidence(phrase)?.let { evidence ->
                     writeArtifact("final-gameplay-confirmation.json", finalGameplayConfirmationArtifact(baseUrl, evidence))
                     return
+                }
+            }
+            if (activityExtendsHold.isPositive()) {
+                val activity = latestNonConfirmationChatAfter(observedChatLine, phrase)
+                if (activity != null) {
+                    observedChatLine = activity.line
+                    val extendedDeadline = System.nanoTime() + activityExtendsHold.inWholeNanoseconds
+                    if (extendedDeadline > deadline) {
+                        deadline = extendedDeadline
+                        appendArtifact(
+                            "final-gameplay-activity.jsonl",
+                            finalGameplayActivityArtifact(baseUrl, activity),
+                        )
+                    }
                 }
             }
             val now = System.nanoTime()
@@ -448,12 +481,38 @@ data class FabricClientSmokeController(
         if (!Files.isRegularFile(evidenceLog)) {
             return null
         }
-        return Files
-            .readAllLines(evidenceLog)
+        return readChatEvidence(evidenceLog)
             .asSequence()
-            .mapNotNull { line -> line.toFinalGameplayConfirmationEvidenceOrNull() }
             .firstOrNull { evidence -> evidence.message.contains(phrase, ignoreCase = true) }
     }
+
+    private fun latestChatEvidenceLine(): Int {
+        val evidenceLog = artifactsDir?.resolve("server-evidence.jsonl") ?: return 0
+        if (!Files.isRegularFile(evidenceLog)) {
+            return 0
+        }
+        return readChatEvidence(evidenceLog).maxOfOrNull { it.line } ?: 0
+    }
+
+    private fun latestNonConfirmationChatAfter(
+        line: Int,
+        phrase: String?,
+    ): FinalGameplayConfirmationEvidence? {
+        val evidenceLog = artifactsDir?.resolve("server-evidence.jsonl") ?: return null
+        if (!Files.isRegularFile(evidenceLog)) {
+            return null
+        }
+        return readChatEvidence(evidenceLog)
+            .asSequence()
+            .filter { it.line > line }
+            .filterNot { evidence -> phrase != null && evidence.message.contains(phrase, ignoreCase = true) }
+            .lastOrNull()
+    }
+
+    private fun readChatEvidence(evidenceLog: Path): List<FinalGameplayConfirmationEvidence> =
+        Files
+            .readAllLines(evidenceLog)
+            .mapIndexedNotNull { index, line -> line.toFinalGameplayConfirmationEvidenceOrNull(index + 1) }
 
     private fun readyNotificationArtifact(baseUrl: String): String =
         smokeJson.encodeToString(
@@ -465,6 +524,7 @@ data class FabricClientSmokeController(
                 "artifacts-dir" to (artifactsDir?.toString() ?: ""),
                 "hold-ms" to holdAfterActions.inWholeMilliseconds.toString(),
                 "confirmation-contains" to (confirmationChatContains ?: ""),
+                "activity-extends-hold-ms" to activityExtendsHold.inWholeMilliseconds.toString(),
             ),
         )
 
@@ -476,6 +536,7 @@ data class FabricClientSmokeController(
             appendLine("Base URL: $baseUrl")
             appendLine("Artifacts: ${artifactsDir?.toString() ?: ""}")
             appendLine("Hold ms: ${holdAfterActions.inWholeMilliseconds}")
+            appendLine("Activity extends hold ms: ${activityExtendsHold.inWholeMilliseconds}")
             appendLine("Confirmation phrase: ${confirmationChatContains ?: ""}")
         }
 
@@ -495,6 +556,24 @@ data class FabricClientSmokeController(
             ),
         )
 
+    private fun finalGameplayActivityArtifact(
+        baseUrl: String,
+        evidence: FinalGameplayConfirmationEvidence,
+    ): String =
+        smokeJson.encodeToString(
+            mapOf(
+                "event" to "final-gameplay-activity-extended",
+                "base-url" to baseUrl,
+                "client-id" to SMOKE_CLIENT_ID,
+                "server" to "${target.host}:${target.port}",
+                "player" to evidence.player,
+                "message" to evidence.message,
+                "line" to evidence.line.toString(),
+                "activity-extends-hold-ms" to activityExtendsHold.inWholeMilliseconds.toString(),
+                "artifacts-dir" to (artifactsDir?.toString() ?: ""),
+            ),
+        )
+
     private fun finalGameplayConfirmationTimeoutArtifact(
         baseUrl: String,
         phrase: String?,
@@ -507,11 +586,12 @@ data class FabricClientSmokeController(
                 "server" to "${target.host}:${target.port}",
                 "hold-ms" to holdAfterActions.inWholeMilliseconds.toString(),
                 "confirmation-contains" to (phrase ?: ""),
+                "activity-extends-hold-ms" to activityExtendsHold.inWholeMilliseconds.toString(),
                 "artifacts-dir" to (artifactsDir?.toString() ?: ""),
             ),
         )
 
-    private fun String.toFinalGameplayConfirmationEvidenceOrNull(): FinalGameplayConfirmationEvidence? =
+    private fun String.toFinalGameplayConfirmationEvidenceOrNull(line: Int): FinalGameplayConfirmationEvidence? =
         runCatching {
             val entry = smokeJson.parseToJsonElement(this).jsonObject
             val type = entry["type"]?.jsonPrimitive?.content ?: return null
@@ -521,6 +601,7 @@ data class FabricClientSmokeController(
             FinalGameplayConfirmationEvidence(
                 player = entry["player"]?.jsonPrimitive?.content ?: return null,
                 message = entry["message"]?.jsonPrimitive?.content ?: return null,
+                line = line,
             )
         }.getOrNull()
 
@@ -543,6 +624,7 @@ data class FabricClientSmokeController(
         private const val READY_COMMAND_JSON = "CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON"
         private const val READY_REMINDER = "CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS"
         private const val CONFIRM_CHAT_CONTAINS = "CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS"
+        private const val ACTIVITY_EXTENDS_HOLD = "CRAFTLESS_FABRIC_SMOKE_ACTIVITY_EXTENDS_HOLD_MS"
         private const val SMOKE_CLIENT_ID = "fabric-smoke"
         private const val SMOKE_PROFILE = "CraftlessSmoke"
 
@@ -598,6 +680,8 @@ data class FabricClientSmokeController(
                         ?: emptyList(),
                 readyNotificationReminder = (env[READY_REMINDER]?.toLongStrict(READY_REMINDER) ?: 0).milliseconds,
                 confirmationChatContains = env[CONFIRM_CHAT_CONTAINS]?.takeIf { it.isNotBlank() },
+                activityExtendsHold =
+                    (env[ACTIVITY_EXTENDS_HOLD]?.toLongStrict(ACTIVITY_EXTENDS_HOLD) ?: 0).milliseconds,
             )
         }
 
@@ -740,6 +824,7 @@ private val inheritedSmokeOwnerEnvironmentKeys =
         "CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON",
         "CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS",
         "CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS",
+        "CRAFTLESS_FABRIC_SMOKE_ACTIVITY_EXTENDS_HOLD_MS",
     )
 
 private fun publicAgentGameplayResults(generatedGameplayResults: List<String>): List<String> =

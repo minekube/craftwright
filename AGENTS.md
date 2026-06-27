@@ -173,6 +173,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 59. pathfinder interaction goal.
 60. final gameplay join handoff.
 61. local server action environment boundary.
+62. final gameplay activity hold.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -442,6 +443,14 @@ Phase 61 corrects the local-server smoke action-command process boundary. It
 must strip outer local-server lifecycle ownership and recursive action-command
 variables, preserve final-gameplay/Fabric client smoke/public-agent child
 variables for the configured client action command, and must not add gameplay
+shortcuts, public gameplay actions, generated route families, CLI gameplay
+catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new compiled
+lanes, public version-specific APIs, or new Minecraft support claims.
+Phase 62 keeps the final gameplay confirmation hold alive during active
+Minecraft chat play before Robin sends the configured completion phrase. It
+may extend the held API session after observed non-confirmation chat activity,
+but it must not treat activity or timeout as completion, must not bypass
+Robin's explicit Minecraft chat confirmation, and must not add gameplay
 shortcuts, public gameplay actions, generated route families, CLI gameplay
 catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new compiled
 lanes, public version-specific APIs, or new Minecraft support claims.

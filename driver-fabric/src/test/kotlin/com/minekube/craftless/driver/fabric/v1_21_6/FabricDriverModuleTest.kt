@@ -3122,6 +3122,47 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric smoke controller extends final gameplay hold on chat activity`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = smokeBackend(gateway)
+        val artifactsDir = Files.createTempDirectory("craftless-fabric-activity-hold")
+        val controller =
+            FabricClientSmokeController.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                    "CRAFTLESS_SMOKE_SERVER_HOST" to "localhost",
+                    "CRAFTLESS_SMOKE_SERVER_PORT" to "25567",
+                    "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
+                    "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
+                    "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS" to "40",
+                    "CRAFTLESS_FABRIC_SMOKE_ACTIVITY_EXTENDS_HOLD_MS" to "150",
+                    "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
+                    "CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS" to "goal may be completed",
+                    "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON" to """["/bin/sh","-c","printf public-agent-ready > /dev/null"]""",
+                ),
+            )
+        enqueueBasicSmokeQueryResults(gateway)
+
+        assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
+
+        readArtifact(artifactsDir, "final-gameplay-ready.json")
+        Files.writeString(
+            artifactsDir.resolve("server-evidence.jsonl"),
+            """{"type":"CHAT","player":"Robin","message":"let us keep playing first"}""" + "\n",
+        )
+        Thread.sleep(80)
+
+        assertFalse("stop" in gateway.actionSnapshot(), "controller stopped at original hold deadline")
+        gateway.awaitAction("stop")
+        val activityArtifact = readArtifact(artifactsDir, "final-gameplay-activity.jsonl")
+        assertTrue(activityArtifact.contains("\"event\":\"final-gameplay-activity-extended\""))
+        assertTrue(activityArtifact.contains("\"player\":\"Robin\""))
+        val timeoutArtifact = readArtifact(artifactsDir, "final-gameplay-confirmation-timeout.json")
+        assertTrue(timeoutArtifact.contains("\"activity-extends-hold-ms\":\"150\""))
+        assertFalse(Files.exists(artifactsDir.resolve("final-gameplay-confirmation.json")))
+    }
+
+    @Test
     fun `fabric smoke controller invokes generated chat and movement through daemon api and writes artifacts`() {
         val gateway = RecordingFabricClientGateway()
         val backend = smokeBackend(gateway)

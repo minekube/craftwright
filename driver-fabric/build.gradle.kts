@@ -396,6 +396,10 @@ tasks.register<JavaExec>("fabricFinalGameplay") {
             "CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS",
             System.getenv("CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS") ?: "120000",
         )
+        environment(
+            "CRAFTLESS_FABRIC_SMOKE_ACTIVITY_EXTENDS_HOLD_MS",
+            System.getenv("CRAFTLESS_FABRIC_SMOKE_ACTIVITY_EXTENDS_HOLD_MS") ?: "600000",
+        )
         val readyCommand = System.getenv("CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON")
         val defaultMacReadyCommand =
             if (System.getProperty("os.name").lowercase().contains("mac")) {

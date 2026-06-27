@@ -1941,6 +1941,27 @@ Verification:
 - `mise run architecture-check`
 - `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS=120000 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=1800000 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 
+## Phase 62: Final Gameplay Activity Hold
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-62-final-gameplay-activity-hold-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-62-final-gameplay-activity-hold-plan.md`.
+- [x] The final gameplay confirmation hold can extend after observed
+  non-confirmation Minecraft chat activity so Robin can keep playing before
+  sending the required completion phrase.
+- [x] Timeout remains a non-success outcome, and activity does not bypass
+  Robin's explicit Minecraft chat confirmation.
+- [x] This phase changes final-gameplay harness evidence/lifetime only and adds
+  no public gameplay action, generated route family, CLI gameplay catalog,
+  Fabric descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric smoke controller extends final gameplay hold on chat activity*'`
+- `git diff --check`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
