@@ -15,7 +15,7 @@
 **Files:**
 - Modify: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt`
 
-- [ ] **Step 1: Add failing Gradle script assertion**
+- [x] **Step 1: Add failing Gradle script assertion**
 
   Replace the old outer-timeout assertion with checks that the build script
   contains a dedicated public-agent command timeout function and computes the
@@ -28,7 +28,7 @@
   assertFalse(buildScript.contains("fabricActionMillis + holdMillis + 180_000L"))
   ```
 
-- [ ] **Step 2: Add failing controller config assertion**
+- [x] **Step 2: Add failing controller config assertion**
 
   Add a focused test:
 
@@ -50,7 +50,7 @@
   }
   ```
 
-- [ ] **Step 3: Verify RED**
+- [x] **Step 3: Verify RED**
 
   Run:
 
@@ -67,7 +67,7 @@
 - Modify: `driver-fabric/build.gradle.kts`
 - Modify: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricClientSmokeController.kt`
 
-- [ ] **Step 1: Add Gradle timeout function**
+- [x] **Step 1: Add Gradle timeout function**
 
   Add:
 
@@ -81,7 +81,7 @@
       ).toString()
   ```
 
-- [ ] **Step 2: Use process timeout for outer budget**
+- [x] **Step 2: Use process timeout for outer budget**
 
   Change `finalGameplayOuterActionTimeout()` to:
 
@@ -94,7 +94,7 @@
   }
   ```
 
-- [ ] **Step 3: Export process timeout to the Fabric controller**
+- [x] **Step 3: Export process timeout to the Fabric controller**
 
   In `fabricFinalGameplay`, add:
 
@@ -105,7 +105,7 @@
   )
   ```
 
-- [ ] **Step 4: Parse process timeout in controller**
+- [x] **Step 4: Parse process timeout in controller**
 
   Add env constants:
 
@@ -118,7 +118,7 @@
   then legacy spelling, then the outer smoke timeout for compatibility, then the
   action timeout.
 
-- [ ] **Step 5: Verify GREEN**
+- [x] **Step 5: Verify GREEN**
 
   Run the focused command from Task 1 Step 3. Expected: PASS.
 
@@ -130,12 +130,12 @@
 - Create: `docs/superpowers/specs/2026-06-27-56-final-gameplay-timeout-budget-design.md`
 - Create: `docs/superpowers/plans/2026-06-27-56-final-gameplay-timeout-budget-plan.md`
 
-- [ ] **Step 1: Add Phase 56 guardrails**
+- [x] **Step 1: Add Phase 56 guardrails**
 
   Add Phase 56 to `AGENTS.md` and the checklist. Record that this phase changes
   only timeout/evidence plumbing and does not add public gameplay breadth.
 
-- [ ] **Step 2: Run local verification serially**
+- [x] **Step 2: Run local verification serially**
 
   Run:
 

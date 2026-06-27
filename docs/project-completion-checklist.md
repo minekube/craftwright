@@ -1774,6 +1774,10 @@ Verification:
 Verification:
 
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric final gameplay outer timeout covers public agent runtime and human hold window*' --tests '*FabricDriverModuleTest.fabric smoke controller parses public agent process timeout separately from outer smoke timeout*'`
+- `git diff --check`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
 
 ## Final Completion Gate
 
