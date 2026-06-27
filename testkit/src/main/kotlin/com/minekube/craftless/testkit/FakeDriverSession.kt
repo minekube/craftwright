@@ -2,9 +2,11 @@ package com.minekube.craftless.testkit
 
 import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionArgument
+import com.minekube.craftless.driver.api.DriverActionAvailability
 import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
+import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverClientSnapshot
 import com.minekube.craftless.driver.api.DriverEvent
@@ -15,6 +17,7 @@ import com.minekube.craftless.driver.api.intArgument
 import com.minekube.craftless.driver.api.stringArgument
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.RuntimeAvailability
+import com.minekube.craftless.protocol.RuntimeAvailabilityState
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import com.minekube.craftless.protocol.RuntimeOperationNode
 import com.minekube.craftless.protocol.RuntimeResourceNode
@@ -51,10 +54,10 @@ class FakeDriverSession(
     }
 
     override fun actions(): List<DriverActionDescriptor> =
-        listOf(
-            fakePlayerMoveActionDescriptor(),
-            fakePlayerChatActionDescriptor(),
-        )
+        runtimeGraph()
+            .operations
+            .sortedBy { operation -> operation.id }
+            .map { operation -> operation.toDriverActionDescriptor() }
 
     override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
 
@@ -209,29 +212,26 @@ fun fakeDriverRuntimeMetadata(): DriverRuntimeMetadata =
         permissionsFingerprint = "local-fake",
     )
 
-private fun fakePlayerMoveActionDescriptor(): DriverActionDescriptor =
+private fun RuntimeOperationNode.toDriverActionDescriptor(): DriverActionDescriptor =
     DriverActionDescriptor(
-        id = "player.move",
+        id = id,
         schemaVersion = "1",
-        arguments =
-            mapOf(
-                "forward" to DriverActionArgument("boolean"),
-                "backward" to DriverActionArgument("boolean"),
-                "left" to DriverActionArgument("boolean"),
-                "right" to DriverActionArgument("boolean"),
-                "jump" to DriverActionArgument("boolean"),
-                "sneak" to DriverActionArgument("boolean"),
-                "sprint" to DriverActionArgument("boolean"),
-                "ticks" to DriverActionArgument("integer"),
-            ),
+        arguments = arguments.mapValues { (_, schema) -> schema.toDriverActionArgument() },
+        source = DriverActionSource.RUNTIME_PROBE,
+        availability = availability.toDriverActionAvailability(),
+        availabilityReason = availability.reason,
     )
 
-private fun fakePlayerChatActionDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = "player.chat",
-        schemaVersion = "1",
-        arguments =
-            mapOf(
-                "message" to DriverActionArgument("string", required = true),
-            ),
+private fun RuntimeSchema.toDriverActionArgument(): DriverActionArgument =
+    DriverActionArgument(
+        type = type,
+        required = required,
+        properties = properties.mapValues { (_, schema) -> schema.toDriverActionArgument() },
+        items = items?.toDriverActionArgument(),
     )
+
+private fun RuntimeAvailability.toDriverActionAvailability(): DriverActionAvailability =
+    when (state) {
+        RuntimeAvailabilityState.AVAILABLE -> DriverActionAvailability.AVAILABLE
+        RuntimeAvailabilityState.UNAVAILABLE -> DriverActionAvailability.UNAVAILABLE
+    }

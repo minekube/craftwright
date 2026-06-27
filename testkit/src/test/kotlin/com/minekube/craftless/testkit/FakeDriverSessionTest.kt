@@ -3,6 +3,7 @@ package com.minekube.craftless.testkit
 import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
+import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverSession
@@ -36,6 +37,15 @@ class FakeDriverSessionTest {
         )
 
         val actions = session.actions()
+        val graphOperationIds =
+            session
+                .runtimeGraph()
+                .operations
+                .map { operation -> operation.id }
+                .sorted()
+        val actionIds = actions.map { action -> action.id }.sorted()
+        assertEquals(graphOperationIds, actionIds)
+        assertTrue(actions.all { it.source == DriverActionSource.RUNTIME_PROBE })
         val moveAction = actions.single { it.id == "player.move" }
         val chatActionDescriptor = actions.single { it.id == "player.chat" }
         assertEquals("1", moveAction.schemaVersion)
