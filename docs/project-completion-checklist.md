@@ -819,9 +819,11 @@ Verification:
 - [~] `recipe.craft` has public handle/count validation, stale-handle
   validation, live craftability checks, guarded Fabric client-thread execution
   through `clickRecipe`, before/after inventory fingerprints, and expected
-  versus actual output-slot validation. Broader screen/handler coverage,
-  crafting-station interaction/opening, asynchronous post-server inventory
-  confirmation, and live survival evidence remain open.
+  versus actual output-slot validation. Craft result evidence now reports
+  `crafted-count` from the observed output slot stack count before quick-moving
+  the output. Broader screen/handler coverage, crafting-station
+  interaction/opening, asynchronous post-server inventory confirmation, and
+  live survival evidence remain open.
 - [x] Public-agent composition uses generated recipe actions when available to
   craft useful outputs, then verifies inventory state through `inventory.query`
   in focused fake-server evidence.

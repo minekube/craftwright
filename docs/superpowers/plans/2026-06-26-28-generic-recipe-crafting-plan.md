@@ -54,6 +54,9 @@ confirmation still remain open.
 - [x] Add `fabric.recipe-craft` to `navigationTaskOperationAdapters`.
 - [x] Implement `craftRecipe(invocation)` by validating a public recipe handle from `recipe.query`, count bounds, live craftability, and inventory fingerprint evidence.
 - [x] Return machine-readable failure results for missing target, stale handle, unavailable crafting context, and unchanged inventory.
+- [x] Report `crafted-count` from the observed output slot stack count when
+  taking crafting output, so multi-output and craft-many requests do not fall
+  back to a single-item assumption.
 - [x] Run the focused test and confirm it passes.
 
 ### Task 4: Public-Agent Composition

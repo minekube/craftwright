@@ -513,6 +513,7 @@ class FabricDriverBackend private constructor(
                                 },
                         )
                     }
+                    val outputStackCount = outputSlot.stack.count
                     currentInteractionManager.clickSlot(
                         currentScreenHandler.syncId,
                         outputSlot.id,
@@ -528,7 +529,7 @@ class FabricDriverBackend private constructor(
                         put("accepted", true)
                         put("changed", changed)
                         put("requested-count", count)
-                        put("crafted-count", if (changed && count == 1) 1 else 0)
+                        put("crafted-count", if (changed) outputStackCount else 0)
                         put("inventory-before", before)
                         put("inventory-after", after)
                         put("sync-id", currentScreenHandler.syncId)

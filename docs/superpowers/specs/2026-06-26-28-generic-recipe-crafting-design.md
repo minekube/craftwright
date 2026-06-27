@@ -68,6 +68,10 @@ post-action evidence. The result should include:
 - `inventory-after` or fingerprint evidence;
 - machine-readable failure reason when applicable.
 
+When taking a crafting output slot, `crafted-count` must be based on the
+observed output stack count before the slot click, not on a hard-coded
+single-item assumption or the requested count alone.
+
 ## Public-Agent Use
 
 The final public-agent survival scenario composes existing generated actions
