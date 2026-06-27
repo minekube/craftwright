@@ -289,6 +289,16 @@ Verification:
   `final-gameplay-ready.json`. The hold ended cleanly after the configured
   window; `server-evidence.jsonl` contains Craftless' `Player665` join, chat,
   and disconnect only. Robin did not join or confirm in Minecraft chat, and no
+  `final-gameplay-confirmation.json` was written. The latest 2026-06-27 held
+  run reached `publicAgentState=RAN` again on `127.0.0.1:62913`: Craftless'
+  `Player972` joined, fetched generated OpenAPI/action/event projections,
+  collected logs, crafted and equipped a `Wooden Sword`, navigated to a Sheep
+  through generated `entity.query`/`navigation.plan`/`navigation.follow`,
+  attacked through generated `entity.attack`, observed `White Wool` and
+  `Raw Mutton` drops through public entity state, moved to the drops, and
+  proved pickup through final `inventory.query`. The hold ended cleanly;
+  `server-evidence.jsonl` contains Craftless' `Player972` join, chat, and
+  disconnect only. Robin did not join or confirm in Minecraft chat, and no
   `final-gameplay-confirmation.json` was written.
 - [ ] Robin joins or observes the server session after the harness ready prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
@@ -1035,7 +1045,7 @@ Verification:
   write `public-agent-action-started`, the failed generated action response,
   and the public-agent blocker.
 - [x] Broader local gates pass after this correction.
-- [ ] Final live gameplay has been rerun after this correction and either
+- [x] Final live gameplay has been rerun after this correction and either
   reached `publicAgentState=RAN` or recorded the next precise generic public
   evidence/action blocker with incremental artifacts.
 
@@ -1045,6 +1055,28 @@ Verification:
 - `mise exec -- gradle :testkit:test`
 - `mise run lint`
 - `mise run jvm-test`
+
+## Phase 35: Final Confirmation Timeout Artifact
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-35-final-confirmation-timeout-artifact-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-35-final-confirmation-timeout-artifact-plan.md`.
+- [x] The latest held final gameplay rerun reached `publicAgentState=RAN`, but
+  no Robin join or chat confirmation was observed before the hold expired.
+  Absence of `final-gameplay-confirmation.json` was the only machine-readable
+  completion-gate outcome.
+- [x] The final harness now writes
+  `final-gameplay-confirmation-timeout.json` when the configured confirmation
+  phrase is not observed before the hold deadline.
+- [x] Focused regression evidence proves timeout artifact writing, and the
+  existing confirmation test still proves matching chat writes
+  `final-gameplay-confirmation.json`.
+
+Verification:
+
+- `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric smoke controller writes confirmation timeout artifact when Robin chat is not observed'`
+- `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric smoke controller stops final session after configured chat confirmation evidence' --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric smoke controller writes confirmation timeout artifact when Robin chat is not observed'`
 
 ## Final Completion Gate
 

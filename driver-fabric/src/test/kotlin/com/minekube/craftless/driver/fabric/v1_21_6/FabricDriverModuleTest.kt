@@ -2151,6 +2151,38 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric smoke controller writes confirmation timeout artifact when Robin chat is not observed`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = smokeBackend(gateway)
+        val artifactsDir = Files.createTempDirectory("craftless-fabric-confirmation-timeout")
+        val controller =
+            FabricClientSmokeController.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                    "CRAFTLESS_SMOKE_SERVER_HOST" to "localhost",
+                    "CRAFTLESS_SMOKE_SERVER_PORT" to "25567",
+                    "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
+                    "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
+                    "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS" to "25",
+                    "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
+                    "CRAFTLESS_FABRIC_SMOKE_CONFIRM_CHAT_CONTAINS" to "goal may be completed",
+                    "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON" to """["/bin/sh","-c","printf public-agent-ready > /dev/null"]""",
+                ),
+            )
+        enqueueBasicSmokeQueryResults(gateway)
+
+        assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
+
+        gateway.awaitAction("stop")
+        assertFalse(Files.exists(artifactsDir.resolve("final-gameplay-confirmation.json")))
+        val timeoutArtifact = readArtifact(artifactsDir, "final-gameplay-confirmation-timeout.json")
+        assertTrue(timeoutArtifact.contains("\"event\":\"final-gameplay-confirmation-timeout\""))
+        assertTrue(timeoutArtifact.contains("\"server\":\"localhost:25567\""))
+        assertTrue(timeoutArtifact.contains("\"confirmation-contains\":\"goal may be completed\""))
+        assertTrue(timeoutArtifact.contains("\"hold-ms\":\"25\""))
+    }
+
+    @Test
     fun `fabric smoke controller invokes generated chat and movement through daemon api and writes artifacts`() {
         val gateway = RecordingFabricClientGateway()
         val backend = smokeBackend(gateway)

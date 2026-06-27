@@ -404,6 +404,7 @@ data class FabricClientSmokeController(
             }
             delay(pollDelay)
         }
+        writeArtifact("final-gameplay-confirmation-timeout.json", finalGameplayConfirmationTimeoutArtifact(baseUrl, phrase))
     }
 
     private fun findConfirmationEvidence(phrase: String): FinalGameplayConfirmationEvidence? {
@@ -442,6 +443,22 @@ data class FabricClientSmokeController(
                 "server" to "${target.host}:${target.port}",
                 "player" to evidence.player,
                 "message" to evidence.message,
+                "artifacts-dir" to (artifactsDir?.toString() ?: ""),
+            ),
+        )
+
+    private fun finalGameplayConfirmationTimeoutArtifact(
+        baseUrl: String,
+        phrase: String?,
+    ): String =
+        smokeJson.encodeToString(
+            mapOf(
+                "event" to "final-gameplay-confirmation-timeout",
+                "base-url" to baseUrl,
+                "client-id" to SMOKE_CLIENT_ID,
+                "server" to "${target.host}:${target.port}",
+                "hold-ms" to holdAfterActions.inWholeMilliseconds.toString(),
+                "confirmation-contains" to (phrase ?: ""),
                 "artifacts-dir" to (artifactsDir?.toString() ?: ""),
             ),
         )

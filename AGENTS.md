@@ -146,6 +146,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 32. material reach evidence.
 33. combat reach fallback.
 34. incremental public-agent artifacts.
+35. final confirmation timeout artifact.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -255,6 +256,11 @@ actions leave evidence before the runner exits. It must stay evidence plumbing,
 must keep generated action invocation through `POST /clients/{id}:run`, and
 must not add pathfinder-specific public API, survival macros, or any new
 product gameplay action.
+Phase 35 makes the final Robin-confirmation hold outcome explicit when no
+matching Minecraft chat confirmation arrives before the configured deadline.
+It must write evidence only, must not mark Craftless complete, must not fail a
+successful public-agent gameplay run by itself, and must not bypass the
+required Robin chat confirmation.
 
 ## Acceptance Scenarios Are Not Product APIs
 
