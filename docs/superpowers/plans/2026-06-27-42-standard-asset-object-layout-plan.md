@@ -37,6 +37,36 @@
   Expected: the test fails because the current handle uses a Craftless hash and
   `.asset` suffix instead of the Mojang object layout.
 
+- [ ] **Step 3: Write the failing hash-validation test**
+
+  Add:
+
+  ```kotlin
+  @Test
+  fun `cache preparation rejects invalid minecraft asset hashes before writing cache handles`() =
+      runBlocking {
+          val failure =
+              assertFailsWith<IllegalArgumentException> {
+                  service.prepare(CachePrepareRequest("1.21.6", Loader.VANILLA))
+              }
+
+          assertEquals("Minecraft asset hash must be a SHA-1 hex string", failure.message)
+      }
+  ```
+
+  The full fixture should include an asset index object with
+  `"hash": "../not-a-sha1"`.
+
+- [ ] **Step 4: Run the validation test and verify RED**
+
+  Run:
+
+  ```sh
+  mise exec -- gradle :daemon:test --tests 'com.minekube.craftless.daemon.CachePreparationServiceTest.cache preparation rejects invalid minecraft asset hashes before writing cache handles'
+  ```
+
+  Expected: the test fails because invalid hashes are not rejected yet.
+
 ### Task 2: Implement Standard Asset Object Handles
 
 **Files:**
@@ -65,11 +95,11 @@
   Run:
 
   ```sh
-  mise exec -- gradle :daemon:test --tests 'com.minekube.craftless.daemon.CachePreparationServiceTest.cache preparation resolves and stores minecraft version metadata'
+  mise exec -- gradle :daemon:test --tests 'com.minekube.craftless.daemon.CachePreparationServiceTest.cache preparation resolves and stores minecraft version metadata' --tests 'com.minekube.craftless.daemon.CachePreparationServiceTest.cache preparation rejects invalid minecraft asset hashes before writing cache handles'
   ```
 
-  Expected: the test passes and writes the asset object at the standard Mojang
-  path.
+  Expected: both tests pass; the service writes valid asset objects at the
+  standard Mojang path and rejects invalid hashes before writing cache handles.
 
 ### Task 3: Update Guardrails And Evidence
 

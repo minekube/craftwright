@@ -498,6 +498,60 @@ class CachePreparationServiceTest {
         }
 
     @Test
+    fun `cache preparation rejects invalid minecraft asset hashes before writing cache handles`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-invalid-asset-hash")
+            val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+            val service =
+                CachePreparationService(
+                    workspaceRoot = workspace,
+                    metadataFetcher =
+                        StaticCacheMetadataFetcher(
+                            mapOf(
+                                MINECRAFT_VERSION_INDEX_URL to
+                                    """
+                                    { "versions": [{ "id": "1.21.6", "url": "$versionUrl" }] }
+                                    """.trimIndent(),
+                                versionUrl to
+                                    """
+                                    {
+                                      "id": "1.21.6",
+                                      "assetIndex": {
+                                        "id": "1.21.6",
+                                        "url": "$assetIndexUrl"
+                                      },
+                                      "downloads": {
+                                        "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                assetIndexUrl to
+                                    """
+                                    {
+                                      "objects": {
+                                        "minecraft/sounds/random/test.ogg": {
+                                          "hash": "../not-a-sha1",
+                                          "size": 10
+                                        }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                            ),
+                            binaryResponses = mapOf(clientJarUrl to "client-jar".encodeToByteArray()),
+                        ),
+                )
+
+            val failure =
+                assertFailsWith<IllegalArgumentException> {
+                    service.prepare(CachePrepareRequest("1.21.6", Loader.VANILLA))
+                }
+
+            assertEquals("Minecraft asset hash must be a SHA-1 hex string", failure.message)
+        }
+
+    @Test
     fun `cache preparation uses pinned compatible fabric loader version`() =
         runBlocking {
             val workspace = Files.createTempDirectory("craftless-cache-loader-pin")

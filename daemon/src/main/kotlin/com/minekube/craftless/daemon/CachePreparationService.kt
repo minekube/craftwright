@@ -932,6 +932,10 @@ private fun String.assetObjects(): List<MinecraftAssetObject> =
 private data class MinecraftAssetObject(
     val hash: String,
 ) {
+    init {
+        require(MINECRAFT_ASSET_HASH_PATTERN.matches(hash)) { "Minecraft asset hash must be a SHA-1 hex string" }
+    }
+
     val source: String = "$MINECRAFT_ASSET_BASE_URL/${hash.take(2)}/$hash"
 
     val artifact: CachePreparedArtifact =
@@ -944,6 +948,8 @@ private data class MinecraftAssetObject(
 }
 
 private const val MINECRAFT_ASSET_BASE_URL = "https://resources.download.minecraft.net"
+
+private val MINECRAFT_ASSET_HASH_PATTERN = Regex("[a-fA-F0-9]{40}")
 
 private data class MinecraftLibraryArtifact(
     val source: String,

@@ -1358,6 +1358,7 @@ Verification:
 Verification:
 
 - `mise exec -- gradle :daemon:test --tests 'com.minekube.craftless.daemon.CachePreparationServiceTest.cache preparation resolves and stores minecraft version metadata'`
+- `mise exec -- gradle :daemon:test --tests 'com.minekube.craftless.daemon.CachePreparationServiceTest.cache preparation rejects invalid minecraft asset hashes before writing cache handles'`
 - `mise exec -- gradle :daemon:test`
 - `mise run lint`
 - `mise run architecture-check`
