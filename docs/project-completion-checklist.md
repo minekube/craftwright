@@ -104,6 +104,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-65-codex-evidence-completion-gate-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-65-codex-evidence-completion-gate-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-66-representative-older-release-lane-evidence-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-66-representative-older-release-lane-evidence-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -345,10 +349,12 @@ Verification:
   only Craftless' `Player192` join, chat, and disconnect. Under Phase 65 this
   timeout artifact is diagnostic only; final completion depends on public
   API/CLI gameplay evidence plus CI, distribution, and compatibility probes.
-- [ ] Current final gameplay evidence has been rerun under the Phase 65 gate
+- [x] Current final gameplay evidence has been rerun under the Phase 65 gate
   and accepted without requiring `final-gameplay-confirmation.json`.
-- [ ] Issues found during final gameplay are fixed and reverified.
-- [ ] Latest and representative older-version compatibility probes have current
+- [~] Issues found during final gameplay are fixed and reverified. Final
+  completion still requires refreshing the full Codex evidence gate after the
+  latest changes.
+- [x] Latest and representative older-version compatibility probes have current
   passing or explicitly unsupported evidence.
 
 Verification:
@@ -822,7 +828,7 @@ Verification:
   `mise exec -- gradle :driver-fabric:test --tests '*FabricRuntimeProviderTest*'`
   and `mise exec -- gradle :driver-fabric:detekt :driver-fabric:ktlintCheck`.
 - [x] Compatibility matrix and provider-selection tests cover the current lane
-  plus at least one latest-release unsupported or additional lane.
+  plus latest-release and representative older-release unsupported lanes.
   Evidence:
   `mise exec -- gradle :driver-fabric:test --tests '*FabricCompatibilityMatrixTest*' --tests '*FabricCurrentLaneRuntimeProviderTest*'`
   and `mise exec -- gradle :testkit:test --tests '*LocalMinecraftServerSmokeTest*'`.
@@ -2025,10 +2031,61 @@ Verification:
 
 - `git diff --check`
 
+## Phase 65: Codex Evidence Completion Gate
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-65-codex-evidence-completion-gate-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-65-codex-evidence-completion-gate-plan.md`.
+- [x] Active completion docs no longer require Robin's Minecraft chat
+  confirmation; human co-play remains diagnostic evidence only.
+- [x] The final completion gate now requires Codex-verifiable public API/CLI
+  evidence across CI, CLI smoke, Docker smoke, release/install checks,
+  latest-version compatibility evidence, representative older-version
+  evidence, and honest survival gameplay.
+- [x] This phase changes completion governance only and adds no public gameplay
+  action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `git diff --check`
+- `rg -n "Robin writes|Robin confirms|goal may be completed|required Robin|must.*Robin|Minecraft chat confirmation.*required" README.md AGENTS.md docs/roadmap.md docs/final-gameplay-runbook.md .agents/skills/craftless-public-gameplay-agent/SKILL.md -S`
+- `mise exec -- bun test playwright`
+- `mise run architecture-check`
+- Remote GitHub Actions `ci` run `28304667338` passed for implementation
+  commit `9da4207`.
+
+## Phase 66: Representative Older Release Lane Evidence
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-66-representative-older-release-lane-evidence-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-66-representative-older-release-lane-evidence-plan.md`.
+- [x] Mojang metadata for Minecraft `1.20.6` is recorded as a representative
+  older release with Java major version `21`. Evidence:
+  `docs/superpowers/evidence/2026-06-28-representative-older-release-lane-evidence.md`.
+- [x] The compatibility matrix resolves `1.20.6` to
+  `older-release-1-20-6` with status `UNSUPPORTED`, provider
+  `no-compatible-client-lane`, and reason `runtime-lane-missing`.
+- [x] Unknown versions still use the generic unsupported fallback, so known
+  older-release evidence does not become broad support.
+- [x] This phase changes compatibility evidence only and adds no public
+  gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- bun -e 'const manifest = await (await fetch("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")).json(); const v = manifest.versions.find((version) => version.id === "1.20.6"); if (!v) throw new Error("missing 1.20.6"); const meta = await (await fetch(v.url)).json(); console.log(JSON.stringify({ id: v.id, type: v.type, releaseTime: v.releaseTime, time: v.time, sha1: v.sha1, javaVersion: meta.javaVersion }, null, 2));'`
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricCompatibilityMatrixTest*'`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
-  completion remains open on Robin's Minecraft chat confirmation.
+  completion remains open on refreshing the full Codex evidence gate after the
+  latest changes, not on human Minecraft chat confirmation.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
   successfully as part of `mise run ci` after Phase 60 final gameplay join
   handoff.
@@ -2058,8 +2115,12 @@ Verification:
   crafted and equipped a `Wooden Sword`, killed a Sheep through generated
   `entity.attack`, observed `Raw Mutton` and `White Wool` drops through
   generated `entity.query`, and wrote `final-gameplay-confirmation-timeout.json`
-  because no server chat line contained `goal may be completed`.
-- [ ] Phase 65 final gameplay evidence is accepted from public API/CLI
+  as a diagnostic timeout artifact.
+- [x] Phase 65 final gameplay evidence is accepted from public API/CLI
   artifacts without requiring human Minecraft chat confirmation.
+- [~] Latest and representative older-version compatibility probes have current
+  evidence. Latest `26.2` and older `1.20.6` currently resolve as explicit
+  unsupported lanes; final completion still requires the full gate refresh after
+  this checklist update is pushed.
 - [x] Changes are committed and pushed to `main`. This entry is current only
   after the checklist update that changes it is also pushed.

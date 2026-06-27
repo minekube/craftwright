@@ -36,6 +36,19 @@ class FabricCompatibilityMatrixTest {
     }
 
     @Test
+    fun `matrix includes representative older release lane without claiming runtime support`() {
+        val matrix = defaultFabricCompatibilityMatrix()
+
+        val lane = matrix.resolve(currentLaneIdentity().copy(gameVersion = "1.20.6"))
+
+        assertEquals("older-release-1-20-6", lane.id)
+        assertEquals(FabricCompatibilityStatus.UNSUPPORTED, lane.status)
+        assertEquals(21, lane.javaMajorVersion)
+        assertEquals("runtime-lane-missing", lane.unsupportedReason)
+        assertEquals("no-compatible-client-lane", lane.providerId)
+    }
+
+    @Test
     fun `lane source evidence records status separately from unavailable reason`() {
         val matrix = defaultFabricCompatibilityMatrix()
 

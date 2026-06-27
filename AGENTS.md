@@ -176,6 +176,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 63. public-agent partial recipe material.
 64. public-agent live co-play guidance.
 65. Codex evidence completion gate.
+66. representative older release lane evidence.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -436,8 +437,8 @@ shortcuts, new compiled lanes, public version-specific APIs, or new Minecraft
 support claims.
 Phase 60 makes the final gameplay ready handoff explicit by writing
 machine-readable and human-readable join/confirmation artifacts when the held
-session is ready for Robin. It must not change generated public APIs, bypass
-Robin's Minecraft chat confirmation, treat timeout as success, add gameplay
+session is ready for optional human co-play. It must not change generated
+public APIs, treat timeout as success, add gameplay
 shortcuts, public gameplay actions, generated route families, CLI gameplay
 catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new compiled
 lanes, public version-specific APIs, or new Minecraft support claims.
@@ -448,11 +449,9 @@ variables for the configured client action command, and must not add gameplay
 shortcuts, public gameplay actions, generated route families, CLI gameplay
 catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new compiled
 lanes, public version-specific APIs, or new Minecraft support claims.
-Phase 62 keeps the final gameplay confirmation hold alive during active
-Minecraft chat play before Robin sends the configured completion phrase. It
-may extend the held API session after observed non-confirmation chat activity,
-but it must not treat activity or timeout as completion, must not bypass
-Robin's explicit Minecraft chat confirmation, and must not add gameplay
+Phase 62 keeps the final gameplay diagnostic hold alive during active Minecraft
+chat play. It may extend the held API session after observed chat activity,
+but it must not treat activity or timeout as completion, and must not add gameplay
 shortcuts, public gameplay actions, generated route families, CLI gameplay
 catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new compiled
 lanes, public version-specific APIs, or new Minecraft support claims.
@@ -477,13 +476,21 @@ or new Minecraft support claims.
 Phase 65 replaces the old human chat completion gate with a Codex-verifiable
 evidence gate. Completion now requires current CI, distribution smoke checks,
 multi-version compatibility probes including the 26.x/latest lane and
-representative older supported versions, and final honest survival gameplay
+representative older releases, and final honest survival gameplay
 driven through public OpenAPI/CLI/SSE only. Human co-play remains optional
 diagnostic evidence and must not be required for goal completion. This phase
 must not add gameplay shortcuts, public gameplay actions, generated route
 families, CLI gameplay catalogs, Fabric descriptor/binding pairs, scenario
 shortcuts, new unsupported Minecraft claims, or server-provisioned final
 gameplay evidence.
+Phase 66 keeps representative older-release compatibility evidence honest. A
+real older Minecraft release such as `1.20.6` must be represented as a real
+runtime input with its Java requirement and `UNSUPPORTED`/machine-readable
+reason when no compatible Fabric client lane exists. It must not be described
+as broad version support, must not add a new compiled lane, and must not add
+public gameplay actions, generated route families, CLI gameplay catalogs,
+Fabric descriptor/binding pairs, scenario shortcuts, or public version-specific
+APIs.
 
 ## Acceptance Scenarios Are Not Product APIs
 
