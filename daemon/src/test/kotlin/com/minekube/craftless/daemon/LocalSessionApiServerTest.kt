@@ -496,10 +496,18 @@ class LocalSessionApiServerTest {
                 "--uuid", "{{auth_uuid}}",
                 "--accessToken", "{{auth_access_token}}",
                 "--userType", "{{user_type}}",
+                "--assetIndex", "{{assets_index_name}}",
+                "--versionType", "{{version_type}}",
+                "--launcherName", "{{launcher_name}}",
+                "--launcherVersion", "{{launcher_version}}",
                 "--quickPlayPath", "{{quickPlayPath}}",
                 "--quickPlaySingleplayer", "{{quickPlaySingleplayer}}",
                 "--quickPlayMultiplayer", "{{quickPlayMultiplayer}}",
-                "--quickPlayRealms", "{{quickPlayRealms}}"
+                "--quickPlayRealms", "{{quickPlayRealms}}",
+                "--xuid", "{{auth_xuid}}",
+                "--clientId", "{{clientid}}",
+                "--width", "{{resolution_width}}",
+                "--height", "{{resolution_height}}"
               ]
             }
             """.trimIndent(),
@@ -549,10 +557,18 @@ class LocalSessionApiServerTest {
         assertTrue(invoked.contains("--uuid 10920508-d5d8-3eed-93d2-92f193afe7d7"))
         assertTrue(invoked.contains("--accessToken 0"))
         assertTrue(invoked.contains("--userType legacy"))
+        assertTrue(invoked.contains("--assetIndex 1.21.6"))
+        assertTrue(invoked.contains("--versionType release"))
+        assertTrue(invoked.contains("--launcherName craftless"))
+        assertTrue(invoked.contains("--launcherVersion 0"))
         assertTrue(invoked.contains("--quickPlayPath instances/alice-1.21.6-fabric/minecraft/quickplay"))
         assertFalse(invoked.contains("--quickPlaySingleplayer"))
         assertFalse(invoked.contains("--quickPlayMultiplayer"))
         assertFalse(invoked.contains("--quickPlayRealms"))
+        assertFalse(invoked.contains("--xuid"))
+        assertFalse(invoked.contains("--clientId"))
+        assertFalse(invoked.contains("--width"))
+        assertFalse(invoked.contains("--height"))
     }
 
     @Test

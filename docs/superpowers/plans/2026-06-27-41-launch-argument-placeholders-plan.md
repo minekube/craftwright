@@ -29,18 +29,27 @@ prepared launch-arguments file includes:
     "--uuid", "{{auth_uuid}}",
     "--accessToken", "{{auth_access_token}}",
     "--userType", "{{user_type}}",
+    "--assetIndex", "{{assets_index_name}}",
+    "--versionType", "{{version_type}}",
+    "--launcherName", "{{launcher_name}}",
+    "--launcherVersion", "{{launcher_version}}",
     "--quickPlayPath", "{{quickPlayPath}}",
     "--quickPlaySingleplayer", "{{quickPlaySingleplayer}}",
     "--quickPlayMultiplayer", "{{quickPlayMultiplayer}}",
-    "--quickPlayRealms", "{{quickPlayRealms}}"
+    "--quickPlayRealms", "{{quickPlayRealms}}",
+    "--xuid", "{{auth_xuid}}",
+    "--clientId", "{{clientid}}",
+    "--width", "{{resolution_width}}",
+    "--height", "{{resolution_height}}"
   ]
 }
 ```
 
 Assert the launched command contains the offline profile values for `Alice`,
 the standard offline UUID `10920508-d5d8-3eed-93d2-92f193afe7d7`, access token
-`0`, user type `legacy`, and the instance quick-play path. Assert unresolved
-quick-play mode flags are omitted.
+`0`, user type `legacy`, asset index `1.21.6`, version type `release`,
+Craftless launcher metadata, and the instance quick-play path. Assert
+unresolved quick-play mode, account-id, and resolution flags are omitted.
 
 - [x] **Step 2: Verify RED**
 

@@ -1312,9 +1312,11 @@ Verification:
   `ProcessBuilder`.
 - [x] Offline profile launches now provide `auth_player_name`, standard
   Minecraft offline `auth_uuid`, offline `auth_access_token`, `user_type`,
-  `gameRoot`, and `quickPlayPath`.
-- [x] Empty optional quick-play mode placeholders are omitted with their flags
-  instead of being passed to the client as unresolved or blank arguments.
+  `gameRoot`, `assets_index_name`, `version_type`, launcher metadata, and
+  `quickPlayPath`.
+- [x] Empty optional quick-play mode, account-id, and resolution placeholders
+  are omitted with their flags instead of being passed to the client as
+  unresolved or blank arguments.
 - [x] This phase changes supervisor process launch construction only and adds
   no public gameplay action, generated route family, CLI gameplay catalog, or
   scenario shortcut.

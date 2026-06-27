@@ -221,15 +221,23 @@ private fun Path.resolveHandleOrPath(value: String): Path {
 
 private fun CreateClientRequest.clientLaunchVariables(files: InstanceFiles): Map<String, String> =
     mapOf(
+        "assets_index_name" to version,
         "auth_access_token" to "0",
         "auth_player_name" to profile.name,
         "auth_uuid" to offlineUuid(profile.name),
+        "auth_xuid" to "",
+        "clientid" to "",
         "gameRoot" to files.gameRoot,
+        "launcher_name" to "craftless",
+        "launcher_version" to "0",
         "quickPlayPath" to "${files.gameRoot}/quickplay",
-        "quickPlaySingleplayer" to "",
         "quickPlayMultiplayer" to "",
         "quickPlayRealms" to "",
+        "quickPlaySingleplayer" to "",
+        "resolution_height" to "",
+        "resolution_width" to "",
         "user_type" to "legacy",
+        "version_type" to "release",
     )
 
 private fun offlineUuid(name: String): String = UUID.nameUUIDFromBytes("OfflinePlayer:$name".toByteArray(StandardCharsets.UTF_8)).toString()
