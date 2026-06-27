@@ -251,37 +251,35 @@ class PublicAgentGameplayRunner(
                 moveToward(position = position, ticks = COMBAT_MOVE_TICKS)?.let { blocker -> return blocker }
                 return null
             }
-            if (!focusedTarget.isReachableForAttack(combatPlayerPosition)) {
-                focusedTarget.position
-                    ?.let { position -> closeDistanceToAttackTarget(position) }
-                    ?.let { blocker -> return FocusedAttackTarget(blocker = blocker) }
-                combatPlayerPosition =
-                    invokeGenerated("player.query")
-                        .responseObject()
-                        ?.playerPosition()
-                        ?: return FocusedAttackTarget(blocker = "insufficient-public-evidence:player.query.position")
-            }
-            queryAttackTarget(radius = ATTACK_MAX_DISTANCE, preferredHandle = focusedTarget.handle)?.let { closeTarget ->
-                if (!closeTarget.isReachableForAttack(combatPlayerPosition)) {
-                    closeTarget.position
-                        ?.let { position -> closeDistanceToAttackTarget(position) }
-                        ?.let { blocker -> return FocusedAttackTarget(blocker = blocker) }
-                    combatPlayerPosition =
-                        invokeGenerated("player.query")
-                            .responseObject()
-                            ?.playerPosition()
-                            ?: return FocusedAttackTarget(blocker = "insufficient-public-evidence:player.query.position")
-                    val repositionedTarget =
-                        queryAttackTarget(
-                            radius = ATTACK_MAX_DISTANCE,
-                            preferredHandle = focusedTarget.handle,
-                        ) ?: closeTarget
-                    if (!repositionedTarget.isReachableForAttack(combatPlayerPosition)) {
-                        return FocusedAttackTarget(blocker = "insufficient-public-evidence:entity.query.attack-target.reachable")
+
+            var focusAttempts = 0
+            var focusComplete = false
+            while (focusAttempts < COMBAT_FOCUS_ATTEMPTS && !focusComplete) {
+                val closeTarget = queryAttackTarget(radius = ATTACK_MAX_DISTANCE, preferredHandle = focusedTarget.handle)
+                when {
+                    closeTarget != null && closeTarget.isReachableForAttack(combatPlayerPosition) -> {
+                        focusedTarget = closeTarget
+                        focusComplete = true
                     }
-                    focusedTarget = repositionedTarget
-                } else {
-                    focusedTarget = closeTarget
+                    closeTarget == null && focusedTarget.isReachableForAttack(combatPlayerPosition) -> {
+                        focusComplete = true
+                    }
+                    else -> {
+                        val movementTarget = closeTarget ?: focusedTarget
+                        movementTarget.position
+                            ?.let { position -> closeDistanceToAttackTarget(position) }
+                            ?.let { blocker -> return FocusedAttackTarget(blocker = blocker) }
+                        combatPlayerPosition =
+                            invokeGenerated("player.query")
+                                .responseObject()
+                                ?.playerPosition()
+                                ?: return FocusedAttackTarget(blocker = "insufficient-public-evidence:player.query.position")
+                        focusedTarget =
+                            queryAttackTarget(radius = ATTACK_MAX_DISTANCE, preferredHandle = movementTarget.handle)
+                                ?: queryAttackTarget(radius = 24.0, preferredHandle = movementTarget.handle)
+                                ?: movementTarget
+                        focusAttempts += 1
+                    }
                 }
             }
             if (!focusedTarget.isReachableForAttack(combatPlayerPosition)) {
@@ -1710,6 +1708,7 @@ private const val MATERIAL_COLLECTION_ATTEMPTS = 2
 private const val MIN_RECIPE_COMPOSITION_MATERIAL_ITEMS = 2
 private const val PICKUP_MOVE_TICKS = 24
 private const val COMBAT_MOVE_TICKS = 24
+private const val COMBAT_FOCUS_ATTEMPTS = 3
 private const val DEFAULT_COMBAT_EVIDENCE_ATTEMPTS = 12
 private const val DEFAULT_ACTION_REQUEST_TIMEOUT_MS = 300_000L
 private const val DEFAULT_CONNECT_TIMEOUT_MS = 30_000L

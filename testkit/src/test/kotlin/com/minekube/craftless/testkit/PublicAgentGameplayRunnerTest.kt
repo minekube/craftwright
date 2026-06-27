@@ -432,6 +432,7 @@ class PublicAgentGameplayRunnerTest {
                             aliveCowEntityQueryResponse,
                             aliveCowEntityQueryResponse,
                             movedCowEntityQueryResponse,
+                            EMPTY_ENTITY_QUERY_RESPONSE,
                             reachableMovedCowEntityQueryResponse,
                             deadMovedCowEntityQueryResponse,
                         ),
@@ -546,6 +547,7 @@ class PublicAgentGameplayRunnerTest {
                         List(4) { EMPTY_ENTITY_QUERY_RESPONSE } +
                             listOf(
                                 verticallyOffsetCowEntityQueryResponse,
+                                EMPTY_ENTITY_QUERY_RESPONSE,
                                 reachableMovedCowEntityQueryResponse,
                                 deadMovedCowEntityQueryResponse,
                             ),
@@ -919,6 +921,46 @@ class PublicAgentGameplayRunnerTest {
 
             assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
             assertTrue(result.actionLog.map { it.action }.contains("player.move"))
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-42"}""")
+                },
+            )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner re-queries wider public entity perception after fallback combat movement loses close target`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + listOf("entity.attack", "player.move"),
+                    navigationFollowResponses =
+                        listOf(
+                            NAVIGATION_SUCCEEDED_RESPONSE,
+                            NAVIGATION_SUCCEEDED_RESPONSE,
+                            NAVIGATION_FAILED_RESPONSE,
+                            NAVIGATION_FAILED_RESPONSE,
+                        ),
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            unreachableCloseCowEntityQueryResponse,
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            unreachableCloseCowEntityQueryResponse,
+                            reachableMovedCowEntityQueryResponse,
+                            deadMovedCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertTrue(result.actionLog.map { it.action }.contains("player.move"))
+            assertTrue(result.actionLog.map { it.action }.count { it == "entity.query" } >= 5)
             assertTrue(
                 server.requestBodies.any {
                     it.contains("entity.attack") &&

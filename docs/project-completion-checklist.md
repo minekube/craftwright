@@ -239,7 +239,12 @@ Verification:
   a concise `say` prompt. The 2026-06-27 held run also exposed that the outer
   server action timeout must cover public-agent runtime plus the full human hold
   window; the final task now separates the Fabric action timeout from the
-  computed outer fixture timeout.
+  computed outer fixture timeout. A later 2026-06-27 held run exposed
+  `insufficient-public-evidence:entity.query.attack-target.reachable` when
+  generated navigation did not start and the first close-range post-move entity
+  query lost the Cow; the public-agent policy now performs bounded wider
+  generated `entity.query` refreshes and generic close-distance retries before
+  blocking.
 - [ ] Robin joins or observes the server session after the harness ready prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
