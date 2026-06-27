@@ -175,6 +175,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 61. local server action environment boundary.
 62. final gameplay activity hold.
 63. public-agent partial recipe material.
+64. public-agent live co-play guidance.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -462,6 +463,17 @@ must require public inventory evidence before continuing, and must not add
 material-specific actions, gameplay shortcuts, generated route families, CLI
 gameplay catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new
 compiled lanes, public version-specific APIs, or new Minecraft support claims.
+Phase 64 records live co-play guidance for external public agents after the
+held final gameplay run exposed an invalid first `navigation.plan` body and
+overbroad stop-word handling. It must stay in repo-local agent guidance and
+project docs only. Agents must read generated OpenAPI schemas, use the
+generated block-goal shape for `navigation.plan`, verify movement with public
+state, treat only clear standalone chat messages as stop commands, and use
+Minecraft chat/Craftless events instead of local OS speech once a human is in
+the server. It must not add gameplay shortcuts, public gameplay actions,
+generated route families, CLI gameplay catalogs, Fabric descriptor/binding
+pairs, scenario shortcuts, new compiled lanes, public version-specific APIs,
+or new Minecraft support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

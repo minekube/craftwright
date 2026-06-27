@@ -54,6 +54,47 @@ If a needed primitive is missing, report
 shortcuts. The fix belongs in runtime graph discovery, projection, invocation
 adapters, event streaming, CLI, or docs.
 
+## Navigation Shape
+
+Do not guess action schemas from action names. Read the generated OpenAPI
+schema for the current client before invoking `navigation.plan`.
+
+For the current public block-position navigation shape, send a block goal:
+
+```json
+{
+  "action": "navigation.plan",
+  "arguments": {
+    "goal": {
+      "kind": "block",
+      "position": { "x": 12, "y": 64, "z": -8 },
+      "radius": 3.0
+    }
+  }
+}
+```
+
+Use integer block coordinates for block goals. After `navigation.follow`, query
+public player/entity/block state before assuming the client reached the target.
+
+## Live Co-Play
+
+When a human joins the server, communicate through Minecraft chat and public
+Craftless events. Do not use local OS speech or desktop automation as part of
+gameplay coordination.
+
+Treat stop commands as commands, not substrings. Stop following only on a clear
+standalone message such as `stop`, `stopp`, `halt`, or `stop following`.
+Messages like "follow me until I say stop" are instructions to continue.
+
+For follow behavior:
+
+1. Re-query the target player with `entity.query`.
+2. Re-query the controlled player with `player.query`.
+3. Navigate or move only when distance exceeds the chosen threshold.
+4. Keep emitting chat/status through generated public actions.
+5. Stop only after a clear stop command or a failed public evidence check.
+
 ## Validation
 
 Accepted action calls are not proof of success. Verify progress from state:

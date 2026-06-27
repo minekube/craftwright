@@ -1981,6 +1981,27 @@ Verification:
 - `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest' --rerun-tasks`
 - `git diff --check`
 
+## Phase 64: Public Agent Live Co-Play Guidance
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-64-public-agent-live-coplay-guidance-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-64-public-agent-live-coplay-guidance-plan.md`.
+- [x] The repo-local public gameplay agent skill documents that agents must
+  read generated per-client OpenAPI schemas before invoking actions and shows
+  the current generated block-goal shape for `navigation.plan`.
+- [x] The same skill documents live co-play behavior: use Minecraft chat and
+  Craftless events, verify movement through public state, and treat only clear
+  standalone messages such as `stop`, `stopp`, or `halt` as stop commands.
+- [x] This phase changes only agent guidance and docs. It adds no public
+  gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `git diff --check`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
