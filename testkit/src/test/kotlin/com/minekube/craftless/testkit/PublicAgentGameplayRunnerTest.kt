@@ -990,6 +990,43 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner uses generated player move when combat navigation succeeds but target remains out of reach`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + listOf("entity.attack", "player.move"),
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            aliveCowEntityQueryResponse,
+                            unreachableCloseCowEntityQueryResponse,
+                        ),
+                    entityQueryResponsesAfterPlayerMove =
+                        listOf(
+                            reachableMovedCowEntityQueryResponse,
+                            reachableMovedCowEntityQueryResponse,
+                            deadMovedCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            val playerMoveIndex = server.requestBodies.indexOfFirst { it.contains("player.move") }
+            val firstAttackIndex = server.requestBodies.indexOfFirst { it.contains("entity.attack") }
+            assertTrue(playerMoveIndex >= 0, result.blockerWithActions())
+            assertTrue(firstAttackIndex > playerMoveIndex, result.blockerWithActions())
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-42"}""")
+                },
+            )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner re-queries wider public entity perception after fallback combat movement loses close target`() =
         runBlocking {
             val server =
@@ -2725,6 +2762,7 @@ private class RecordingCraftlessHttpServer(
         """{"action":"player.query","status":"ACCEPTED","data":{"position":{"x":11.0,"y":65.0,"z":-3.0}}}""",
     private val entityQueryResponse: String = """{"action":"entity.query","status":"ACCEPTED","data":{"entities":[]}}""",
     private val entityQueryResponses: List<String>? = null,
+    private val entityQueryResponsesAfterPlayerMove: List<String>? = null,
     private val recipeQueryResponse: String =
         """{"action":"recipe.query","status":"ACCEPTED","data":{"count":0,"recipes":[]}}""",
     private val recipeQueryResponses: List<String>? = null,
@@ -2755,6 +2793,7 @@ private class RecordingCraftlessHttpServer(
     private var inventoryQueryCount = 0
     private var blockQueryCount = 0
     private var entityQueryCount = 0
+    private var entityQueryAfterPlayerMoveCount = 0
     private var blockInteractCount = 0
     private var navigationFollowCount = 0
     private var recipeQueryCount = 0
@@ -2841,6 +2880,12 @@ private class RecordingCraftlessHttpServer(
     }
 
     private fun entityQueryResponse(): String {
+        if (entityQueryResponsesAfterPlayerMove != null && playerMoveCount > 0) {
+            entityQueryAfterPlayerMoveCount += 1
+            return entityQueryResponsesAfterPlayerMove.getOrElse(entityQueryAfterPlayerMoveCount - 1) {
+                entityQueryResponsesAfterPlayerMove.last()
+            }
+        }
         entityQueryCount += 1
         return entityQueryResponses?.getOrElse(entityQueryCount - 1) { entityQueryResponses.last() }
             ?: entityQueryResponse

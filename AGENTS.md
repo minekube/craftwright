@@ -144,6 +144,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 30. bounded attack exploration.
 31. material count evidence.
 32. material reach evidence.
+33. combat reach fallback.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -242,6 +243,12 @@ external agent policy, must not trust `navigation.follow` success when
 `player.query` proves the target is still outside break reach, and must not add
 reach shortcuts, mining shortcuts, survival macros, or any new product gameplay
 action.
+Phase 33 makes public-agent combat use a bounded generic `player.move` nudge
+when generated navigation reports success but public `entity.query` and
+`player.query` still prove the target is outside generated attack reach. It
+must stay external agent policy, must re-query public state before
+`entity.attack`, and must not add `find.cow`, `kill.cow`, combat shortcuts,
+survival macros, or any new product gameplay action.
 
 ## Acceptance Scenarios Are Not Product APIs
 

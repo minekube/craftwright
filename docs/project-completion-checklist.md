@@ -976,6 +976,39 @@ Verification:
 - `mise run lint`
 - `mise run jvm-test`
 
+## Phase 33: Combat Reach Fallback
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-33-combat-reach-fallback-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-33-combat-reach-fallback-plan.md`.
+- [x] The 2026-06-27 held final gameplay rerun blocked because generated
+  `navigation.follow` reported success for a public Pig target while follow-up
+  `player.query` and `entity.query` still placed the target outside generated
+  attack reach. The runner correctly refused `entity.attack`, but did not use
+  the discovered generic `player.move` fallback because navigation had not
+  reported failure.
+- [x] Public-agent combat focus now re-checks public reach evidence after
+  generated navigation and uses one bounded generic `player.move` nudge when
+  the target remains outside attack reach and `player.move` is discovered.
+- [x] Focused regression evidence proves the runner invokes generated
+  `player.move` before `entity.attack` when combat navigation reports success
+  but public state still contradicts reachability.
+- [x] Existing guardrail evidence still proves the runner does not invoke
+  `entity.attack` when the target remains outside generated attack reach and
+  `player.move` is not discovered.
+- [x] Broader local gates pass after this correction.
+- [ ] Final live gameplay has been rerun after this correction and either
+  reached `publicAgentState=RAN` or recorded the next precise generic public
+  evidence blocker.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest.runner uses generated player move when combat navigation succeeds but target remains out of reach'`
+- `mise exec -- gradle :testkit:test`
+- `mise run lint`
+- `mise run jvm-test`
+
 ## Final Completion Gate
 
 - [ ] All phases above are checked with current evidence.

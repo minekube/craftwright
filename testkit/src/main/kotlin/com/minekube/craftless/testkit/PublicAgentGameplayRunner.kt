@@ -240,16 +240,17 @@ class PublicAgentGameplayRunner(
                     ?.playerPosition()
                     ?: return FocusedAttackTarget(blocker = "insufficient-public-evidence:player.query.position")
 
-            suspend fun closeDistanceToAttackTarget(position: JsonObject): String? {
+            suspend fun closeDistanceToAttackTarget(position: JsonObject): DistanceCloseAttempt {
                 val navigationBlocker = navigateTo(position = position, radius = 2.5)
                 if (navigationBlocker == null) {
-                    return null
+                    return DistanceCloseAttempt()
                 }
                 if ("player.move" !in actionIds) {
-                    return navigationBlocker
+                    return DistanceCloseAttempt(blocker = navigationBlocker)
                 }
-                moveToward(position = position, ticks = COMBAT_MOVE_TICKS)?.let { blocker -> return blocker }
-                return null
+                moveToward(position = position, ticks = COMBAT_MOVE_TICKS)
+                    ?.let { blocker -> return DistanceCloseAttempt(blocker = blocker) }
+                return DistanceCloseAttempt(usedPlayerMove = true)
             }
 
             var focusAttempts = 0
@@ -266,9 +267,11 @@ class PublicAgentGameplayRunner(
                     }
                     else -> {
                         val movementTarget = closeTarget ?: focusedTarget
-                        movementTarget.position
-                            ?.let { position -> closeDistanceToAttackTarget(position) }
-                            ?.let { blocker -> return FocusedAttackTarget(blocker = blocker) }
+                        val closeAttempt =
+                            movementTarget.position
+                                ?.let { position -> closeDistanceToAttackTarget(position) }
+                                ?: DistanceCloseAttempt()
+                        closeAttempt.blocker?.let { blocker -> return FocusedAttackTarget(blocker = blocker) }
                         combatPlayerPosition =
                             invokeGenerated("player.query")
                                 .responseObject()
@@ -278,6 +281,23 @@ class PublicAgentGameplayRunner(
                             queryAttackTarget(radius = ATTACK_MAX_DISTANCE, preferredHandle = movementTarget.handle)
                                 ?: queryAttackTarget(radius = 24.0, preferredHandle = movementTarget.handle)
                                 ?: movementTarget
+                        if (!focusedTarget.isReachableForAttack(combatPlayerPosition) &&
+                            !closeAttempt.usedPlayerMove &&
+                            "player.move" in actionIds
+                        ) {
+                            focusedTarget.position
+                                ?.let { position -> moveToward(position = position, ticks = COMBAT_MOVE_TICKS) }
+                                ?.let { blocker -> return FocusedAttackTarget(blocker = blocker) }
+                            combatPlayerPosition =
+                                invokeGenerated("player.query")
+                                    .responseObject()
+                                    ?.playerPosition()
+                                    ?: return FocusedAttackTarget(blocker = "insufficient-public-evidence:player.query.position")
+                            focusedTarget =
+                                queryAttackTarget(radius = ATTACK_MAX_DISTANCE, preferredHandle = focusedTarget.handle)
+                                    ?: queryAttackTarget(radius = 24.0, preferredHandle = focusedTarget.handle)
+                                    ?: focusedTarget
+                        }
                         focusAttempts += 1
                     }
                 }
@@ -1754,6 +1774,11 @@ private data class PublicBlockTarget(
 private data class FocusedBlockTarget(
     val target: PublicBlockTarget? = null,
     val blocker: String? = null,
+)
+
+private data class DistanceCloseAttempt(
+    val blocker: String? = null,
+    val usedPlayerMove: Boolean = false,
 )
 
 private data class MaterialCollectionAttempt(
