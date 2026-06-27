@@ -22,7 +22,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class BackendDriverSessionTest {
@@ -269,7 +268,16 @@ class BackendDriverSessionTest {
                 .single { it.id == "player.move" }
                 .arguments.keys,
         )
-        assertFailsWith<IllegalArgumentException> {
+        val missingChatMessage = backend.invoke("alice", DriverActionInvocation("player.chat"))
+        val blankChatMessage =
+            backend.invoke(
+                "alice",
+                DriverActionInvocation(
+                    action = "player.chat",
+                    arguments = mapOf("message" to JsonPrimitive("  ")),
+                ),
+            )
+        val commandChatMessage =
             backend.invoke(
                 "alice",
                 DriverActionInvocation(
@@ -277,7 +285,18 @@ class BackendDriverSessionTest {
                     arguments = mapOf("message" to JsonPrimitive("/server lobby")),
                 ),
             )
-        }
+        assertEquals(DriverActionStatus.FAILED, missingChatMessage.status)
+        assertEquals("missing-message", missingChatMessage.message)
+        assertEquals(JsonPrimitive(false), missingChatMessage.data["sent"])
+        assertEquals(JsonPrimitive("missing-message"), missingChatMessage.data["reason"])
+        assertEquals(DriverActionStatus.FAILED, blankChatMessage.status)
+        assertEquals("blank-message", blankChatMessage.message)
+        assertEquals(JsonPrimitive(false), blankChatMessage.data["sent"])
+        assertEquals(JsonPrimitive("blank-message"), blankChatMessage.data["reason"])
+        assertEquals(DriverActionStatus.FAILED, commandChatMessage.status)
+        assertEquals("minecraft-command-rejected", commandChatMessage.message)
+        assertEquals(JsonPrimitive(false), commandChatMessage.data["sent"])
+        assertEquals(JsonPrimitive("minecraft-command-rejected"), commandChatMessage.data["reason"])
         assertEquals(DriverBackendAction.STOP, backend.stop("alice").action)
     }
 

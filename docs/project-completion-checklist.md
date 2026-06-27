@@ -160,7 +160,9 @@ Verification:
 - [x] Generated-action public input failures avoid raw Kotlin exceptions before
   client scheduling. Current evidence covers `player.chat` failures for
   missing messages, blank messages, and rejected Minecraft command strings with
-  machine-readable reasons.
+  machine-readable reasons across the Fabric backend, the reusable fake driver
+  session, and the temporary HMC bridge backend. The old shared
+  exception-only chat validator has been removed from `driver-api`.
 - [x] Invocation results validate against graph-projected result schemas and
   publish correlated SSE events for generic graph invocations. Current evidence
   covers schema validation, session events, JSON-RPC correlation ids, and
@@ -170,6 +172,7 @@ Verification:
 
 - `mise exec -- gradle :driver-api:test :driver-fabric:test :daemon:test`
 - `mise exec -- gradle :driver-fabric:test --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric backend reports missing player chat message as action failure' --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric backend reports blank player chat message as action failure' --tests 'com.minekube.craftless.driver.fabric.v1_21_6.FabricDriverModuleTest.fabric backend rejects raw minecraft command strings as chat action input'`
+- `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.FakeDriverSessionTest' :driver-runtime:test --tests 'com.minekube.craftless.driver.runtime.BackendDriverSessionTest.hmc bridge backend adapts the temporary bridge to runtime backend actions'`
 
 ## Phase 6: SSE, JSON-RPC, And Adaptive Consumers
 

@@ -13,8 +13,9 @@ import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.booleanArgument
 import com.minekube.craftless.driver.api.intArgument
-import com.minekube.craftless.driver.api.requireChatMessage
 import com.minekube.craftless.driver.api.stringArgument
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 class HmcBridgeDriverBackend(
     private val bridge: HmcBridgeBackend,
@@ -52,9 +53,14 @@ class HmcBridgeDriverBackend(
     ): DriverActionResult {
         if (invocation.action == "player.chat") {
             val message =
-                requireChatMessage(
-                    requireNotNull(invocation.arguments.stringArgument("message")) { "message is required" },
-                )
+                invocation.arguments.stringArgument("message")
+                    ?: return chatInputFailure(invocation.action, "missing-message")
+            if (message.isBlank()) {
+                return chatInputFailure(invocation.action, "blank-message")
+            }
+            if (message.startsWith("/")) {
+                return chatInputFailure(invocation.action, "minecraft-command-rejected")
+            }
             val result = bridge.chat(clientId, message)
             require(result.action == ClientAction.CHAT) { "driver backend returned ${result.action} for chat" }
             return DriverActionResult(
@@ -89,6 +95,21 @@ class HmcBridgeDriverBackend(
         )
     }
 }
+
+private fun chatInputFailure(
+    action: String,
+    reason: String,
+): DriverActionResult =
+    DriverActionResult(
+        action = action,
+        status = DriverActionStatus.FAILED,
+        message = reason,
+        data =
+            buildJsonObject {
+                put("sent", false)
+                put("reason", reason)
+            },
+    )
 
 private fun bridgePlayerMoveActionDescriptor(): DriverActionDescriptor =
     DriverActionDescriptor(

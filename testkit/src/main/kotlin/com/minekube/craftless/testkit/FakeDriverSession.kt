@@ -12,7 +12,6 @@ import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.driver.api.intArgument
-import com.minekube.craftless.driver.api.requireChatMessage
 import com.minekube.craftless.driver.api.stringArgument
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.RuntimeAvailability
@@ -20,6 +19,8 @@ import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import com.minekube.craftless.protocol.RuntimeOperationNode
 import com.minekube.craftless.protocol.RuntimeResourceNode
 import com.minekube.craftless.protocol.RuntimeSchema
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 class FakeDriverSession(
     override val clientId: String,
@@ -95,7 +96,15 @@ class FakeDriverSession(
         val result =
             when (invocation.action) {
                 "player.chat" -> {
-                    val message = requireNotNull(invocation.arguments.stringArgument("message")) { "message is required" }
+                    val message =
+                        invocation.arguments.stringArgument("message")
+                            ?: return chatInputFailure(invocation.action, "missing-message")
+                    if (message.isBlank()) {
+                        return chatInputFailure(invocation.action, "blank-message")
+                    }
+                    if (message.startsWith("/")) {
+                        return chatInputFailure(invocation.action, "minecraft-command-rejected")
+                    }
                     val event = recordChat(message)
                     DriverActionResult(
                         action = invocation.action,
@@ -149,7 +158,6 @@ class FakeDriverSession(
     override fun events(): List<DriverEvent> = events.toList()
 
     private fun recordChat(message: String): DriverEvent {
-        requireChatMessage(message)
         val event =
             DriverEvent(
                 type = DriverEventType.CHAT,
@@ -171,6 +179,21 @@ class FakeDriverSession(
         return event
     }
 }
+
+private fun chatInputFailure(
+    action: String,
+    reason: String,
+): DriverActionResult =
+    DriverActionResult(
+        action = action,
+        status = DriverActionStatus.FAILED,
+        message = reason,
+        data =
+            buildJsonObject {
+                put("sent", false)
+                put("reason", reason)
+            },
+    )
 
 fun fakeDriverRuntimeMetadata(): DriverRuntimeMetadata =
     DriverRuntimeMetadata(

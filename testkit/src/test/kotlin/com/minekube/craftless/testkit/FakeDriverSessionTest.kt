@@ -66,14 +66,39 @@ class FakeDriverSessionTest {
         assertEquals("player.chat", chatAction.action)
         assertEquals(DriverActionStatus.ACCEPTED, chatAction.status)
         assertEquals("hello through action", chatAction.message)
-        assertFailsWith<IllegalArgumentException> {
+        val missingChatMessage =
+            session.invoke(
+                DriverActionInvocation(
+                    action = "player.chat",
+                    arguments = emptyMap(),
+                ),
+            )
+        val blankChatMessage =
+            session.invoke(
+                DriverActionInvocation(
+                    action = "player.chat",
+                    arguments = mapOf("message" to JsonPrimitive("  ")),
+                ),
+            )
+        val commandChatMessage =
             session.invoke(
                 DriverActionInvocation(
                     action = "player.chat",
                     arguments = mapOf("message" to JsonPrimitive("/server lobby")),
                 ),
             )
-        }
+        assertEquals(DriverActionStatus.FAILED, missingChatMessage.status)
+        assertEquals("missing-message", missingChatMessage.message)
+        assertEquals(JsonPrimitive(false), missingChatMessage.data["sent"])
+        assertEquals(JsonPrimitive("missing-message"), missingChatMessage.data["reason"])
+        assertEquals(DriverActionStatus.FAILED, blankChatMessage.status)
+        assertEquals("blank-message", blankChatMessage.message)
+        assertEquals(JsonPrimitive(false), blankChatMessage.data["sent"])
+        assertEquals(JsonPrimitive("blank-message"), blankChatMessage.data["reason"])
+        assertEquals(DriverActionStatus.FAILED, commandChatMessage.status)
+        assertEquals("minecraft-command-rejected", commandChatMessage.message)
+        assertEquals(JsonPrimitive(false), commandChatMessage.data["sent"])
+        assertEquals(JsonPrimitive("minecraft-command-rejected"), commandChatMessage.data["reason"])
 
         val action =
             session.invoke(

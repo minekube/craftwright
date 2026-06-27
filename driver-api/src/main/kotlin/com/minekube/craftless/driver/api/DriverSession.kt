@@ -192,12 +192,6 @@ fun Map<String, JsonElement>.intArgument(name: String): Int? =
 
 fun Map<String, JsonElement>.stringArgument(name: String): String? = this[name]?.jsonPrimitive?.content
 
-fun requireChatMessage(message: String): String {
-    require(message.isNotBlank()) { "chat message is required" }
-    require(!message.startsWith("/")) { "minecraft command strings are not valid chat action input" }
-    return message
-}
-
 @Serializable
 data class DriverActionResult(
     val action: String,
