@@ -50,12 +50,14 @@ data class FabricClientSmokeController(
     val holdAfterActions: Duration = 0.milliseconds,
     val artifactsDir: Path? = null,
     val publicAgentCommand: List<String> = emptyList(),
+    val readyNotificationCommand: List<String> = emptyList(),
 ) {
     init {
         require(!startupSettleDelay.isNegative()) { "fabric smoke startup settle delay must not be negative" }
         require(!holdAfterActions.isNegative()) { "fabric smoke hold after actions delay must not be negative" }
         require(actionTimeout.isPositive()) { "fabric smoke action timeout must be positive" }
         require(publicAgentCommand.none { it.isBlank() }) { "fabric smoke public agent command entries must not be blank" }
+        require(readyNotificationCommand.none { it.isBlank() }) { "fabric smoke ready notification command entries must not be blank" }
     }
 
     fun start(
@@ -269,6 +271,7 @@ data class FabricClientSmokeController(
                     val eventStream = http.getText(api.url("/clients/$SMOKE_CLIENT_ID/events:stream"))
                     writeArtifact("client-events-stream.sse", eventStream)
                     if (holdAfterActions.isPositive()) {
+                        runReadyNotificationCommand(api.url(""))
                         delay(holdAfterActions)
                     }
                     http.post(api.url("/clients/$SMOKE_CLIENT_ID:stop")).expectSuccess()
@@ -332,6 +335,49 @@ data class FabricClientSmokeController(
         }
     }
 
+    private fun runReadyNotificationCommand(baseUrl: String) {
+        writeArtifact("final-gameplay-ready.json", readyNotificationArtifact(baseUrl))
+        if (readyNotificationCommand.isEmpty()) {
+            return
+        }
+        val dir = artifactsDir ?: error("ready notification command requires CRAFTLESS_SMOKE_ARTIFACTS_DIR")
+        Files.createDirectories(dir)
+        val log = dir.resolve("final-gameplay-ready-command.log")
+        val process =
+            ProcessBuilder(readyNotificationCommand)
+                .redirectErrorStream(true)
+                .redirectOutput(log.toFile())
+                .also { builder ->
+                    builder.environment()["CRAFTLESS_FABRIC_SMOKE_READY_BASE_URL"] = baseUrl
+                    builder.environment()["CRAFTLESS_FABRIC_SMOKE_READY_CLIENT_ID"] = SMOKE_CLIENT_ID
+                    builder.environment()["CRAFTLESS_FABRIC_SMOKE_READY_SERVER_HOST"] = target.host
+                    builder.environment()["CRAFTLESS_FABRIC_SMOKE_READY_SERVER_PORT"] = target.port.toString()
+                    builder.environment()["CRAFTLESS_FABRIC_SMOKE_READY_ARTIFACTS_DIR"] = dir.toString()
+                    builder.environment()["CRAFTLESS_FABRIC_SMOKE_READY_HOLD_MS"] =
+                        holdAfterActions.inWholeMilliseconds.toString()
+                }.start()
+        val exited = process.waitFor(connectTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+        if (!exited) {
+            process.destroyForcibly()
+            error("ready notification command timed out after ${connectTimeout.inWholeMilliseconds}ms; log=$log")
+        }
+        check(process.exitValue() == 0) {
+            "ready notification command exited with ${process.exitValue()}; log=$log"
+        }
+    }
+
+    private fun readyNotificationArtifact(baseUrl: String): String =
+        smokeJson.encodeToString(
+            mapOf(
+                "event" to "final-gameplay-ready",
+                "base-url" to baseUrl,
+                "client-id" to SMOKE_CLIENT_ID,
+                "server" to "${target.host}:${target.port}",
+                "artifacts-dir" to (artifactsDir?.toString() ?: ""),
+                "hold-ms" to holdAfterActions.inWholeMilliseconds.toString(),
+            ),
+        )
+
     companion object {
         private const val ENABLED = "CRAFTLESS_FABRIC_CLIENT_SMOKE"
         private const val HOST = "CRAFTLESS_SMOKE_SERVER_HOST"
@@ -345,6 +391,7 @@ data class FabricClientSmokeController(
         private const val HOLD_AFTER_ACTIONS = "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS"
         private const val ARTIFACTS_DIR = "CRAFTLESS_SMOKE_ARTIFACTS_DIR"
         private const val PUBLIC_AGENT_COMMAND_JSON = "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON"
+        private const val READY_COMMAND_JSON = "CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON"
         private const val SMOKE_CLIENT_ID = "fabric-smoke"
         private const val SMOKE_PROFILE = "CraftlessSmoke"
         private const val MINECRAFT_VERSION = "1.21.6"
@@ -369,6 +416,11 @@ data class FabricClientSmokeController(
                 artifactsDir = env[ARTIFACTS_DIR]?.takeIf { it.isNotBlank() }?.let(Path::of),
                 publicAgentCommand =
                     env[PUBLIC_AGENT_COMMAND_JSON]
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { smokeJson.decodeFromString<List<String>>(it) }
+                        ?: emptyList(),
+                readyNotificationCommand =
+                    env[READY_COMMAND_JSON]
                         ?.takeIf { it.isNotBlank() }
                         ?.let { smokeJson.decodeFromString<List<String>>(it) }
                         ?: emptyList(),

@@ -370,6 +370,7 @@ class FabricDriverModuleTest {
         assertTrue(plan.artifacts.contains("gameplay-results.jsonl"))
         assertTrue(plan.artifacts.contains("public-agent-gameplay-results.jsonl"))
         assertTrue(plan.artifacts.contains("public-agent-state.jsonl"))
+        assertTrue(plan.artifacts.contains("final-gameplay-ready.json"))
         assertFalse(plan.artifacts.contains("survival-task-results.jsonl"))
         assertTrue(plan.artifacts.contains("server-evidence.jsonl"))
         assertTrue(plan.completionGates.any { it.contains("Robin", ignoreCase = true) && it.contains("Minecraft chat", ignoreCase = true) })
@@ -2018,6 +2019,45 @@ class FabricDriverModuleTest {
         assertEquals(artifactsDir.toString(), envLines[2])
         assertEquals("120000", envLines[3])
         assertTrue(Files.exists(artifactsDir.resolve("public-agent-command.log")))
+    }
+
+    @Test
+    fun `fabric smoke controller runs ready notification command with live session context`() {
+        val gateway = RecordingFabricClientGateway()
+        val backend = smokeBackend(gateway)
+        val artifactsDir = Files.createTempDirectory("craftless-fabric-ready-notification")
+        val readyOutput = artifactsDir.resolve("ready-env.txt")
+        val controller =
+            FabricClientSmokeController.fromEnvironment(
+                mapOf(
+                    "CRAFTLESS_FABRIC_CLIENT_SMOKE" to "1",
+                    "CRAFTLESS_SMOKE_SERVER_HOST" to "localhost",
+                    "CRAFTLESS_SMOKE_SERVER_PORT" to "25567",
+                    "CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS" to "1000",
+                    "CRAFTLESS_FABRIC_SMOKE_STARTUP_SETTLE_MS" to "0",
+                    "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS" to "1",
+                    "CRAFTLESS_SMOKE_ARTIFACTS_DIR" to artifactsDir.toString(),
+                    "CRAFTLESS_PUBLIC_AGENT_COMMAND_JSON" to """["/bin/sh","-c","printf public-agent-ready > /dev/null"]""",
+                    "CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON" to
+                        """["/bin/sh","-c","printf '%s\n%s\n%s\n%s\n%s\n%s\n' \"${'$'}CRAFTLESS_FABRIC_SMOKE_READY_BASE_URL\" \"${'$'}CRAFTLESS_FABRIC_SMOKE_READY_CLIENT_ID\" \"${'$'}CRAFTLESS_FABRIC_SMOKE_READY_SERVER_HOST\" \"${'$'}CRAFTLESS_FABRIC_SMOKE_READY_SERVER_PORT\" \"${'$'}CRAFTLESS_FABRIC_SMOKE_READY_ARTIFACTS_DIR\" \"${'$'}CRAFTLESS_FABRIC_SMOKE_READY_HOLD_MS\" > '$readyOutput'"]""",
+                ),
+            )
+        enqueueBasicSmokeQueryResults(gateway)
+
+        assertTrue(controller.start(backend, gateway, pollInterval = 1.milliseconds))
+
+        gateway.awaitAction("stop")
+        val readyLines = Files.readAllLines(readyOutput)
+        assertTrue(readyLines[0].startsWith("http://127.0.0.1:"))
+        assertEquals("fabric-smoke", readyLines[1])
+        assertEquals("localhost", readyLines[2])
+        assertEquals("25567", readyLines[3])
+        assertEquals(artifactsDir.toString(), readyLines[4])
+        assertEquals("1", readyLines[5])
+        val readyArtifact = readArtifact(artifactsDir, "final-gameplay-ready.json")
+        assertTrue(readyArtifact.contains("\"event\":\"final-gameplay-ready\""))
+        assertTrue(readyArtifact.contains("\"server\":\"localhost:25567\""))
+        assertTrue(Files.exists(artifactsDir.resolve("final-gameplay-ready-command.log")))
     }
 
     @Test

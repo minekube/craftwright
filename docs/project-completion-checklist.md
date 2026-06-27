@@ -232,8 +232,12 @@ Verification:
   observed `Raw Beef` and `Leather` through public `entity.query`, navigated to
   the drop, and proved pickup through a final `inventory.query` containing
   `Raw Beef` and `Leather`. The held session was announced with macOS `say`,
-  but no Robin join/chat confirmation was observed before the hold expired.
-- [ ] Robin joins or observes the server session after a macOS `say` prompt.
+  but no Robin join/chat confirmation was observed before the hold expired. The
+  final harness now writes `final-gameplay-ready.json` and can run
+  `CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON` with live daemon/client/server
+  context before the hold window; the opt-in macOS final task defaults this to
+  a concise `say` prompt.
+- [ ] Robin joins or observes the server session after the harness ready prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
 

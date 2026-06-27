@@ -72,16 +72,29 @@ Required artifacts:
 - `gameplay-results.jsonl`
 - `public-agent-gameplay-results.jsonl`
 - `public-agent-state.jsonl`
+- `final-gameplay-ready.json`
 - `runtime-metadata.json`
 
 ## Invite Robin
 
-When the client has joined and the automated sequence is holding the session
-open, run:
+When the client has joined, the public-agent sequence has finished, and the
+session enters the bounded hold window, the harness writes
+`final-gameplay-ready.json`. On macOS, the opt-in `fabricFinalGameplay` task
+also configures a default `say` prompt:
 
-```sh
-say "Robin, join the Craftless test server now and confirm in Minecraft chat when the goal may be completed."
+```text
+Robin, Craftless final gameplay is ready. Join localhost port <server-port> and confirm in Minecraft chat.
 ```
+
+Override the prompt command with `CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON`.
+The command receives:
+
+- `CRAFTLESS_FABRIC_SMOKE_READY_BASE_URL`
+- `CRAFTLESS_FABRIC_SMOKE_READY_CLIENT_ID`
+- `CRAFTLESS_FABRIC_SMOKE_READY_SERVER_HOST`
+- `CRAFTLESS_FABRIC_SMOKE_READY_SERVER_PORT`
+- `CRAFTLESS_FABRIC_SMOKE_READY_ARTIFACTS_DIR`
+- `CRAFTLESS_FABRIC_SMOKE_READY_HOLD_MS`
 
 Robin should join or observe the server. Continue using Craftless and the
 visible client to verify chat, inventory/tool equip, movement, block

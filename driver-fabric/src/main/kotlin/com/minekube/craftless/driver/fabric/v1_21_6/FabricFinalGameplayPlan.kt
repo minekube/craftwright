@@ -41,7 +41,7 @@ data class FabricFinalGameplayPlan(
                         ),
                         FabricFinalGameplayStep(
                             FabricFinalGameplayStepKind.INVITE_ROBIN,
-                            "Use macOS say to ask Robin to join or observe the server session",
+                            "Emit final-gameplay-ready evidence and use the configured ready notification to ask Robin to join or observe the server session",
                         ),
                         FabricFinalGameplayStep(
                             FabricFinalGameplayStepKind.WAIT_FOR_ROBIN_CHAT_CONFIRMATION,
@@ -68,6 +68,7 @@ data class FabricFinalGameplayPlan(
                         "gameplay-results.jsonl",
                         "public-agent-gameplay-results.jsonl",
                         "public-agent-state.jsonl",
+                        "final-gameplay-ready.json",
                         "runtime-metadata.json",
                     ),
                 completionGates =

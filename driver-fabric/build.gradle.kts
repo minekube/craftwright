@@ -65,6 +65,8 @@ fun jsonString(value: String): String =
         append('"')
     }
 
+fun jsonArray(values: List<String>): String = values.joinToString(prefix = "[", postfix = "]") { jsonString(it) }
+
 fun laneSuffix(version: String): String =
     version
         .lowercase()
@@ -329,12 +331,32 @@ tasks.register<JavaExec>("fabricFinalGameplay") {
             "CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS",
             System.getenv("CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS") ?: "600000",
         )
+        val readyCommand = System.getenv("CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON")
+        val defaultMacReadyCommand =
+            if (System.getProperty("os.name").lowercase().contains("mac")) {
+                jsonArray(
+                    listOf(
+                        "/bin/sh",
+                        "-c",
+                        "say \"Robin, Craftless final gameplay is ready. Join localhost port " +
+                            "\$CRAFTLESS_FABRIC_SMOKE_READY_SERVER_PORT and confirm in Minecraft chat.\"",
+                    ),
+                )
+            } else {
+                null
+            }
+        if (!readyCommand.isNullOrBlank() || defaultMacReadyCommand != null) {
+            environment(
+                "CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON",
+                readyCommand?.takeIf { it.isNotBlank() } ?: defaultMacReadyCommand.orEmpty(),
+            )
+        }
     }
 
     doFirst {
         if (finalGameplayEnabled) {
             println("Final gameplay requested; artifacts will be written under driver-fabric/build/craftless-final-gameplay/artifacts")
-            println("Use macOS say when the automated sequence is ready for Robin to join and confirm in Minecraft chat.")
+            println("The harness will announce readiness during the hold window when a ready notification command is configured.")
         }
     }
 }
