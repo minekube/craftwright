@@ -1652,6 +1652,94 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend confirms recipe craft inventory after output take`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        gateway.capabilities =
+            FabricClientCapabilitySnapshot(
+                connected = true,
+                player = true,
+                inventory = true,
+                camera = true,
+                interactionManager = true,
+                world = true,
+                recipes = true,
+                recipeCrafting = true,
+            )
+        gateway.queryResults +=
+            buildJsonObject {
+                put("handle", "recipe.handle:42")
+                put("accepted", true)
+                put("changed", false)
+                put("requested-count", 1)
+                put("crafted-count", 0)
+                put("inventory-before", "inventory.fingerprint:before")
+                put("inventory-after", "inventory.fingerprint:before")
+                put("sync-id", 7)
+                put("phase", "recipe-fill-requested")
+            }
+        gateway.queryResults +=
+            buildJsonObject {
+                put("handle", "recipe.handle:42")
+                put("accepted", true)
+                put("changed", false)
+                put("requested-count", 1)
+                put("crafted-count", 1)
+                put("inventory-before", "inventory.fingerprint:before")
+                put("inventory-after", "inventory.fingerprint:before")
+                put("sync-id", 7)
+                put("phase", "crafting-output-taken")
+            }
+        gateway.queryResults +=
+            buildJsonObject {
+                put("handle", "recipe.handle:42")
+                put("accepted", true)
+                put("changed", true)
+                put("requested-count", 1)
+                put("crafted-count", 1)
+                put("inventory-before", "inventory.fingerprint:before")
+                put("inventory-after", "inventory.fingerprint:after")
+                put("sync-id", 7)
+                put("phase", "crafting-inventory-confirmed")
+                put("confirmation-attempt", 1)
+            }
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+            )
+        val recipeCraft = backend.runtimeGraph("alice").operations.single { it.id == "recipe.craft" }
+
+        val result =
+            backend.operationAdapters("alice").invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = recipeCraft,
+                    arguments =
+                        mapOf(
+                            "target" to
+                                buildJsonObject {
+                                    put("handle", "recipe.handle:42")
+                                },
+                        ),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        val craftData = result.data.jsonObject
+        assertEquals("crafting-inventory-confirmed", craftData["phase"]?.jsonPrimitive?.content)
+        assertEquals(true, craftData["changed"]?.jsonPrimitive?.boolean)
+        assertEquals(
+            "inventory.fingerprint:after",
+            craftData["inventory-after"]
+                ?.jsonPrimitive
+                ?.content,
+        )
+        assertEquals(listOf("client-query", "client-query", "client-query"), gateway.actions)
+        assertEquals(3, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric recipe craft execution takes generic crafting output after recipe fill`() {
         val root = repositoryRoot()
         val source =

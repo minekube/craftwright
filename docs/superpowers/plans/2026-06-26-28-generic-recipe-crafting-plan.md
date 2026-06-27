@@ -57,6 +57,11 @@ confirmation still remain open.
 - [x] Report `crafted-count` from the observed output slot stack count when
   taking crafting output, so multi-output and craft-many requests do not fall
   back to a single-item assumption.
+- [x] After taking crafting output, perform bounded follow-up inventory
+  fingerprint polling and return `phase=crafting-inventory-confirmed` when
+  public inventory evidence changes, or
+  `crafting-inventory-confirmation-pending` when the confirmation window ends
+  without a changed fingerprint.
 - [x] Run the focused test and confirm it passes.
 
 ### Task 4: Public-Agent Composition

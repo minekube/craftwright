@@ -413,7 +413,7 @@ class FabricDriverBackend private constructor(
                     put("phase", "recipe-fill-requested")
                 }
             }
-        val data =
+        val outputData =
             if (fillRequest.jsonObject["accepted"]?.jsonPrimitive?.booleanOrNull == true) {
                 clientGateway.takeCraftingOutputAfterRecipeFill(
                     handle = handle,
@@ -428,6 +428,15 @@ class FabricDriverBackend private constructor(
                 )
             } else {
                 fillRequest
+            }
+        val data =
+            if (
+                outputData.jsonObject["accepted"]?.jsonPrimitive?.booleanOrNull == true &&
+                outputData.jsonObject["phase"]?.jsonPrimitive?.contentOrNull == "crafting-output-taken"
+            ) {
+                clientGateway.confirmCraftingInventoryAfterOutputTake(outputData.jsonObject)
+            } else {
+                outputData
             }
         val accepted = data.jsonObject["accepted"]?.jsonPrimitive?.booleanOrNull == true
         return DriverActionResult(
@@ -539,6 +548,52 @@ class FabricDriverBackend private constructor(
                 }
             val reason = latest["reason"]?.jsonPrimitive?.contentOrNull
             if (reason != "crafting-output-pending") {
+                return latest
+            }
+        }
+        return latest
+    }
+
+    private fun FabricClientGateway.confirmCraftingInventoryAfterOutputTake(taken: JsonObject): JsonObject {
+        val handle = taken["handle"]?.jsonPrimitive?.contentOrNull ?: return taken
+        val before = taken["inventory-before"]?.jsonPrimitive?.contentOrNull ?: return taken
+        val expectedSyncId = taken["sync-id"]?.jsonPrimitive?.intOrNull
+        var latest = taken
+        repeat(CRAFTING_CONFIRMATION_WAIT_ATTEMPTS) { attempt ->
+            if (attempt > 0) {
+                Thread.sleep(CRAFTING_CONFIRMATION_WAIT_INTERVAL_MS)
+            }
+            latest =
+                queryOnClient {
+                    val currentPlayer =
+                        player
+                            ?: return@queryOnClient recipeCraftFailure(
+                                handle = handle,
+                                reason = "client-not-connected",
+                            )
+                    val currentScreenHandler =
+                        currentPlayer.currentScreenHandler
+                            ?: return@queryOnClient recipeCraftFailure(
+                                handle = handle,
+                                reason = "screen-handler-unavailable",
+                            )
+                    if (expectedSyncId != null && currentScreenHandler.syncId != expectedSyncId) {
+                        return@queryOnClient recipeCraftFailure(
+                            handle = handle,
+                            reason = "screen-handler-changed",
+                        )
+                    }
+                    val after = currentScreenHandler.stacks.toCraftlessInventoryFingerprint()
+                    val changed = before != after
+                    taken.withCraftingConfirmation(
+                        after = after,
+                        changed = changed,
+                        phase = if (changed) "crafting-inventory-confirmed" else "crafting-output-taken",
+                        attempt = attempt + 1,
+                        reason = if (changed) null else "crafting-inventory-confirmation-pending",
+                    )
+                }
+            if (latest["reason"]?.jsonPrimitive?.contentOrNull != "crafting-inventory-confirmation-pending") {
                 return latest
             }
         }
@@ -1202,6 +1257,24 @@ private fun recipeCraftPending(
         put("reason", reason)
     }
 
+private fun JsonObject.withCraftingConfirmation(
+    after: String,
+    changed: Boolean,
+    phase: String,
+    attempt: Int,
+    reason: String?,
+): JsonObject =
+    buildJsonObject {
+        this@withCraftingConfirmation.forEach { (key, value) -> put(key, value) }
+        put("changed", changed)
+        put("inventory-after", after)
+        put("phase", phase)
+        put("confirmation-attempt", attempt)
+        if (reason != null) {
+            put("reason", reason)
+        }
+    }
+
 private fun Iterable<ItemStack>.toCraftlessInventoryFingerprint(): String {
     val entries =
         mapIndexedNotNull { index, stack ->
@@ -1225,6 +1298,8 @@ private val RECIPE_QUERY_LIMIT_RANGE = 1..256
 private val RECIPE_CRAFT_COUNT_RANGE = 1..64
 private const val CRAFTING_OUTPUT_WAIT_ATTEMPTS = 20
 private const val CRAFTING_OUTPUT_WAIT_INTERVAL_MS = 50L
+private const val CRAFTING_CONFIRMATION_WAIT_ATTEMPTS = 20
+private const val CRAFTING_CONFIRMATION_WAIT_INTERVAL_MS = 50L
 private const val DEFAULT_BLOCK_QUERY_RADIUS = 16.0
 private const val MAX_BLOCK_QUERY_RADIUS = 32.0
 private const val DEFAULT_BLOCK_QUERY_LIMIT = 64

@@ -821,8 +821,9 @@ Verification:
   through `clickRecipe`, before/after inventory fingerprints, and expected
   versus actual output-slot validation. Craft result evidence now reports
   `crafted-count` from the observed output slot stack count before quick-moving
-  the output. Broader screen/handler coverage, crafting-station
-  interaction/opening, asynchronous post-server inventory confirmation, and
+  the output, then performs bounded follow-up fingerprint polling and reports
+  `phase=crafting-inventory-confirmed` when public inventory evidence changes.
+  Broader screen/handler coverage, crafting-station interaction/opening, and
   live survival evidence remain open.
 - [x] Public-agent composition uses generated recipe actions when available to
   craft useful outputs, then verifies inventory state through `inventory.query`

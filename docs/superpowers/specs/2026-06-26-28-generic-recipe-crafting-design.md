@@ -71,6 +71,11 @@ post-action evidence. The result should include:
 When taking a crafting output slot, `crafted-count` must be based on the
 observed output stack count before the slot click, not on a hard-coded
 single-item assumption or the requested count alone.
+After the output slot is taken, the adapter must perform bounded follow-up
+inventory fingerprint polling and return `phase=crafting-inventory-confirmed`
+when public inventory evidence changes. If confirmation does not arrive within
+the bounded poll window, the result must remain machine-readable with
+`crafting-inventory-confirmation-pending`.
 
 ## Public-Agent Use
 
