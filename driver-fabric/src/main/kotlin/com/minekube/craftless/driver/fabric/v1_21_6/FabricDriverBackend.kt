@@ -290,7 +290,14 @@ class FabricDriverBackend private constructor(
                 ?.jsonPrimitive
                 ?.contentOrNull
                 ?.toBooleanStrictOrNull()
-        require(limit in RECIPE_QUERY_LIMIT_RANGE) { "recipe query limit must be between 1 and 256" }
+        if (limit !in RECIPE_QUERY_LIMIT_RANGE) {
+            return DriverActionResult(
+                action = invocation.operation.id,
+                status = DriverActionStatus.FAILED,
+                message = "invalid-limit",
+                data = recipeQueryFailure("invalid-limit"),
+            )
+        }
         invocation.unavailableRecipeOperationResult()?.let { result -> return result }
         val clientGateway = gateway
         if (clientGateway == null || !clientGateway.isConnected()) {
@@ -335,9 +342,32 @@ class FabricDriverBackend private constructor(
 
     private fun craftRecipe(invocation: DriverOperationInvocation): DriverActionResult {
         val count = invocation.arguments["count"]?.jsonPrimitive?.intOrNull ?: 1
-        require(count in RECIPE_CRAFT_COUNT_RANGE) { "recipe craft count must be between 1 and 64" }
         val handle =
             invocation.arguments["target"]?.recipeTargetHandle()
+        if (count !in RECIPE_CRAFT_COUNT_RANGE) {
+            return DriverActionResult(
+                action = invocation.operation.id,
+                status = DriverActionStatus.FAILED,
+                message = "invalid-count",
+                data =
+                    if (handle == null) {
+                        recipeCraftTargetFailure(
+                            reason = "invalid-count",
+                            requestedCount = count,
+                            phase = "target-validation-failed",
+                        )
+                    } else {
+                        recipeCraftFailure(
+                            handle = handle,
+                            reason = "invalid-count",
+                            requestedCount = count,
+                            phase = "target-validation-failed",
+                        )
+                    },
+            )
+        }
+        val targetHandle =
+            handle
                 ?: return DriverActionResult(
                     action = invocation.operation.id,
                     status = DriverActionStatus.FAILED,
@@ -349,14 +379,14 @@ class FabricDriverBackend private constructor(
                             phase = "target-validation-failed",
                         ),
                 )
-        if (!handle.startsWith("recipe.handle:")) {
+        if (!targetHandle.startsWith("recipe.handle:")) {
             return DriverActionResult(
                 action = invocation.operation.id,
                 status = DriverActionStatus.FAILED,
                 message = "invalid-recipe-handle",
                 data =
                     recipeCraftFailure(
-                        handle = handle,
+                        handle = targetHandle,
                         reason = "invalid-recipe-handle",
                         requestedCount = count,
                         phase = "target-validation-failed",
@@ -364,14 +394,14 @@ class FabricDriverBackend private constructor(
             )
         }
         val recipeIndex =
-            handle.recipeHandleIndex()
+            targetHandle.recipeHandleIndex()
                 ?: return DriverActionResult(
                     action = invocation.operation.id,
                     status = DriverActionStatus.FAILED,
                     message = "invalid-recipe-handle",
                     data =
                         recipeCraftFailure(
-                            handle = handle,
+                            handle = targetHandle,
                             reason = "invalid-recipe-handle",
                             requestedCount = count,
                             phase = "target-validation-failed",
@@ -394,7 +424,7 @@ class FabricDriverBackend private constructor(
                 val currentScreenHandler =
                     currentPlayer.currentScreenHandler
                         ?: return@queryOnClient recipeCraftFailure(
-                            handle = handle,
+                            handle = targetHandle,
                             reason = "screen-handler-unavailable",
                             requestedCount = count,
                             phase = "recipe-fill-failed",
@@ -410,14 +440,14 @@ class FabricDriverBackend private constructor(
                         .craftlessRecipeEntries(finder, features)
                         .firstOrNull { candidate -> candidate.entry.id() == recipeId }
                         ?: return@queryOnClient recipeCraftFailure(
-                            handle = handle,
+                            handle = targetHandle,
                             reason = "stale-recipe-handle",
                             requestedCount = count,
                             phase = "recipe-fill-failed",
                         )
                 if (!matchingRecipe.craftable) {
                     return@queryOnClient recipeCraftFailure(
-                        handle = handle,
+                        handle = targetHandle,
                         reason = "recipe-not-craftable",
                         requestedCount = count,
                         phase = "recipe-fill-failed",
@@ -433,7 +463,7 @@ class FabricDriverBackend private constructor(
                 currentPlayer.onRecipeDisplayed(recipeId)
                 currentScreenHandler.sendContentUpdates()
                 buildJsonObject {
-                    put("handle", handle)
+                    put("handle", targetHandle)
                     put("accepted", true)
                     put("changed", false)
                     put("requested-count", count)
@@ -448,7 +478,7 @@ class FabricDriverBackend private constructor(
         val outputData =
             if (fillRequest.jsonObject["accepted"]?.jsonPrimitive?.booleanOrNull == true) {
                 clientGateway.takeCraftingOutputAfterRecipeFill(
-                    handle = handle,
+                    handle = targetHandle,
                     count = count,
                     before =
                         fillRequest.jsonObject["inventory-before"]
@@ -1266,6 +1296,13 @@ private fun DriverOperationInvocation.unavailableRecipeOperationResult(): Driver
         message = operation.availability.reason ?: "operation-unavailable",
     )
 }
+
+private fun recipeQueryFailure(reason: String): JsonObject =
+    buildJsonObject {
+        put("count", 0)
+        put("recipes", buildJsonArray {})
+        put("reason", reason)
+    }
 
 private fun recipeCraftTargetFailure(
     reason: String,

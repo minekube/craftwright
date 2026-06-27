@@ -827,8 +827,10 @@ Verification:
   recipe-book display entries into opaque Craftless recipe handles, public
   `produces`/`requires` item labels, compatibility `outputs`/`ingredients`,
   categories, craftability, `recipe-not-craftable` reasons, and query filters.
-  Broader live recipe requirements, screen/handler permission details, stale
-  handle validation, and real craft execution remain open.
+  Invalid query bounds now return machine-readable `invalid-limit` results
+  with the same generated result shape instead of throwing. Broader live recipe
+  requirements, screen/handler permission details, stale handle validation, and
+  real craft execution remain open.
 - [~] `recipe.craft` has public handle/count validation, stale-handle
   validation, live craftability checks, guarded Fabric client-thread execution
   through `clickRecipe`, before/after inventory fingerprints, and expected
@@ -839,7 +841,9 @@ Verification:
   Target validation, stale-handle, craftability, output, and confirmation
   failure paths now keep schema-shaped public result evidence with
   `requested-count`, `crafted-count`, `phase`, and machine-readable `reason`
-  fields. Broader screen/handler coverage, crafting-station
+  fields. Invalid count bounds now return `invalid-count` through the same
+  public result contract instead of throwing. Broader screen/handler coverage,
+  crafting-station
   interaction/opening, and live survival evidence remain open.
 - [x] Public-agent composition uses generated recipe actions when available to
   craft useful outputs, then verifies inventory state through `inventory.query`

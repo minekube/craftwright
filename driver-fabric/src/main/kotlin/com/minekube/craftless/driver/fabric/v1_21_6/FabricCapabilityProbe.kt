@@ -334,6 +334,7 @@ private fun recipeQueryResultSchema(): RuntimeSchema =
             mapOf(
                 "count" to RuntimeSchema("integer"),
                 "recipes" to RuntimeSchema("array", items = recipeRecordSchema()),
+                "reason" to RuntimeSchema("string"),
             ),
     )
 

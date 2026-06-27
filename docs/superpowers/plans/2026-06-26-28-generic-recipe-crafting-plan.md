@@ -79,6 +79,9 @@ confirmation still remain open.
   failure results schema-shaped with `requested-count`, `crafted-count`,
   `phase`, and machine-readable `reason` fields so adaptive agents can parse
   failures through the generated result contract.
+- [x] Return machine-readable `invalid-limit` and `invalid-count` results for
+  generated recipe query/craft bounds validation instead of throwing from the
+  adapter boundary.
 - [x] Run the focused test and confirm it passes.
 
 ### Task 4: Public-Agent Composition

@@ -1456,6 +1456,7 @@ class FabricDriverModuleTest {
         assertEquals("integer", query.arguments["limit"]?.type)
         assertEquals("object", query.result.type)
         assertEquals("integer", query.result.properties["count"]?.type)
+        assertEquals("string", query.result.properties["reason"]?.type)
         val recipesSchema = query.result.properties["recipes"]
         assertEquals("array", recipesSchema?.type)
         val recipeSchema = recipesSchema?.items
@@ -1657,6 +1658,44 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend returns machine readable recipe query failure for invalid limit`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        gateway.capabilities =
+            FabricClientCapabilitySnapshot(
+                connected = true,
+                player = true,
+                inventory = true,
+                camera = true,
+                interactionManager = true,
+                world = true,
+                recipes = true,
+            )
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+            )
+        val recipeQuery = backend.runtimeGraph("alice").operations.single { it.id == "recipe.query" }
+
+        val result =
+            backend.operationAdapters("alice").invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = recipeQuery,
+                    arguments = mapOf("limit" to JsonPrimitive(0)),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.FAILED, result.status)
+        assertEquals("invalid-limit", result.message)
+        assertEquals("invalid-limit", result.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(0, result.data["count"]?.jsonPrimitive?.int)
+        assertEquals(0, result.data["recipes"]?.jsonArray?.size)
+        assertEquals(0, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric backend crafts a discovered recipe handle through runtime graph adapter`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connected = true
@@ -1722,6 +1761,57 @@ class FabricDriverModuleTest {
         )
         assertEquals(listOf("client-query", "client-query"), gateway.actions)
         assertEquals(2, gateway.scheduled)
+    }
+
+    @Test
+    fun `fabric backend returns machine readable recipe craft failure for invalid count`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        gateway.capabilities =
+            FabricClientCapabilitySnapshot(
+                connected = true,
+                player = true,
+                inventory = true,
+                camera = true,
+                interactionManager = true,
+                world = true,
+                recipes = true,
+                recipeCrafting = true,
+            )
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+            )
+        val recipeCraft = backend.runtimeGraph("alice").operations.single { it.id == "recipe.craft" }
+
+        val result =
+            backend.operationAdapters("alice").invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = recipeCraft,
+                    arguments =
+                        mapOf(
+                            "target" to
+                                buildJsonObject {
+                                    put("handle", "recipe.handle:42")
+                                },
+                            "count" to JsonPrimitive(0),
+                        ),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.FAILED, result.status)
+        assertEquals("invalid-count", result.message)
+        val data = result.data.jsonObject
+        assertEquals("recipe.handle:42", data["handle"]?.jsonPrimitive?.content)
+        assertEquals(false, data["accepted"]?.jsonPrimitive?.boolean)
+        assertEquals(false, data["changed"]?.jsonPrimitive?.boolean)
+        assertEquals(0, data["requested-count"]?.jsonPrimitive?.int)
+        assertEquals(0, data["crafted-count"]?.jsonPrimitive?.int)
+        assertEquals("target-validation-failed", data["phase"]?.jsonPrimitive?.content)
+        assertEquals("invalid-count", data["reason"]?.jsonPrimitive?.content)
+        assertEquals(0, gateway.scheduled)
     }
 
     @Test
