@@ -101,7 +101,7 @@
 **Files:**
 - Commit the phase files and implementation.
 
-- [ ] **Step 1: Commit and push**
+- [x] **Step 1: Commit and push**
 
   Run:
 
@@ -111,7 +111,7 @@
   git push origin main
   ```
 
-- [ ] **Step 2: Verify remote CI**
+- [x] **Step 2: Verify remote CI**
 
   Run:
 
