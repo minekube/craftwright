@@ -983,7 +983,7 @@ Verification:
   `mise run architecture-check` completed successfully, including Gradle
   architecture tests and Bun Playwright helper tests.
 - [x] `mise run ci` passes. Current remote evidence: GitHub Actions run
-  `28278536387` passed `mise run ci` on `main` for commit `aa54ade`.
+  `28279694838` passed `mise run ci` on `main` for commit `dd0996f`.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,
