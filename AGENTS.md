@@ -154,6 +154,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 40. rule-selected native libraries.
 41. launch argument placeholders.
 42. standard asset object layout.
+43. client logging config.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -306,6 +307,12 @@ standard client asset resolver by storing asset objects at
 Mojang asset index hash, validate hashes before using them as handles, and
 must not add public gameplay API, Fabric action descriptors, or custom asset
 serving routes.
+Phase 43 keeps supervisor-prepared launches compatible with Mojang client
+logging metadata by caching `logging.client.file` and appending the resolved
+`logging.client.argument` to prepared JVM launch arguments. It must validate
+logging file ids before deriving handles, stay in supervisor cache/launch
+metadata, and must not add public gameplay API, Fabric action descriptors,
+custom logging APIs, or static CLI gameplay behavior.
 
 ## Acceptance Scenarios Are Not Product APIs
 

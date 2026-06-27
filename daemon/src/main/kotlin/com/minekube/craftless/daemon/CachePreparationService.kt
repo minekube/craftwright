@@ -61,6 +61,7 @@ class CachePreparationService(
         val assetIndexMetadata = versionManifest.assetIndexMetadata(request.minecraftVersion)
         val assetIndex = metadataFetcher.fetchText(assetIndexMetadata.url)
         val assetObjects = assetIndex.assetObjects()
+        val loggingConfig = versionManifest.clientLoggingConfig(request.minecraftVersion)
         val javaRuntime = resolveJavaRuntime(versionManifest)
         val fabricMetadata = resolveFabricMetadata(request)
         val fabricLibraries = fabricMetadata?.profile?.fabricLibraries().orEmpty()
@@ -92,6 +93,7 @@ class CachePreparationService(
             coreArtifacts +
                 javaRuntime?.artifacts.orEmpty() +
                 listOfNotNull(launchArgumentsArtifact) +
+                listOfNotNull(loggingConfig?.artifact) +
                 effectiveMinecraftLibraries.map { it.artifact } +
                 minecraftNativeLibraries.flatMap { native -> listOf(native.libraryArtifact, native.directoryArtifact) } +
                 loaderMetadataArtifacts +
@@ -140,6 +142,9 @@ class CachePreparationService(
         assetObjects.forEach { asset ->
             writeFetchedBytesArtifact(asset.artifact, asset.source)
         }
+        loggingConfig?.let { logging ->
+            writeFetchedBytesArtifact(logging.artifact, logging.source)
+        }
         javaRuntime?.let { runtime ->
             writeTextArtifact(runtime.indexArtifact, runtime.index)
             writeTextArtifact(runtime.manifestArtifact, runtime.manifest)
@@ -164,6 +169,7 @@ class CachePreparationService(
                 result.launchArgumentsJson(
                     versionManifest = versionManifest,
                     fabricProfile = fabricMetadata?.profile,
+                    loggingConfig = loggingConfig,
                 ),
             )
         }
@@ -527,6 +533,27 @@ private data class AssetIndexMetadata(
     val url: String,
 )
 
+private fun String.clientLoggingConfig(minecraftVersion: String): MinecraftLoggingConfigArtifact? {
+    val client =
+        Json
+            .parseToJsonElement(this)
+            .jsonObject["logging"]
+            ?.jsonObject
+            ?.get("client")
+            ?.jsonObject
+            ?: return null
+    val argument = client["argument"]?.jsonPrimitive?.content ?: return null
+    val file = client["file"]?.jsonObject ?: return null
+    val id = file["id"]?.jsonPrimitive?.content ?: return null
+    val url = file["url"]?.jsonPrimitive?.content ?: return null
+    return MinecraftLoggingConfigArtifact(
+        minecraftVersion = minecraftVersion,
+        id = id,
+        source = url,
+        argument = argument,
+    )
+}
+
 private fun String.compatibleFabricLoaderVersion(requestedLoaderVersion: String?): String {
     val versions =
         Json
@@ -578,6 +605,7 @@ private fun CachePrepareResult.launchArgumentsArtifact(
 private fun CachePrepareResult.launchArgumentsJson(
     versionManifest: String,
     fabricProfile: String?,
+    loggingConfig: MinecraftLoggingConfigArtifact?,
 ): String {
     val variables =
         mapOf(
@@ -585,6 +613,7 @@ private fun CachePrepareResult.launchArgumentsJson(
             "classpath" to launch.classpath.joinToString(File.pathSeparator),
             "game_directory" to "{{gameRoot}}",
             "natives_directory" to launch.nativePath.joinToString(File.pathSeparator),
+            "path" to (loggingConfig?.artifact?.handle ?: "{{path}}"),
             "version_name" to minecraftVersion,
         )
     val mainClass =
@@ -592,9 +621,10 @@ private fun CachePrepareResult.launchArgumentsJson(
             ?: versionManifest.launchMainClass()
             ?: error("cache preparation needs a launch main class")
     val jvm =
-        versionManifest
-            .launchArgumentValues("jvm")
-            .map { argument -> argument.resolveLaunchVariables(variables) }
+        (
+            versionManifest.launchArgumentValues("jvm") +
+                loggingConfig?.argument.orEmpty()
+        ).map { argument -> argument.resolveLaunchVariables(variables) }
     val game =
         (
             versionManifest.launchArgumentValues("game") +
@@ -950,6 +980,28 @@ private data class MinecraftAssetObject(
 private const val MINECRAFT_ASSET_BASE_URL = "https://resources.download.minecraft.net"
 
 private val MINECRAFT_ASSET_HASH_PATTERN = Regex("[a-fA-F0-9]{40}")
+
+private data class MinecraftLoggingConfigArtifact(
+    val minecraftVersion: String,
+    val id: String,
+    val source: String,
+    val argument: String,
+) {
+    init {
+        requireFileSafeCacheSegment(minecraftVersion, "Minecraft version")
+        requireFileSafeCacheSegment(id, "Minecraft logging config id")
+        require(source.isNotBlank()) { "Minecraft logging config source is required" }
+        require(argument.isNotBlank()) { "Minecraft logging argument is required" }
+    }
+
+    val artifact: CachePreparedArtifact =
+        CachePreparedArtifact(
+            kind = CachePreparedArtifactKind.MINECRAFT_LOG_CONFIG,
+            handle = "cache/minecraft/versions/$minecraftVersion/logging/$id",
+            source = source,
+            status = CachePreparedArtifactStatus.CACHED,
+        )
+}
 
 private data class MinecraftLibraryArtifact(
     val source: String,

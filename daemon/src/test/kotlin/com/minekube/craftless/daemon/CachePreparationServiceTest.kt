@@ -203,6 +203,7 @@ class CachePreparationServiceTest {
             val nativeLibraryUrl = "https://libraries.minecraft.net/org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3-natives.jar"
             val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
             val assetObjectUrl = "https://resources.download.minecraft.net/ab/abcdef0123456789abcdef0123456789abcdef01"
+            val loggingConfigUrl = "https://piston-data.test/client-1.21.2.xml"
             val javaRuntimeManifestUrl = "https://metadata.test/runtime/java-runtime-gamma/manifest.json"
             val javaExecutableUrl = "https://metadata.test/runtime/java-runtime-gamma/bin/java"
             val javaRuntimeFileUrl = "https://metadata.test/runtime/java-runtime-gamma/lib/runtime.txt"
@@ -265,6 +266,16 @@ class CachePreparationServiceTest {
                                             "value": "--demo"
                                           }
                                         ]
+                                      },
+                                      "logging": {
+                                        "client": {
+                                          "argument": "-Dlog4j.configurationFile=${'$'}{path}",
+                                          "file": {
+                                            "id": "client-1.21.2.xml",
+                                            "url": "$loggingConfigUrl"
+                                          },
+                                          "type": "log4j2-xml"
+                                        }
                                       },
                                       "libraries": [
                                         {
@@ -365,6 +376,7 @@ class CachePreparationServiceTest {
                                     clientJarUrl to "client-jar".encodeToByteArray(),
                                     minecraftLibraryUrl to "minecraft-library".encodeToByteArray(),
                                     nativeLibraryUrl to nativeZipBytes(),
+                                    loggingConfigUrl to "<Configuration/>".encodeToByteArray(),
                                     javaExecutableUrl to fakeJavaBytes("21.0.11"),
                                     javaRuntimeFileUrl to "runtime-file".encodeToByteArray(),
                                     assetObjectUrl to "asset-bytes".encodeToByteArray(),
@@ -386,6 +398,7 @@ class CachePreparationServiceTest {
                     CachePreparedArtifactKind.JAVA_RUNTIME_EXECUTABLE,
                     CachePreparedArtifactKind.JAVA_RUNTIME_FILE,
                     CachePreparedArtifactKind.LAUNCH_ARGUMENTS,
+                    CachePreparedArtifactKind.MINECRAFT_LOG_CONFIG,
                     CachePreparedArtifactKind.MINECRAFT_LIBRARY,
                     CachePreparedArtifactKind.MINECRAFT_NATIVE_LIBRARY,
                     CachePreparedArtifactKind.MINECRAFT_NATIVE_DIRECTORY,
@@ -416,6 +429,10 @@ class CachePreparationServiceTest {
             val launchArguments = result.artifacts.single { it.kind == CachePreparedArtifactKind.LAUNCH_ARGUMENTS }
             assertEquals(null, launchArguments.source)
             assertEquals("cache/prepared/1.21.6-fabric-0.17.2.launch.json", launchArguments.handle)
+            val loggingConfig = result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_LOG_CONFIG }
+            assertEquals(loggingConfigUrl, loggingConfig.source)
+            assertEquals("cache/minecraft/versions/1.21.6/logging/client-1.21.2.xml", loggingConfig.handle)
+            assertEquals("<Configuration/>", Files.readString(workspace.resolve(loggingConfig.handle)))
             val assetObject = result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_ASSET_OBJECT }
             assertEquals(assetObjectUrl, assetObject.source)
             assertEquals(
@@ -472,6 +489,11 @@ class CachePreparationServiceTest {
                 ).joinToString(File.pathSeparator)
             assertTrue(launchArgumentsJson.contains("\"mainClass\":\"test.fabric.Main\""))
             assertTrue(launchArgumentsJson.contains("\"-Djava.library.path=${nativeDirectory.handle}\""))
+            assertTrue(
+                launchArgumentsJson.contains(
+                    "-Dlog4j.configurationFile=cache/minecraft/versions/1.21.6/logging/client-1.21.2.xml",
+                ),
+            )
             assertTrue(launchArgumentsJson.contains("\"$launchClasspath\""))
             assertTrue(launchArgumentsJson.contains("\"--fabric-test\""))
             assertTrue(launchArgumentsJson.contains("\"{{gameRoot}}\""))
@@ -549,6 +571,65 @@ class CachePreparationServiceTest {
                 }
 
             assertEquals("Minecraft asset hash must be a SHA-1 hex string", failure.message)
+        }
+
+    @Test
+    fun `cache preparation rejects invalid minecraft logging config ids before writing cache handles`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-invalid-logging-id")
+            val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+            val loggingConfigUrl = "https://piston-data.test/client.xml"
+            val service =
+                CachePreparationService(
+                    workspaceRoot = workspace,
+                    metadataFetcher =
+                        StaticCacheMetadataFetcher(
+                            mapOf(
+                                MINECRAFT_VERSION_INDEX_URL to
+                                    """
+                                    { "versions": [{ "id": "1.21.6", "url": "$versionUrl" }] }
+                                    """.trimIndent(),
+                                versionUrl to
+                                    """
+                                    {
+                                      "id": "1.21.6",
+                                      "assetIndex": {
+                                        "id": "1.21.6",
+                                        "url": "$assetIndexUrl"
+                                      },
+                                      "logging": {
+                                        "client": {
+                                          "argument": "-Dlog4j.configurationFile=${'$'}{path}",
+                                          "file": {
+                                            "id": "../client.xml",
+                                            "url": "$loggingConfigUrl"
+                                          },
+                                          "type": "log4j2-xml"
+                                        }
+                                      },
+                                      "downloads": {
+                                        "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                assetIndexUrl to """{"objects":{}}""",
+                            ),
+                            binaryResponses =
+                                mapOf(
+                                    clientJarUrl to "client-jar".encodeToByteArray(),
+                                    loggingConfigUrl to "<Configuration/>".encodeToByteArray(),
+                                ),
+                        ),
+                )
+
+            val failure =
+                assertFailsWith<IllegalArgumentException> {
+                    service.prepare(CachePrepareRequest("1.21.6", Loader.VANILLA))
+                }
+
+            assertEquals("Minecraft logging config id must be a file-safe segment", failure.message)
         }
 
     @Test
