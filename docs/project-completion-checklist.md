@@ -767,10 +767,22 @@ Verification:
   README quickstart surfaces.
 - [x] Release workflow builds the CLI distribution with mise/Gradle, uploads
   GitHub Release artifacts and checksums, and pushes a GHCR runtime image.
+  Current published release evidence: `v0.1.0` is published with
+  `craftless-0.1.0.tar`, `craftless-0.1.0.zip`, and `SHA256SUMS`; the latest
+  successful `release` workflow runs for tag `v0.1.0` completed on 2026-06-26.
 - [x] Docker image copies an already-built Craftless CLI distribution and does
   not build the project inside Docker.
+  Refreshed 2026-06-28 evidence: `mise run package-cli` built
+  `craftless-0.1.0-SNAPSHOT.tar` and `craftless-0.1.0-SNAPSHOT.zip`;
+  `docker build -t craftless:local .` copied `build/docker/craftless/` into
+  `/opt/craftless/`; and
+  `docker run --rm craftless:local /opt/craftless/bin/craftless server start --once --port 0 --workspace /tmp/craftless`
+  returned an `ok=true` supervisor URL.
 - [x] Install script installs `craftless` from GitHub Releases without
   requiring users to clone this repository.
+  Refreshed 2026-06-28 evidence: running `install.sh` with temporary
+  `CRAFTLESS_INSTALL_DIR` and `CRAFTLESS_HOME` installed `craftless 0.1.0`, and
+  the installed binary returned `ok=true` for `server start --once --port 0`.
 - [x] Reusable GitHub Action installs Craftless and can optionally start the
   local daemon for downstream workflows.
 - [x] README documents install script, Docker, and GitHub Actions usage with no
@@ -2018,12 +2030,17 @@ Verification:
   gameplay join handoff.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
   successfully after Phase 60 final gameplay join handoff.
-- [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
-  built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
-- [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,
+- [x] CLI packaging succeeds. Current 2026-06-28 local evidence:
+  `mise run package-cli` built `:cli:distZip`, `:cli:distTar`, refreshed
+  `build/docker/craftless`, and the packaged binary returned `ok=true` for
+  `server start --once --port 0`.
+- [x] Docker runtime smoke passes. Current 2026-06-28 local evidence:
   `docker build -t craftless:local .` succeeded, and
   `docker run --rm craftless:local /opt/craftless/bin/craftless server start --once --port 0 --workspace /tmp/craftless`
   returned `{"ok":true,...}` with a generated localhost server URL.
+- [x] Install script smoke passes. Current 2026-06-28 local evidence:
+  `install.sh` installed published `craftless 0.1.0` into a temp directory and
+  that installed binary returned `ok=true` for `server start --once --port 0`.
 - [x] Final real gameplay evidence is captured without server-provisioned
   inventory or manual movement for Craftless.
 - [ ] Robin confirms in Minecraft chat that the goal may be completed.
