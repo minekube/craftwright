@@ -717,8 +717,9 @@ Verification:
   Evidence:
   `mise exec -- gradle :driver-fabric:test --tests '*FabricCompatibilityMatrixTest*' --tests '*FabricCurrentLaneRuntimeProviderTest*'`
   and `mise exec -- gradle :testkit:test --tests '*LocalMinecraftServerSmokeTest*'`.
-- [x] Runtime probe metadata records version/provider support and unavailable
-  reasons without leaking Fabric/Yarn/Minecraft names into public API.
+- [x] Runtime probe metadata records version/provider/status support and
+  unavailable reasons without leaking Fabric/Yarn/Minecraft names into public
+  API.
   Evidence:
   `mise exec -- gradle :driver-fabric:test --tests '*FabricCapabilityProbeTest.runtime metadata probe emits sanitized compatibility lane evidence*' --tests '*FabricDriverModuleTest.fabric backend runtime graph includes sanitized compatibility lane evidence*'`.
 - [x] Java runtime selection is version-aware; Minecraft `26.2` requires Java

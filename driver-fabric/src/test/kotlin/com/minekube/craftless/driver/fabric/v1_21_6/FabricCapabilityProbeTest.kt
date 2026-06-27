@@ -166,6 +166,7 @@ class FabricCapabilityProbeTest {
                 "permissions",
                 "runtime-lane",
                 "runtime-provider",
+                "runtime-status",
                 "runtime-support",
                 "runtime-java",
             ),
@@ -173,6 +174,7 @@ class FabricCapabilityProbeTest {
         )
         assertTrue(evidence.any { it.kind == "runtime-lane" && it.fingerprint == "simulated-26" })
         assertTrue(evidence.any { it.kind == "runtime-provider" && it.fingerprint == "simulated-provider" })
+        assertTrue(evidence.any { it.kind == "runtime-status" && it.fingerprint == "unsupported" })
         assertTrue(evidence.any { it.kind == "runtime-support" && it.fingerprint == "runtime-lane-missing" })
         assertTrue(
             evidence.none { item ->

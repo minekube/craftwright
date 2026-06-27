@@ -193,6 +193,7 @@ class FabricDriverModuleTest {
 
         assertEquals("current-lane", evidence["runtime-lane"])
         assertEquals("current-lane", evidence["runtime-provider"])
+        assertEquals("supported", evidence["runtime-status"])
         assertEquals("java:21", evidence["runtime-java"])
         assertTrue(evidence.values.none { value -> "fabric" in value || "minecraft" in value || "yarn" in value })
     }

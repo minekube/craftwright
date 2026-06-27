@@ -69,6 +69,7 @@ internal data class FabricCompatibilityLane(
     fun sourceEvidence(): List<RuntimeSourceEvidence> =
         listOfNotNull(
             RuntimeSourceEvidence("runtime-lane", id.sanitizedEvidenceCode()),
+            RuntimeSourceEvidence("runtime-status", status.name.lowercase().sanitizedEvidenceCode()),
             RuntimeSourceEvidence("runtime-provider", providerId.sanitizedEvidenceCode()),
             RuntimeSourceEvidence("runtime-java", "java:$javaMajorVersion"),
             unsupportedReason?.let { reason -> RuntimeSourceEvidence("runtime-support", reason) },

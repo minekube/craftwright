@@ -36,6 +36,19 @@ class FabricCompatibilityMatrixTest {
     }
 
     @Test
+    fun `lane source evidence records status separately from unavailable reason`() {
+        val matrix = defaultFabricCompatibilityMatrix()
+
+        val currentEvidence = matrix.resolve(currentLaneIdentity()).sourceEvidence()
+        val unsupportedEvidence = matrix.resolve(currentLaneIdentity().copy(gameVersion = "26.2")).sourceEvidence()
+
+        assertTrue(currentEvidence.any { it.kind == "runtime-status" && it.fingerprint == "supported" })
+        assertTrue(currentEvidence.none { it.kind == "runtime-support" })
+        assertTrue(unsupportedEvidence.any { it.kind == "runtime-status" && it.fingerprint == "unsupported" })
+        assertTrue(unsupportedEvidence.any { it.kind == "runtime-support" && it.fingerprint == "runtime-lane-missing" })
+    }
+
+    @Test
     fun `matrix reports unknown versions with machine readable reason`() {
         val matrix = defaultFabricCompatibilityMatrix()
 
