@@ -364,9 +364,14 @@ fun String.isCraftlessActionArgumentName(): Boolean =
 data class OpenApiActionArgument(
     val type: String,
     val required: Boolean = false,
+    val properties: Map<String, OpenApiActionArgument> = emptyMap(),
+    val items: OpenApiActionArgument? = null,
 ) {
     init {
         require(type.isCraftlessActionArgumentType()) { "unsupported action argument type $type" }
+        properties.keys.forEach { name ->
+            require(name.isCraftlessActionArgumentName()) { "invalid action argument schema property $name" }
+        }
     }
 }
 
@@ -488,7 +493,7 @@ private fun RuntimeOperationNode.toOpenApiAction(): OpenApiAction =
     OpenApiAction(
         id = id,
         schemaVersion = "1",
-        arguments = arguments.mapValues { (_, schema) -> OpenApiActionArgument(schema.type, required = schema.required) },
+        arguments = arguments.mapValues { (_, schema) -> schema.toOpenApiActionArgument() },
         result =
             OpenApiActionResult(
                 properties =
@@ -616,7 +621,7 @@ private fun Map<String, OpenApiActionArgument>.toRequestBody(): OpenApiRequestBo
             jsonContent(
                 OpenApiSchema(
                     type = "object",
-                    properties = mapValues { (_, argument) -> OpenApiSchema(type = argument.type) },
+                    properties = mapValues { (_, argument) -> argument.toOpenApiSchema() },
                     required = filterValues { it.required }.keys.toList(),
                     additionalProperties = false,
                 ),
@@ -1124,6 +1129,22 @@ private fun OpenApiActionSchema.toOpenApiSchema(): OpenApiSchema =
         type = type,
         properties = properties.mapValues { (_, schema) -> schema.toOpenApiSchema() },
         items = items?.toOpenApiSchema(),
+    )
+
+private fun OpenApiActionArgument.toOpenApiSchema(): OpenApiSchema =
+    OpenApiSchema(
+        type = type,
+        properties = properties.mapValues { (_, argument) -> argument.toOpenApiSchema() },
+        required = properties.filterValues { argument -> argument.required }.keys.toList(),
+        items = items?.toOpenApiSchema(),
+    )
+
+private fun RuntimeSchema.toOpenApiActionArgument(): OpenApiActionArgument =
+    OpenApiActionArgument(
+        type = type,
+        required = required,
+        properties = properties.mapValues { (_, schema) -> schema.toOpenApiActionArgument() },
+        items = items?.toOpenApiActionArgument(),
     )
 
 private fun RuntimeSchema.toOpenApiActionSchema(): OpenApiActionSchema =

@@ -8,7 +8,10 @@
 - Graph resources become `x-craftless-resources`.
 - Graph operations become `x-craftless-actions` and generated alias routes.
 - Graph event sources become stream metadata in the per-client OpenAPI.
-- Graph schemas become JSON/OpenAPI schemas for arguments, results, resources, handles, and event payloads.
+- Graph schemas become JSON/OpenAPI schemas for arguments, results,
+  resources, handles, and event payloads. Object and array schemas must
+  preserve nested properties/items rather than collapsing to type-only
+  placeholders.
 - Runtime fingerprints include graph node ids, schemas, availability, source versions, and runtime metadata.
 
 **Public API Rules:**

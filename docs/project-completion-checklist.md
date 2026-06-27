@@ -135,9 +135,9 @@ Verification:
 - [x] Per-client OpenAPI is generated from `RuntimeCapabilityGraph`.
 - [x] `/clients/{id}/actions` and `/clients/{id}/resources` are projections of
   the same graph-generated OpenAPI.
-- [x] Generated aliases, argument schemas, result schemas, resource metadata,
-  handle metadata, event stream metadata, and fingerprints come from graph
-  projection.
+- [x] Generated aliases, nested argument schemas, nested result schemas,
+  resource metadata, handle metadata, event stream metadata, and fingerprints
+  come from graph projection.
 - [x] Public API policy tests reject Fabric/Yarn/intermediary/raw Minecraft
   leakage in graph-projected OpenAPI.
 

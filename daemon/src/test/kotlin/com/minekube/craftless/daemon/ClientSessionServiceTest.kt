@@ -422,6 +422,79 @@ class ClientSessionServiceTest {
     }
 
     @Test
+    fun `client specific openapi preserves nested driver action argument schemas`() {
+        val service =
+            ClientSessionService.inMemory(
+                DriverSessionFactory { request ->
+                    BackendDriverSession(
+                        clientId = request.id,
+                        backend =
+                            RecordingDriverBackend(
+                                actions =
+                                    listOf(
+                                        DriverActionDescriptor(
+                                            id = "world.block.break",
+                                            schemaVersion = "1",
+                                            arguments =
+                                                mapOf(
+                                                    "target" to
+                                                        DriverActionArgument(
+                                                            type = "object",
+                                                            required = true,
+                                                            properties =
+                                                                mapOf(
+                                                                    "handle" to DriverActionArgument("string"),
+                                                                    "position" to
+                                                                        DriverActionArgument(
+                                                                            type = "object",
+                                                                            properties =
+                                                                                mapOf(
+                                                                                    "x" to DriverActionArgument("integer"),
+                                                                                    "y" to DriverActionArgument("integer"),
+                                                                                    "z" to DriverActionArgument("integer"),
+                                                                                ),
+                                                                        ),
+                                                                ),
+                                                        ),
+                                                ),
+                                        ),
+                                    ),
+                            ),
+                    )
+                },
+            )
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.4",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            ),
+        )
+
+        val schema =
+            service
+                .openApiFor("alice")
+                .paths["/clients/alice/world/block:break"]
+                ?.post
+                ?.requestBody
+                ?.content
+                ?.get("application/json")
+                ?.schema
+
+        assertNotNull(schema)
+        assertEquals(listOf("target"), schema.required)
+        val targetSchema = schema.properties["target"]
+        val positionSchema = targetSchema?.properties?.get("position")
+        assertEquals("object", targetSchema?.type)
+        assertEquals("string", targetSchema?.properties?.get("handle")?.type)
+        assertEquals("object", positionSchema?.type)
+        assertEquals("integer", positionSchema?.properties?.get("x")?.type)
+        assertEquals("integer", positionSchema?.properties?.get("y")?.type)
+        assertEquals("integer", positionSchema?.properties?.get("z")?.type)
+    }
+
+    @Test
     fun `minecraft usernames longer than sixteen characters are rejected`() {
         val service = fakeClientSessionService()
 

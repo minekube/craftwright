@@ -33,6 +33,28 @@ class OpenApiGenerationTest {
                         OpenApiAction(
                             id = "world.scan",
                             schemaVersion = "1",
+                            arguments =
+                                mapOf(
+                                    "target" to
+                                        OpenApiActionArgument(
+                                            type = "object",
+                                            required = true,
+                                            properties =
+                                                mapOf(
+                                                    "handle" to OpenApiActionArgument("string"),
+                                                    "position" to
+                                                        OpenApiActionArgument(
+                                                            type = "object",
+                                                            properties =
+                                                                mapOf(
+                                                                    "x" to OpenApiActionArgument("integer"),
+                                                                    "y" to OpenApiActionArgument("integer"),
+                                                                    "z" to OpenApiActionArgument("integer"),
+                                                                ),
+                                                        ),
+                                                ),
+                                        ),
+                                ),
                             result =
                                 OpenApiActionResult(
                                     properties =
@@ -107,6 +129,24 @@ class OpenApiGenerationTest {
         assertEquals("object", aliasBlockItemSchema?.type)
         assertEquals("string", aliasBlockItemSchema?.properties?.get("handle")?.type)
         assertEquals("string", aliasBlockItemSchema?.properties?.get("category")?.type)
+
+        val aliasRequestSchema =
+            document.paths["/clients/{id}/world:scan"]
+                ?.post
+                ?.requestBody
+                ?.content
+                ?.get("application/json")
+                ?.schema
+        assertNotNull(aliasRequestSchema)
+        assertEquals(listOf("target"), aliasRequestSchema.required)
+        val targetSchema = aliasRequestSchema.properties["target"]
+        val positionSchema = targetSchema?.properties?.get("position")
+        assertEquals("object", targetSchema?.type)
+        assertEquals("string", targetSchema?.properties?.get("handle")?.type)
+        assertEquals("object", positionSchema?.type)
+        assertEquals("integer", positionSchema?.properties?.get("x")?.type)
+        assertEquals("integer", positionSchema?.properties?.get("y")?.type)
+        assertEquals("integer", positionSchema?.properties?.get("z")?.type)
     }
 
     @Test
@@ -285,7 +325,29 @@ class OpenApiGenerationTest {
                             id = "player.move",
                             resource = "player",
                             adapter = "fabric.player-move",
-                            arguments = mapOf("forward" to RuntimeSchema("boolean")),
+                            arguments =
+                                mapOf(
+                                    "forward" to RuntimeSchema("boolean"),
+                                    "target" to
+                                        RuntimeSchema(
+                                            type = "object",
+                                            required = true,
+                                            properties =
+                                                mapOf(
+                                                    "handle" to RuntimeSchema("string"),
+                                                    "position" to
+                                                        RuntimeSchema(
+                                                            type = "object",
+                                                            properties =
+                                                                mapOf(
+                                                                    "x" to RuntimeSchema("integer"),
+                                                                    "y" to RuntimeSchema("integer"),
+                                                                    "z" to RuntimeSchema("integer"),
+                                                                ),
+                                                        ),
+                                                ),
+                                        ),
+                                ),
                             availability = RuntimeAvailability.available(),
                         ),
                     ),
@@ -317,6 +379,28 @@ class OpenApiGenerationTest {
         assertEquals(OpenApiActionSource.RUNTIME_PROBE, move.source)
         assertEquals(OpenApiActionAvailability.AVAILABLE, move.availability)
         assertEquals("boolean", move.arguments.getValue("forward").type)
+        val targetArgument = move.arguments.getValue("target")
+        val positionArgument = targetArgument.properties["position"]
+        assertEquals("object", targetArgument.type)
+        assertEquals(true, targetArgument.required)
+        assertEquals("string", targetArgument.properties["handle"]?.type)
+        assertEquals("object", positionArgument?.type)
+        assertEquals("integer", positionArgument?.properties?.get("x")?.type)
+        val moveRequestSchema =
+            document.paths["/clients/{id}/player:move"]
+                ?.post
+                ?.requestBody
+                ?.content
+                ?.get("application/json")
+                ?.schema
+        assertNotNull(moveRequestSchema)
+        val moveTargetSchema = moveRequestSchema.properties["target"]
+        val movePositionSchema = moveTargetSchema?.properties?.get("position")
+        assertEquals(listOf("target"), moveRequestSchema.required)
+        assertEquals("object", moveTargetSchema?.type)
+        assertEquals("string", moveTargetSchema?.properties?.get("handle")?.type)
+        assertEquals("object", movePositionSchema?.type)
+        assertEquals("integer", movePositionSchema?.properties?.get("x")?.type)
         assertEquals(listOf("runtime", "player", "entity"), document.resources.map { it.id })
         assertEquals(emptyList(), document.resources.single { it.id == "runtime" }.actions)
         assertEquals(listOf("player.move"), document.resources.single { it.id == "player" }.actions)

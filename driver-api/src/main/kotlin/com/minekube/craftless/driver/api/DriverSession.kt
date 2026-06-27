@@ -156,9 +156,14 @@ data class DriverRuntimeMetadata(
 data class DriverActionArgument(
     val type: String,
     val required: Boolean = false,
+    val properties: Map<String, DriverActionArgument> = emptyMap(),
+    val items: DriverActionArgument? = null,
 ) {
     init {
         require(type.isCraftlessActionArgumentType()) { "unsupported action argument type $type" }
+        properties.keys.forEach { name ->
+            require(name.isCraftlessActionArgumentName()) { "invalid action argument schema property $name" }
+        }
     }
 }
 
