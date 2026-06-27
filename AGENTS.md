@@ -143,6 +143,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 29. legacy survival task API removal.
 30. bounded attack exploration.
 31. material count evidence.
+32. material reach evidence.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -235,6 +236,12 @@ Phase 31 makes repeated public material collection require an increased
 `inventory.query` material count over the count known before the current break.
 It must stay external agent policy and must not add `collect.wood`, `mine.log`,
 recipe-material shortcuts, survival macros, or any new product gameplay action.
+Phase 32 makes public-agent material collection verify public player position
+after generated navigation before sending `world.block.break`. It must stay
+external agent policy, must not trust `navigation.follow` success when
+`player.query` proves the target is still outside break reach, and must not add
+reach shortcuts, mining shortcuts, survival macros, or any new product gameplay
+action.
 
 ## Acceptance Scenarios Are Not Product APIs
 

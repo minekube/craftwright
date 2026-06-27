@@ -28,7 +28,7 @@ class PublicAgentGameplayRunnerTest {
 
             val result = runner.runOnce()
 
-            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blockerWithActions())
             assertEquals(
                 listOf(
                     "GET /openapi.json",
@@ -172,8 +172,6 @@ class PublicAgentGameplayRunnerTest {
                             """.trimIndent(),
                             """{"action":"navigation.follow","status":"ACCEPTED","data":{"task-id":"task:navigation:public-agent","state":"succeeded"}}""",
                         ),
-                    playerQueryResponse =
-                        """{"action":"player.query","status":"ACCEPTED","data":{"position":{"x":80.0,"y":65.0,"z":-80.0}}}""",
                     entityQueryResponse =
                         """
                         {
@@ -413,7 +411,7 @@ class PublicAgentGameplayRunnerTest {
 
             val result = runner.runOnce()
 
-            assertEquals(PublicAgentGameplayState.RAN, result.state)
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blockerWithActions())
             assertEquals(1, pauses)
             assertTrue(result.actionLog.map { it.action }.count { it == "entity.attack" } >= 2)
             assertFalse(server.requestBodies.anyScenarioShortcut())
@@ -923,6 +921,7 @@ class PublicAgentGameplayRunnerTest {
             val server =
                 RecordingCraftlessHttpServer(
                     actions = completeActionCatalog() + "entity.attack",
+                    blockQueryResponses = listOf(combatReachLogBlockQueryResponse),
                     entityQueryResponses =
                         listOf(
                             EMPTY_ENTITY_QUERY_RESPONSE,
@@ -945,7 +944,11 @@ class PublicAgentGameplayRunnerTest {
             val result = runner.runOnce()
 
             assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
-            assertEquals("insufficient-public-evidence:entity.query.attack-target.reachable", result.blocker)
+            assertEquals(
+                "insufficient-public-evidence:entity.query.attack-target.reachable",
+                result.blocker,
+                result.blockerWithActions(),
+            )
             assertFalse(result.actionLog.map { it.action }.contains("entity.attack"))
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
@@ -1379,7 +1382,7 @@ class PublicAgentGameplayRunnerTest {
                     blockQueryResponses =
                         listOf(
                             logBlockQueryResponse,
-                            reachableExplorationLogBlockQueryResponse,
+                            secondReachableLogBlockQueryResponse,
                             placementSupportBlockQueryResponse,
                         ),
                     inventoryResponses =
@@ -1443,7 +1446,7 @@ class PublicAgentGameplayRunnerTest {
             assertTrue(
                 server.requestBodies.any {
                     it.contains("world.block.break") &&
-                        it.contains(""""handle":"world.block:24:64:-12"""")
+                        it.contains(""""handle":"world.block:12:66:-4"""")
                 },
             )
             assertTrue(server.requestBodies.any { it.contains(""""target":{"handle":"recipe.handle:weapon-1"}""") })
@@ -2491,7 +2494,7 @@ class PublicAgentGameplayRunnerTest {
                             """{"action":"navigation.follow","status":"ACCEPTED","data":{"task-id":"task:navigation:public-agent","state":"succeeded"}}""",
                         ),
                     playerQueryResponse =
-                        """{"action":"player.query","status":"ACCEPTED","data":{"position":{"x":80.0,"y":65.0,"z":-80.0}}}""",
+                        """{"action":"player.query","status":"ACCEPTED","data":{"position":{"x":24.0,"y":64.0,"z":-12.0}}}""",
                 )
             val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
 
@@ -2554,6 +2557,27 @@ class PublicAgentGameplayRunnerTest {
             assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
             assertEquals("insufficient-public-evidence:navigation.follow.succeeded", result.blocker)
             assertTrue(result.actionLog.map { it.action }.contains("navigation.follow"))
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner verifies public position after generated navigation reports success`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog(),
+                    navigationFollowResponse = NAVIGATION_SUCCEEDED_RESPONSE,
+                    playerQueryResponse =
+                        """{"action":"player.query","status":"ACCEPTED","data":{"position":{"x":80.0,"y":65.0,"z":-80.0}}}""",
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.BLOCKED, result.state)
+            assertEquals("insufficient-public-evidence:navigation.follow.succeeded", result.blocker)
+            assertTrue(result.actionLog.map { it.action }.contains("player.query"))
+            assertFalse(result.actionLog.map { it.action }.contains("world.block.break"))
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
@@ -3677,6 +3701,44 @@ private val logBlockQueryResponse =
     }
     """.trimIndent()
 
+private val combatReachLogBlockQueryResponse =
+    """
+    {
+      "action": "world.block.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 1,
+        "blocks": [
+          {
+            "handle": "world.block:25:70:-301",
+            "category": "log",
+            "distance": 2.0,
+            "position": {"x": 25, "y": 70, "z": -301}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val secondReachableLogBlockQueryResponse =
+    """
+    {
+      "action": "world.block.query",
+      "status": "ACCEPTED",
+      "data": {
+        "count": 1,
+        "blocks": [
+          {
+            "handle": "world.block:12:66:-4",
+            "category": "log",
+            "distance": 4.0,
+            "position": {"x": 12, "y": 66, "z": -4}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
 private val layeredLogBlockQueryResponse =
     """
     {
@@ -4016,6 +4078,8 @@ private fun List<String>.anyScenarioShortcut(): Boolean =
     any { body ->
         scenarioShortcutNames.any(body::contains)
     }
+
+private fun PublicAgentGameplayResult.blockerWithActions(): String = "blocker=$blocker actions=${actionLog.map { it.action }}"
 
 private val scenarioShortcutNames =
     listOf(

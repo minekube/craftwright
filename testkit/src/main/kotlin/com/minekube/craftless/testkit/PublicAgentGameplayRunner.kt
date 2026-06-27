@@ -363,6 +363,9 @@ class PublicAgentGameplayRunner(
                 val playerPosition =
                     player.responseObject()?.playerPosition()
                         ?: return MaterialCollectionAttempt(blocker = "insufficient-public-evidence:player.query.position")
+                if (playerPosition.distanceTo(materialPoint.centered()) > MATERIAL_BREAK_REACH_DISTANCE) {
+                    return MaterialCollectionAttempt(blocker = "insufficient-public-evidence:navigation.follow.succeeded")
+                }
                 val look = playerPosition.lookAt(materialPoint.centered())
                 invokeGenerated(
                     action = "player.look",
@@ -1712,6 +1715,7 @@ private data class CraftlessPoint(
 }
 
 private const val EXPLORATION_STEP = 24.0
+private const val MATERIAL_BREAK_REACH_DISTANCE = 6.0
 private const val PICKUP_EVIDENCE_ATTEMPTS = 4
 private const val MATERIAL_COLLECTION_ATTEMPTS = 2
 private const val MIN_RECIPE_COMPOSITION_MATERIAL_ITEMS = 2

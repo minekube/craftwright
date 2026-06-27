@@ -939,11 +939,46 @@ Verification:
 - `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest'`
 - `mise run ci`
 
+## Phase 32: Material Reach Evidence
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-32-material-reach-evidence-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-32-material-reach-evidence-plan.md`.
+- [x] The 2026-06-27 held final gameplay rerun blocked because generated
+  `navigation.follow` reported success for a material target while public
+  `player.query` still placed the client outside generated block-break reach.
+  The following generated `world.block.break` failed with
+  `INVALID_ACTION_INPUT` because the target exceeded max distance.
+- [x] Public-agent material collection now verifies public player position
+  against the break reach budget after generated navigation and before sending
+  `world.block.break`.
+- [x] Focused regression evidence proves the runner blocks with
+  `insufficient-public-evidence:navigation.follow.succeeded`, records
+  `player.query`, and does not call `world.block.break` when public state
+  proves the target is still out of reach.
+- [x] Final live gameplay was rerun after this correction and reached
+  `publicAgentState=RAN`. Evidence:
+  `driver-fabric/build/craftless-final-gameplay/artifacts/public-agent-command.log`
+  reports `publicAgentState=RAN`; the public agent collected material,
+  crafted/equipped a `Wooden Sword`, attacked a generated public Pig target,
+  picked up `Raw Porkchop`, and wrote `final-gameplay-ready.json` for
+  `127.0.0.1:52826`. Robin confirmation is still pending while the hold window
+  remains open.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest.runner verifies public position after generated navigation reports success'`
+- `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest'`
+- `mise exec -- gradle :testkit:test`
+- `mise run lint`
+- `mise run jvm-test`
+
 ## Final Completion Gate
 
 - [ ] All phases above are checked with current evidence.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully after the latest pushed gameplay-hold evidence.
+  successfully after the Phase 32 reach-evidence correction.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
   architecture tests and Bun Playwright helper tests.
