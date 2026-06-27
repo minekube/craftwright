@@ -89,7 +89,7 @@ class FabricDriverModuleTest {
             metadata["description"]?.jsonPrimitive?.content,
         )
         assertEquals(
-            "com.minekube.craftless.driver.fabric.v1_21_6.CraftlessFabricClientEntrypoint",
+            "com.minekube.craftless.driver.fabric.CraftlessFabricClientEntrypoint",
             metadata["entrypoints"]
                 ?.jsonObject
                 ?.get("client")
@@ -158,6 +158,7 @@ class FabricDriverModuleTest {
         assertTrue(source.contains("\${javaMajorVersion}"))
         assertFalse(source.contains("Craftless Driver Fabric 1.21.6\""))
         assertFalse(source.contains("Minecraft 1.21.6."))
+        assertFalse(source.contains("driver.fabric.v1_21_6.CraftlessFabricClientEntrypoint"))
     }
 
     @Test

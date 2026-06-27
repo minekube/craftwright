@@ -1504,18 +1504,42 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 48: Stable Fabric Entrypoint Boundary
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-48-stable-fabric-entrypoint-boundary-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-48-stable-fabric-entrypoint-boundary-plan.md`.
+- [x] `fabric.mod.json` points at the stable non-versioned Craftless Fabric
+  entrypoint.
+- [x] Current compiled-lane startup logic is behind an internal
+  `FabricCurrentLaneBootstrap` in the version-scoped implementation package.
+- [x] Bytecode-sensitive mixin/accessor package metadata remains version-scoped.
+- [x] This phase changes Fabric entrypoint wiring only and adds no public
+  gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, or public
+  version-specific API.
+
+Verification:
+
+- `mise exec -- gradle --no-daemon :driver-fabric:test --tests '*FabricDriverModuleTest.fabric metadata declares client entrypoint and mixin config*' --tests '*FabricDriverModuleTest.fabric mod source metadata is expanded from compiled lane placeholders*'`
+- `mise exec -- gradle --no-daemon :driver-fabric:test`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
   completion remains open on Robin's Minecraft chat confirmation.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully after the Phase 47 compiled Fabric resource metadata correction.
+  successfully after the Phase 48 stable Fabric entrypoint boundary correction.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after the Phase 47
-  compiled Fabric resource metadata correction.
+  architecture tests and Bun Playwright helper tests after the Phase 48 stable
+  Fabric entrypoint boundary correction.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after the Phase 47 compiled Fabric resource metadata correction.
+  successfully after the Phase 48 stable Fabric entrypoint boundary correction.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,

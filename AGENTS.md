@@ -159,6 +159,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 45. descriptor-derived graph schemas.
 46. compiled Fabric lane metadata.
 47. compiled Fabric resource metadata.
+48. stable Fabric entrypoint boundary.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -340,6 +341,11 @@ values so the mod descriptor stays aligned with the verified compiled lane. It
 must not change the compiled versions, claim new Minecraft version support,
 parameterize Loom for arbitrary user-selected versions, add public
 version-specific APIs, or add gameplay actions.
+Phase 48 keeps Fabric mod metadata pointed at a stable Craftless entrypoint
+while current compiled-lane startup stays behind an internal versioned
+bootstrap boundary. It must leave bytecode-sensitive mixins/accessors
+version-scoped, must not claim new Minecraft version support, and must not add
+public version-specific APIs or gameplay actions.
 
 ## Acceptance Scenarios Are Not Product APIs
 

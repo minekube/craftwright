@@ -11,7 +11,7 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "com.minekube.craftless.driver.fabric.v1_21_6.CraftlessFabricClientEntrypoint"
+      "com.minekube.craftless.driver.fabric.CraftlessFabricClientEntrypoint"
     ]
   },
   "mixins": [
