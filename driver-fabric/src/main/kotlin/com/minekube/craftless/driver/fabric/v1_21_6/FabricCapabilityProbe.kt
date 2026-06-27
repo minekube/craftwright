@@ -217,7 +217,7 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                             "radius" to RuntimeSchema("number"),
                             "limit" to RuntimeSchema("integer"),
                         ),
-                    result = RuntimeSchema.objectSchema(),
+                    result = entityQueryResultSchema(),
                     availability = capabilities.entityAvailability(),
                 ),
                 RuntimeOperationNode(
@@ -243,7 +243,7 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                             "category" to RuntimeSchema("string"),
                             "target" to RuntimeSchema("object"),
                         ),
-                    result = RuntimeSchema.objectSchema(),
+                    result = blockQueryResultSchema(),
                     availability = blockQueryAvailability,
                 ),
                 context.operation("world.time.query", "world", "fabric.world-time-query", worldAvailability),
@@ -334,6 +334,32 @@ private fun recipeQueryResultSchema(): RuntimeSchema =
             mapOf(
                 "count" to RuntimeSchema("integer"),
                 "recipes" to RuntimeSchema("array", items = recipeRecordSchema()),
+                "reason" to RuntimeSchema("string"),
+            ),
+    )
+
+private fun entityQueryResultSchema(): RuntimeSchema =
+    RuntimeSchema(
+        type = "object",
+        properties =
+            mapOf(
+                "origin" to RuntimeSchema.objectSchema(),
+                "radius" to RuntimeSchema("number"),
+                "count" to RuntimeSchema("integer"),
+                "entities" to RuntimeSchema("array", items = RuntimeSchema.objectSchema()),
+                "reason" to RuntimeSchema("string"),
+            ),
+    )
+
+private fun blockQueryResultSchema(): RuntimeSchema =
+    RuntimeSchema(
+        type = "object",
+        properties =
+            mapOf(
+                "origin" to RuntimeSchema.objectSchema(),
+                "radius" to RuntimeSchema("number"),
+                "count" to RuntimeSchema("integer"),
+                "blocks" to RuntimeSchema("array", items = RuntimeSchema.objectSchema()),
                 "reason" to RuntimeSchema("string"),
             ),
     )

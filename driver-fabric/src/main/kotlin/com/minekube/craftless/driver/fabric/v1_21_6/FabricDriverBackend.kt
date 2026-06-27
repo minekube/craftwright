@@ -684,8 +684,22 @@ class FabricDriverBackend private constructor(
     private fun queryEntities(invocation: DriverOperationInvocation): DriverActionResult {
         val radius = invocation.arguments["radius"]?.jsonPrimitive?.doubleOrNull ?: DEFAULT_ENTITY_QUERY_RADIUS
         val limit = invocation.arguments["limit"]?.jsonPrimitive?.intOrNull ?: DEFAULT_ENTITY_QUERY_LIMIT
-        require(radius > 0.0) { "entity query radius must be positive" }
-        require(limit in ENTITY_QUERY_LIMIT_RANGE) { "entity query limit must be between 1 and 100" }
+        if (radius <= 0.0) {
+            return DriverActionResult(
+                action = invocation.operation.id,
+                status = DriverActionStatus.FAILED,
+                message = "invalid-radius",
+                data = entityQueryFailure("invalid-radius"),
+            )
+        }
+        if (limit !in ENTITY_QUERY_LIMIT_RANGE) {
+            return DriverActionResult(
+                action = invocation.operation.id,
+                status = DriverActionStatus.FAILED,
+                message = "invalid-limit",
+                data = entityQueryFailure("invalid-limit"),
+            )
+        }
         val clientGateway = gateway
         if (clientGateway == null || !clientGateway.isConnected()) {
             return DriverActionResult(
@@ -791,10 +805,22 @@ class FabricDriverBackend private constructor(
                 ?.trim()
                 ?.lowercase()
                 ?.takeIf { it.isNotEmpty() }
-        require(radius > 0.0 && radius <= MAX_BLOCK_QUERY_RADIUS) {
-            "block query radius must be between 0 and $MAX_BLOCK_QUERY_RADIUS"
+        if (radius <= 0.0 || radius > MAX_BLOCK_QUERY_RADIUS) {
+            return DriverActionResult(
+                action = invocation.operation.id,
+                status = DriverActionStatus.FAILED,
+                message = "invalid-radius",
+                data = blockQueryFailure("invalid-radius"),
+            )
         }
-        require(limit in BLOCK_QUERY_LIMIT_RANGE) { "block query limit must be between 1 and 256" }
+        if (limit !in BLOCK_QUERY_LIMIT_RANGE) {
+            return DriverActionResult(
+                action = invocation.operation.id,
+                status = DriverActionStatus.FAILED,
+                message = "invalid-limit",
+                data = blockQueryFailure("invalid-limit"),
+            )
+        }
         val clientGateway = gateway
         if (clientGateway == null || !clientGateway.isConnected()) {
             return DriverActionResult(
@@ -1301,6 +1327,20 @@ private fun recipeQueryFailure(reason: String): JsonObject =
     buildJsonObject {
         put("count", 0)
         put("recipes", buildJsonArray {})
+        put("reason", reason)
+    }
+
+private fun entityQueryFailure(reason: String): JsonObject =
+    buildJsonObject {
+        put("count", 0)
+        put("entities", buildJsonArray {})
+        put("reason", reason)
+    }
+
+private fun blockQueryFailure(reason: String): JsonObject =
+    buildJsonObject {
+        put("count", 0)
+        put("blocks", buildJsonArray {})
         put("reason", reason)
     }
 

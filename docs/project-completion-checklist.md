@@ -385,7 +385,9 @@ Verification:
   OpenAPI/resource consumers.
 - [x] `fabric.world-block-query` executes through `DriverOperationAdapters`
   and `POST /clients/{id}:run`, not through a new transitional
-  `FabricActionBindings.kt` descriptor.
+  `FabricActionBindings.kt` descriptor. Invalid block-query bounds now return
+  machine-readable generated-action failures with `invalid-radius` or
+  `invalid-limit` and empty public `blocks` evidence instead of throwing.
 - [x] The public-agent no-hold gameplay run invokes `inventory.query`,
   `world.block.query`, and `entity.query` from the generated action catalog and
   records `publicAgentState=RAN` without calling `task.survival.*`.
@@ -620,6 +622,9 @@ Verification:
   from `entity.query` or `inventory.query` before treating combat as proven;
   without that evidence it blocks with
   `insufficient-public-evidence:entity.attack.outcome`.
+- [x] `entity.query` invalid bounds now return machine-readable
+  generated-action failures with `invalid-radius` or `invalid-limit` and empty
+  public `entities` evidence instead of throwing.
 - [x] Focused driver and public-agent tests pass.
 - [x] Recent live no-hold evidence reaches generic attack invocation through
   generated `entity.attack` after material pickup and placement. Focused

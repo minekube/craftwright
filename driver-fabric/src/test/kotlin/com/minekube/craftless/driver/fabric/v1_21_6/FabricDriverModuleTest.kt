@@ -639,6 +639,49 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend returns machine readable entity query failures for invalid bounds`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        val backend = smokeBackend(gateway)
+        val entityQuery = backend.runtimeGraph("alice").operations.single { it.id == "entity.query" }
+
+        assertEquals("string", entityQuery.result.properties["reason"]?.type)
+
+        val invalidRadius =
+            backend
+                .operationAdapters("alice")
+                .invoke(
+                    DriverOperationInvocation(
+                        clientId = "alice",
+                        operation = entityQuery,
+                        arguments = mapOf("radius" to JsonPrimitive(0.0)),
+                    ),
+                )
+        val invalidLimit =
+            backend
+                .operationAdapters("alice")
+                .invoke(
+                    DriverOperationInvocation(
+                        clientId = "alice",
+                        operation = entityQuery,
+                        arguments = mapOf("limit" to JsonPrimitive(0)),
+                    ),
+                )
+
+        assertEquals(DriverActionStatus.FAILED, invalidRadius.status)
+        assertEquals("invalid-radius", invalidRadius.message)
+        assertEquals("invalid-radius", invalidRadius.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(0, invalidRadius.data["count"]?.jsonPrimitive?.int)
+        assertEquals(0, invalidRadius.data["entities"]?.jsonArray?.size)
+        assertEquals(DriverActionStatus.FAILED, invalidLimit.status)
+        assertEquals("invalid-limit", invalidLimit.message)
+        assertEquals("invalid-limit", invalidLimit.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(0, invalidLimit.data["count"]?.jsonPrimitive?.int)
+        assertEquals(0, invalidLimit.data["entities"]?.jsonArray?.size)
+        assertEquals(0, gateway.scheduled)
+    }
+
+    @Test
     fun `fabric backend invokes entity attack through runtime graph adapter`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connected = false
@@ -1327,6 +1370,58 @@ class FabricDriverModuleTest {
         )
         assertEquals(listOf("client-query"), gateway.actions)
         assertEquals(1, gateway.scheduled)
+    }
+
+    @Test
+    fun `fabric backend returns machine readable block query failures for invalid bounds`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        gateway.capabilities =
+            FabricClientCapabilitySnapshot(
+                connected = true,
+                player = true,
+                inventory = true,
+                camera = true,
+                interactionManager = true,
+                world = true,
+            )
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+            )
+        val blockQuery = backend.runtimeGraph("alice").operations.single { it.id == "world.block.query" }
+
+        assertEquals("string", blockQuery.result.properties["reason"]?.type)
+
+        val invalidRadius =
+            backend.operationAdapters("alice").invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = blockQuery,
+                    arguments = mapOf("radius" to JsonPrimitive(0.0)),
+                ),
+            )
+        val invalidLimit =
+            backend.operationAdapters("alice").invoke(
+                DriverOperationInvocation(
+                    clientId = "alice",
+                    operation = blockQuery,
+                    arguments = mapOf("limit" to JsonPrimitive(0)),
+                ),
+            )
+
+        assertEquals(DriverActionStatus.FAILED, invalidRadius.status)
+        assertEquals("invalid-radius", invalidRadius.message)
+        assertEquals("invalid-radius", invalidRadius.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(0, invalidRadius.data["count"]?.jsonPrimitive?.int)
+        assertEquals(0, invalidRadius.data["blocks"]?.jsonArray?.size)
+        assertEquals(DriverActionStatus.FAILED, invalidLimit.status)
+        assertEquals("invalid-limit", invalidLimit.message)
+        assertEquals("invalid-limit", invalidLimit.data["reason"]?.jsonPrimitive?.content)
+        assertEquals(0, invalidLimit.data["count"]?.jsonPrimitive?.int)
+        assertEquals(0, invalidLimit.data["blocks"]?.jsonArray?.size)
+        assertEquals(0, gateway.scheduled)
     }
 
     @Test
