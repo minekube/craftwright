@@ -244,7 +244,12 @@ Verification:
   generated navigation did not start and the first close-range post-move entity
   query lost the Cow; the public-agent policy now performs bounded wider
   generated `entity.query` refreshes and generic close-distance retries before
-  blocking.
+  blocking. The latest 2026-06-27 held run exited cleanly with
+  `publicAgentState=RAN`: it crafted a `Wooden Sword`, found a Cow through
+  generated `entity.query`, closed distance with generated navigation, attacked
+  through generated `entity.attack`, observed Raw Beef as a public entity drop,
+  moved to the drop, and proved pickup through `inventory.query`; Robin did not
+  join or confirm in Minecraft chat before the hold ended.
 - [ ] Robin joins or observes the server session after the harness ready prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
