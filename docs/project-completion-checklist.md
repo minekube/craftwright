@@ -286,9 +286,10 @@ Verification:
   distance with generated navigation, attacked through generated
   `entity.attack`, observed `Raw Chicken` and `Feather` drops through public
   entity state, and reached the ready window with
-  `final-gameplay-ready.json`. The server is still waiting for Robin's
-  Minecraft chat confirmation; `final-gameplay-confirmation.json` has not been
-  written yet.
+  `final-gameplay-ready.json`. The hold ended cleanly after the configured
+  window; `server-evidence.jsonl` contains Craftless' `Player665` join, chat,
+  and disconnect only. Robin did not join or confirm in Minecraft chat, and no
+  `final-gameplay-confirmation.json` was written.
 - [ ] Robin joins or observes the server session after the harness ready prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
