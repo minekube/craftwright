@@ -73,10 +73,17 @@ post-action evidence. The result should include:
 - `handle`;
 - `accepted`;
 - `changed`;
+- `requested-count`;
 - `crafted-count`;
 - `inventory-before` or fingerprint evidence;
 - `inventory-after` or fingerprint evidence;
+- `phase`;
+- optional `expected-output` and `actual-output` public item projections;
 - machine-readable failure reason when applicable.
+
+The runtime graph and generated OpenAPI should describe the public
+`recipe.craft` target and result shape so adaptive agents can reason from the
+live spec instead of hard-coding craft response fields.
 
 When taking a crafting output slot, `crafted-count` must be based on the
 observed output stack count before the slot click, not on a hard-coded

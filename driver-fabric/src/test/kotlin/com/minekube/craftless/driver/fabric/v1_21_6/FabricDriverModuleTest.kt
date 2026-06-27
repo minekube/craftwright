@@ -1472,9 +1472,30 @@ class FabricDriverModuleTest {
         assertEquals("object", producesSchema?.items?.type)
         assertEquals("object", recipeSchema?.properties?.get("station")?.type)
         assertEquals("string", recipeSchema?.properties?.get("reason")?.type)
-        assertEquals("object", craft.arguments["target"]?.type)
-        assertEquals(true, craft.arguments["target"]?.required)
+        val craftTargetSchema = craft.arguments["target"]
+        assertEquals("object", craftTargetSchema?.type)
+        assertEquals(true, craftTargetSchema?.required)
+        assertEquals("string", craftTargetSchema?.properties?.get("handle")?.type)
         assertEquals("integer", craft.arguments["count"]?.type)
+        assertEquals("object", craft.result.type)
+        assertEquals("string", craft.result.properties["handle"]?.type)
+        assertEquals("boolean", craft.result.properties["accepted"]?.type)
+        assertEquals("boolean", craft.result.properties["changed"]?.type)
+        assertEquals("integer", craft.result.properties["requested-count"]?.type)
+        assertEquals("integer", craft.result.properties["crafted-count"]?.type)
+        assertEquals("string", craft.result.properties["inventory-before"]?.type)
+        assertEquals("string", craft.result.properties["inventory-after"]?.type)
+        assertEquals("integer", craft.result.properties["sync-id"]?.type)
+        assertEquals("integer", craft.result.properties["output-slot"]?.type)
+        assertEquals("integer", craft.result.properties["attempt"]?.type)
+        assertEquals("string", craft.result.properties["phase"]?.type)
+        assertEquals("string", craft.result.properties["reason"]?.type)
+        val expectedOutputSchema = craft.result.properties["expected-output"]
+        val actualOutputSchema = craft.result.properties["actual-output"]
+        assertEquals("object", expectedOutputSchema?.type)
+        assertEquals("string", expectedOutputSchema?.properties?.get("label")?.type)
+        assertEquals("object", actualOutputSchema?.type)
+        assertEquals("integer", actualOutputSchema?.properties?.get("count")?.type)
 
         gateway.capabilities =
             FabricClientCapabilitySnapshot(

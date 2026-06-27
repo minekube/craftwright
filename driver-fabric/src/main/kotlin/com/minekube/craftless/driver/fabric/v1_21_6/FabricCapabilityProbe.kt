@@ -202,10 +202,10 @@ internal object FabricClientStateCapabilityProbe : FabricCapabilityProbe {
                     adapter = "fabric.recipe-craft",
                     arguments =
                         mapOf(
-                            "target" to RuntimeSchema("object", required = true),
+                            "target" to recipeCraftTargetSchema(),
                             "count" to RuntimeSchema("integer"),
                         ),
-                    result = RuntimeSchema.objectSchema(),
+                    result = recipeCraftResultSchema(),
                     availability = recipeCraftAvailability,
                 ),
                 RuntimeOperationNode(
@@ -362,6 +362,38 @@ private fun recipeItemSchema(): RuntimeSchema =
                 "label" to RuntimeSchema("string"),
                 "count" to RuntimeSchema("integer"),
                 "category" to RuntimeSchema("string"),
+            ),
+    )
+
+private fun recipeCraftTargetSchema(): RuntimeSchema =
+    RuntimeSchema(
+        type = "object",
+        required = true,
+        properties =
+            mapOf(
+                "handle" to RuntimeSchema("string"),
+            ),
+    )
+
+private fun recipeCraftResultSchema(): RuntimeSchema =
+    RuntimeSchema(
+        type = "object",
+        properties =
+            mapOf(
+                "handle" to RuntimeSchema("string"),
+                "accepted" to RuntimeSchema("boolean"),
+                "changed" to RuntimeSchema("boolean"),
+                "requested-count" to RuntimeSchema("integer"),
+                "crafted-count" to RuntimeSchema("integer"),
+                "inventory-before" to RuntimeSchema("string"),
+                "inventory-after" to RuntimeSchema("string"),
+                "sync-id" to RuntimeSchema("integer"),
+                "output-slot" to RuntimeSchema("integer"),
+                "attempt" to RuntimeSchema("integer"),
+                "phase" to RuntimeSchema("string"),
+                "reason" to RuntimeSchema("string"),
+                "expected-output" to recipeItemSchema(),
+                "actual-output" to recipeItemSchema(),
             ),
     )
 
