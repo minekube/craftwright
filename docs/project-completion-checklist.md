@@ -1693,7 +1693,7 @@ Verification:
 - [x] `mise run architecture-check` runs Gradle test targets as separate
   invocations before the Bun Playwright tests so the local verification gate
   does not hit Gradle binary test-result collisions.
-- [ ] Final gameplay has been rerun after this timeout boundary, with either a
+- [x] Final gameplay has been rerun after this timeout boundary, with either a
   ready-for-Robin hold or preserved blocker artifacts from the next concrete
   public-agent failure.
 - [x] This phase changes public-agent evidence plumbing only and adds no
@@ -1706,26 +1706,59 @@ Verification:
 - `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest.runner config prefers fabric smoke action timeout over outer smoke timeout*' :driver-fabric:test --tests '*FabricDriverModuleTest.final gameplay config exports public agent action request timeout below fabric action timeout*'`
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric smoke controller gives public agent process the outer smoke timeout*'`
 - `git diff --check`
-- `mise exec -- gradle :testkit:test :driver-fabric:test`
+- `mise exec -- gradle :testkit:test`
+- `mise exec -- gradle :driver-fabric:test`
 - `mise run lint`
 - `mise run architecture-check`
 - `mise run ci`
 - Remote GitHub Actions `ci` run `28294009718` passed for implementation
   commit `ef388b9`.
 
+## Phase 55: Public-Agent Pickup Convergence
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-27-55-public-agent-pickup-convergence-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-27-55-public-agent-pickup-convergence-plan.md`.
+- [x] The public-agent runner keeps pickup behavior outside the product API and
+  composes generated `entity.query`, `player.query`, `player.look`,
+  `player.move`, and `inventory.query`.
+- [x] Fallback generated pickup movement sends `jump=true` when public
+  `player.query` and target coordinates show the visible material drop is
+  meaningfully above the player.
+- [x] Existing bounded material pickup evidence remains based on public
+  inventory proof; accepted movement alone is not completion evidence.
+- [ ] Final gameplay has been rerun after this pickup convergence correction,
+  with either a ready-for-Robin hold or preserved blocker artifacts from the
+  next concrete public-agent failure.
+- [x] This phase changes public-agent acceptance policy only and adds no
+  public gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest.runner jumps during generated pickup fallback movement toward elevated material drop*'`
+- `git diff --check`
+- `mise exec -- gradle :testkit:test`
+- `mise exec -- gradle :driver-fabric:test`
+- `mise run lint`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above are checked with current evidence; final
   completion remains open on Robin's Minecraft chat confirmation.
 - [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully before `mise run ci` after Phase 54 public-agent timeout
-  boundary.
+  successfully before `mise run ci` after Phase 55 public-agent pickup
+  convergence.
 - [x] `mise run architecture-check` passes. Current local evidence:
   `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after Phase 54
-  public-agent timeout boundary.
+  architecture tests and Bun Playwright helper tests after Phase 55
+  public-agent pickup convergence.
 - [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after Phase 54 public-agent timeout boundary.
+  successfully after Phase 55 public-agent pickup convergence.
 - [x] CLI packaging succeeds. Current local evidence: `mise run package-cli`
   built `:cli:distZip`, `:cli:distTar`, and refreshed `build/docker/craftless`.
 - [x] Docker runtime smoke passes. Current local evidence: OrbStack was started,

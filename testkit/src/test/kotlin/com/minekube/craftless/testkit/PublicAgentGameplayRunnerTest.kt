@@ -251,10 +251,92 @@ class PublicAgentGameplayRunnerTest {
 
             val result = runner.runOnce()
 
-            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertEquals(
+                PublicAgentGameplayState.RAN,
+                result.state,
+                "${result.blocker}\n${result.actionLog.map { it.action }}\n${server.requestBodies.joinToString(separator = "\n")}",
+            )
             assertTrue(result.actionLog.map { it.action }.contains("player.move"))
             assertTrue(server.requestBodies.any { it.contains(""""forward":true""") })
             assertTrue(server.requestBodies.any { it.contains(""""ticks"""") })
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner jumps during generated pickup fallback movement toward elevated material drop`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "player.move",
+                    blockQueryResponses =
+                        listOf(
+                            """
+                            {
+                              "action": "world.block.query",
+                              "status": "ACCEPTED",
+                              "data": {
+                                "count": 1,
+                                "blocks": [
+                                  {
+                                    "handle": "world.block:20:74:-291",
+                                    "category": "log",
+                                    "distance": 3.3,
+                                    "position": {"x": 20, "y": 74, "z": -291}
+                                  }
+                                ]
+                              }
+                            }
+                            """.trimIndent(),
+                        ),
+                    navigationFollowResponses =
+                        listOf(
+                            NAVIGATION_SUCCEEDED_RESPONSE,
+                            NAVIGATION_FAILED_RESPONSE,
+                            NAVIGATION_FAILED_RESPONSE,
+                        ),
+                    playerQueryResponse =
+                        """{"action":"player.query","status":"ACCEPTED","data":{"position":{"x":20.8,"y":73.0,"z":-287.7}}}""",
+                    entityQueryResponse =
+                        """
+                        {
+                          "action": "entity.query",
+                          "status": "ACCEPTED",
+                          "data": {
+                            "entities": [
+                              {
+                                "handle": "entity.handle-42",
+                                "label": "Oak Log",
+                                "category": "object",
+                                "distance": 3.3,
+                                "position": {"x": 20.6, "y": 74.0, "z": -290.9}
+                              }
+                            ]
+                          }
+                        }
+                        """.trimIndent(),
+                    inventoryResponseAfterPlayerMove =
+                        """
+                        {
+                          "action": "inventory.query",
+                          "status": "ACCEPTED",
+                          "data": {
+                            "selected-slot": 0,
+                            "slots": [
+                              {"slot": 0, "empty": false, "count": 1, "item-name": "Oak Log"}
+                            ]
+                          }
+                        }
+                        """.trimIndent(),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertTrue(
+                server.requestBodies.any { it.contains(""""player.move"""") && it.contains(""""jump":true""") },
+                server.requestBodies.joinToString(separator = "\n"),
+            )
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 

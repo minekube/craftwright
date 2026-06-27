@@ -217,11 +217,17 @@ class PublicAgentGameplayRunner(
                         },
                 )
             }
+            val shouldJump =
+                position
+                    .toCraftlessPoint()
+                    ?.let { targetPoint -> targetPoint.y > playerPosition.y + PICKUP_JUMP_HEIGHT_THRESHOLD }
+                    ?: false
             invokeGenerated(
                 action = "player.move",
                 args =
                     buildJsonObject {
                         put("forward", JsonPrimitive(true))
+                        put("jump", JsonPrimitive(shouldJump))
                         put("ticks", JsonPrimitive(ticks))
                     },
             )
@@ -1859,6 +1865,7 @@ private const val PICKUP_EVIDENCE_ATTEMPTS = 4
 private const val MATERIAL_COLLECTION_ATTEMPTS = 2
 private const val MIN_RECIPE_COMPOSITION_MATERIAL_ITEMS = 2
 private const val PICKUP_MOVE_TICKS = 24
+private const val PICKUP_JUMP_HEIGHT_THRESHOLD = 0.5
 private const val COMBAT_MOVE_TICKS = 24
 private const val COMBAT_FOCUS_ATTEMPTS = 3
 private const val ATTACK_EXPLORATION_RINGS = 3

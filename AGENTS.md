@@ -166,6 +166,7 @@ and 2026-06-27 under `docs/superpowers/specs/` and
 52. stable Fabric version boundary guard.
 53. matrix-authoritative Fabric provider selection.
 54. public-agent timeout boundary.
+55. public-agent pickup convergence.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -381,6 +382,14 @@ Phase 54 keeps final gameplay generated-action request failures inside the
 public-agent helper evidence path. Public-agent request timeouts must resolve
 before the Fabric smoke controller times out the helper process so blocker
 artifacts are written. It must not add public gameplay actions, generated route
+families, CLI gameplay catalogs, Fabric descriptor/binding pairs, scenario
+shortcuts, new compiled lanes, public version-specific APIs, or new Minecraft
+support claims.
+Phase 55 improves external public-agent pickup convergence for visible dropped
+items, including elevated drops that require generated `player.move` with
+jump. It composes existing generated `entity.query`, `player.query`,
+`player.look`, `player.move`, and `inventory.query` only. It must not add
+pickup or collection shortcut actions, public gameplay actions, generated route
 families, CLI gameplay catalogs, Fabric descriptor/binding pairs, scenario
 shortcuts, new compiled lanes, public version-specific APIs, or new Minecraft
 support claims.
