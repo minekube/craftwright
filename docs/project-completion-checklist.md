@@ -456,8 +456,11 @@ Verification:
 - [x] Public-agent runner retries material search by composing generated
   `player.query`, `navigation.plan`, `navigation.follow`, and
   `world.block.query` actions when the first local material query is empty.
-- [~] Focused test evidence covers the empty-local-query exploration path. The
-  latest live no-hold run did not need exploration because local
+- [x] Focused test evidence covers the empty-local-query exploration path
+  through generated `player.query`, `navigation.plan`, `navigation.follow`,
+  and repeated `world.block.query` calls without scenario shortcuts. Evidence:
+  `mise exec -- gradle :testkit:test --tests 'com.minekube.craftless.testkit.PublicAgentGameplayRunnerTest.runner explores with generic navigation when local material query is empty'`.
+  The latest live no-hold run did not need exploration because local
   `world.block.query` returned log targets; it continued through targeted
   collection and final inventory proof.
 
