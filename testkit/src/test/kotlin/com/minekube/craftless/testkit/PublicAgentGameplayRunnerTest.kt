@@ -710,6 +710,41 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner prefers earlier configured public attack target evidence over distance`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog() + "entity.attack",
+                    entityQueryResponses =
+                        listOf(
+                            EMPTY_ENTITY_QUERY_RESPONSE,
+                            closerPigAndReachableCowEntityQueryResponse,
+                            closerPigAndReachableCowEntityQueryResponse,
+                            deadPigAndReachableCowEntityQueryResponse,
+                            deadCowEntityQueryResponse,
+                        ),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blocker)
+            assertTrue(
+                server.requestBodies.any {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-42"}""")
+                },
+            )
+            assertFalse(
+                server.requestBodies.any {
+                    it.contains("entity.attack") &&
+                        it.contains(""""target":{"handle":"entity.handle-5"}""")
+                },
+            )
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner keeps exploring when only generic aquatic living targets are visible`() =
         runBlocking {
             val server =
@@ -3373,6 +3408,64 @@ private val closeSquidAndReachableCowEntityQueryResponse =
             "category": "passive",
             "alive": true,
             "distance": 2.0,
+            "position": {"x": 12.5, "y": 64.0, "z": -5.5}
+          },
+          {
+            "handle": "entity.handle-42",
+            "label": "Cow",
+            "category": "passive",
+            "alive": true,
+            "distance": 3.0,
+            "position": {"x": 14.5, "y": 64.0, "z": -6.5}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val closerPigAndReachableCowEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "origin": {"x": 12.0, "y": 64.0, "z": -6.0},
+        "entities": [
+          {
+            "handle": "entity.handle-5",
+            "label": "Pig",
+            "category": "passive",
+            "alive": true,
+            "distance": 1.0,
+            "position": {"x": 12.5, "y": 64.0, "z": -5.5}
+          },
+          {
+            "handle": "entity.handle-42",
+            "label": "Cow",
+            "category": "passive",
+            "alive": true,
+            "distance": 3.0,
+            "position": {"x": 14.5, "y": 64.0, "z": -6.5}
+          }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private val deadPigAndReachableCowEntityQueryResponse =
+    """
+    {
+      "action": "entity.query",
+      "status": "ACCEPTED",
+      "data": {
+        "origin": {"x": 12.0, "y": 64.0, "z": -6.0},
+        "entities": [
+          {
+            "handle": "entity.handle-5",
+            "label": "Pig",
+            "category": "passive",
+            "alive": false,
+            "distance": 1.0,
             "position": {"x": 12.5, "y": 64.0, "z": -5.5}
           },
           {

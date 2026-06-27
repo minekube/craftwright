@@ -1762,11 +1762,10 @@ private data class PublicEntityTarget(
         }
 
     fun combatEvidencePriority(): Int =
-        if (combatEvidenceTargetNameParts.any { part -> label.orEmpty().contains(part, ignoreCase = true) }) {
-            0
-        } else {
-            1
-        }
+        combatEvidenceTargetNameParts
+            .indexOfFirst { part -> label.orEmpty().contains(part, ignoreCase = true) }
+            .takeIf { it >= 0 }
+            ?: combatEvidenceTargetNameParts.size
 
     fun isReachableForAttack(playerPosition: CraftlessPoint): Boolean {
         val reportedReachable = distance?.let { it <= ATTACK_MAX_DISTANCE } ?: false

@@ -225,13 +225,14 @@ Verification:
   drift, and collects visible combat loot drops through public `entity.query`,
   generated navigation, and `inventory.query` verification. The Fabric driver
   now syncs generated `inventory.equip` through the selected-slot C2S packet
-  so later interactions observe the equipped slot. The latest no-hold run has
+  so later interactions observe the equipped slot. The latest held run has
   `publicAgentState=RAN`: it collected logs, crafted and opened a crafting
-  table, crafted a `Wooden Sword`, re-equipped it before generated
-  `entity.attack`, killed a Pig, observed `Raw Porkchop` through public
-  `entity.query`, navigated to the drop, and proved pickup through a final
-  `inventory.query` containing `Raw Porkchop`. Held multiplayer observation,
-  any fixes found there, and Robin's Minecraft chat confirmation remain open.
+  table, crafted a `Wooden Sword`, preferred Cow as the public combat target,
+  re-equipped the sword before generated `entity.attack`, killed a Cow,
+  observed `Raw Beef` and `Leather` through public `entity.query`, navigated to
+  the drop, and proved pickup through a final `inventory.query` containing
+  `Raw Beef` and `Leather`. The held session was announced with macOS `say`,
+  but no Robin join/chat confirmation was observed before the hold expired.
 - [ ] Robin joins or observes the server session after a macOS `say` prompt.
 - [ ] Issues found during the gameplay session are fixed and reverified.
 - [ ] Robin writes in Minecraft chat that the goal may be completed.
@@ -270,14 +271,13 @@ Verification:
   material collection, placement, chat evidence, generated navigation, placed
   station verification/opening, and generic combat outcome evidence without
   static scenario APIs, including the exact cow/beef/leather acceptance
-  variant. The latest no-hold evidence also proves legitimate weapon
+  variant. The latest held evidence also proves legitimate weapon
   composition through generated recipe actions: logs were collected, a crafting
   table was crafted/opened, a `Wooden Sword` was crafted, public navigation
-  found a Pig, generated `entity.attack` killed it, and final inventory
-  contained `Raw Porkchop`. The remaining final gates are held multiplayer
-  observation, any fixes found there, an exact cow variant if Robin still
-  requires cow-specific evidence, and Robin's explicit Minecraft chat
-  confirmation.
+  found a Cow, generated `entity.attack` killed it, and final inventory
+  contained `Raw Beef` and `Leather`. The remaining final gates are Robin's
+  held multiplayer observation, any fixes found there, and Robin's explicit
+  Minecraft chat confirmation.
 - [~] The final survival proof is reproduced by an external public-agent runner
   over generated OpenAPI/SSE/CLI/skills, not by hard-coding the scenario as a
   durable public `task.survival.*` API. The previous
@@ -560,14 +560,13 @@ Verification:
   unsuitable aquatic/living targets, generated `player.move` fallback when
   combat navigation cannot close a reach gap, and pickup of visible public
   combat loot drops before treating loot-visible combat as complete.
-  Latest live no-hold evidence records generated combat outcome proof with a
+  Latest held live evidence records generated combat outcome proof with a
   legitimate weapon: the runner crafted a `Wooden Sword`, re-equipped its
-  generated inventory slot after navigation drift, `entity.attack` hit a Pig,
-  follow-up `entity.query` reported a `Raw Porkchop` drop and the passive
+  generated inventory slot after navigation drift, `entity.attack` hit a Cow,
+  follow-up `entity.query` reported `Raw Beef` and `Leather` drops and the passive
   entity no longer alive, generated navigation moved to the drop, and final
-  `inventory.query` showed `Raw Porkchop`. The final project remains open on
-  held Robin confirmation and any exact scenario variant Robin still wants to
-  observe live.
+  `inventory.query` showed `Raw Beef` and `Leather`. The final project remains
+  open on Robin's chat confirmation.
 
 Verification:
 

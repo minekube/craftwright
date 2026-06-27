@@ -72,7 +72,6 @@ Required artifacts:
 - `gameplay-results.jsonl`
 - `public-agent-gameplay-results.jsonl`
 - `public-agent-state.jsonl`
-- `survival-task-results.jsonl`
 - `runtime-metadata.json`
 
 ## Invite Robin
@@ -105,6 +104,7 @@ Do not call `update_goal(status = "complete")` until all of these are true:
 - No item was granted through a server command, pre-seeded inventory, or manual
   operator intervention for Craftless.
 - Craftless obtained materials, crafted or otherwise legitimately obtained a
-  weapon, found a cow, navigated to it, and killed it through discovered
-  capabilities.
+  weapon, found a public combat target through generated entity perception
+  with Cow preferred when visible, navigated to it, and killed it through
+  discovered capabilities.
 - Robin writes in Minecraft chat that the goal may be completed.
