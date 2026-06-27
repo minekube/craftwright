@@ -390,6 +390,7 @@ private fun recipeCraftResultSchema(): RuntimeSchema =
                 "sync-id" to RuntimeSchema("integer"),
                 "output-slot" to RuntimeSchema("integer"),
                 "attempt" to RuntimeSchema("integer"),
+                "confirmation-attempt" to RuntimeSchema("integer"),
                 "phase" to RuntimeSchema("string"),
                 "reason" to RuntimeSchema("string"),
                 "expected-output" to recipeItemSchema(),

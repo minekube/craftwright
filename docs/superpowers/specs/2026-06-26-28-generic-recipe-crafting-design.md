@@ -78,6 +78,7 @@ post-action evidence. The result should include:
 - `inventory-before` or fingerprint evidence;
 - `inventory-after` or fingerprint evidence;
 - `phase`;
+- `confirmation-attempt` when bounded post-output inventory confirmation runs;
 - optional `expected-output` and `actual-output` public item projections;
 - machine-readable failure reason when applicable.
 

@@ -821,8 +821,8 @@ Verification:
   metadata, and non-craftable reasons into generated OpenAPI. `recipe.craft`
   now projects nested target/result schema metadata for recipe handles,
   accepted/changed state, requested/crafted counts, inventory fingerprints,
-  phases, output slots, attempts, item projections, and machine-readable
-  reasons.
+  phases, output slots, output/confirmation attempts, item projections, and
+  machine-readable reasons.
 - [~] `recipe.query` has a guarded Fabric operation adapter that projects live
   recipe-book display entries into opaque Craftless recipe handles, public
   `produces`/`requires` item labels, compatibility `outputs`/`ingredients`,

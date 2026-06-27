@@ -1489,6 +1489,7 @@ class FabricDriverModuleTest {
         assertEquals("integer", craft.result.properties["sync-id"]?.type)
         assertEquals("integer", craft.result.properties["output-slot"]?.type)
         assertEquals("integer", craft.result.properties["attempt"]?.type)
+        assertEquals("integer", craft.result.properties["confirmation-attempt"]?.type)
         assertEquals("string", craft.result.properties["phase"]?.type)
         assertEquals("string", craft.result.properties["reason"]?.type)
         val expectedOutputSchema = craft.result.properties["expected-output"]

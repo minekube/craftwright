@@ -72,8 +72,9 @@ confirmation still remain open.
   without a changed fingerprint.
 - [x] Project `recipe.craft` target and nested result schema metadata through
   the runtime graph and generated OpenAPI so agents can discover handles,
-  accepted/changed state, counts, inventory fingerprints, phase, slot/attempt
-  evidence, item projections, and machine-readable reasons from the live spec.
+  accepted/changed state, counts, inventory fingerprints, phase,
+  output/confirmation attempt evidence, slot evidence, item projections, and
+  machine-readable reasons from the live spec.
 - [x] Run the focused test and confirm it passes.
 
 ### Task 4: Public-Agent Composition
