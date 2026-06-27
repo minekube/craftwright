@@ -155,7 +155,7 @@
   mise run ci
   ```
 
-- [ ] **Step 2: Commit and push**
+- [x] **Step 2: Commit and push**
 
   Run:
 
@@ -165,7 +165,7 @@
   git push origin main
   ```
 
-- [ ] **Step 3: Verify remote CI**
+- [x] **Step 3: Verify remote CI**
 
   Run:
 
