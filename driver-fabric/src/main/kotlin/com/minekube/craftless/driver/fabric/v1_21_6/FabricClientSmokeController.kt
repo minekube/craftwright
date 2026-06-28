@@ -903,8 +903,8 @@ private val PUBLIC_AGENT_REQUIRED_ACTIONS =
     listOf(
         "entity.query",
         "inventory.query",
-        "navigation.plan",
-        "navigation.follow",
+        FabricNavigationOperationIds.PLAN,
+        FabricNavigationOperationIds.FOLLOW,
         "player.look",
         "player.raycast",
         "world.block.break",

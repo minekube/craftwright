@@ -8,6 +8,15 @@ import com.minekube.craftless.protocol.RuntimeSchema
 import com.minekube.craftless.protocol.RuntimeSourceEvidence
 import java.security.MessageDigest
 
+internal object FabricNavigationOperationIds {
+    const val PLAN = "navigation.plan"
+    const val FOLLOW = "navigation.follow"
+    const val STOP = "navigation.stop"
+    const val TASK_RUN = "task.run"
+    const val TASK_STATUS = "task.status"
+    const val TASK_PROGRESS = "task.progress"
+}
+
 internal class FabricNavigationDiscovery(
     private val classExists: (String) -> Boolean = ::classExists,
     private val pathfinderProbe: ReflectiveFabricPathfinderProbe = ClassLoaderReflectiveFabricPathfinderProbe(),
@@ -57,26 +66,26 @@ internal class FabricNavigationDiscovery(
             operations =
                 listOf(
                     navigationOperation(
-                        id = "navigation.plan",
+                        id = FabricNavigationOperationIds.PLAN,
                         arguments = mapOf("goal" to RuntimeSchema("object", required = true)),
                         availability = operationAvailability,
                     ),
                     navigationOperation(
-                        id = "navigation.follow",
+                        id = FabricNavigationOperationIds.FOLLOW,
                         arguments = mapOf("plan" to RuntimeSchema("object", required = true)),
                         availability = operationAvailability,
                     ),
                     navigationOperation(
-                        id = "navigation.stop",
+                        id = FabricNavigationOperationIds.STOP,
                         availability = operationAvailability,
                     ),
                     taskOperation(
-                        id = "task.run",
+                        id = FabricNavigationOperationIds.TASK_RUN,
                         arguments = mapOf("request" to RuntimeSchema("object", required = true)),
                         availability = taskAvailability,
                     ),
                     taskOperation(
-                        id = "task.status",
+                        id = FabricNavigationOperationIds.TASK_STATUS,
                         arguments = mapOf("task" to RuntimeSchema("string", required = true)),
                         availability = taskAvailability,
                     ),
@@ -84,7 +93,7 @@ internal class FabricNavigationDiscovery(
             events =
                 listOf(
                     RuntimeEventNode(
-                        id = "task.progress",
+                        id = FabricNavigationOperationIds.TASK_PROGRESS,
                         resource = "task",
                         payload = RuntimeSchema.objectSchema(),
                         availability = taskAvailability,

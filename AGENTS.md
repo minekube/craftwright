@@ -199,6 +199,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 86. Fabric adapter key source ownership.
 87. backend operation id source ownership.
 88. binding adapter key derivation removal.
+89. navigation operation id source ownership.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -688,6 +689,14 @@ with conventions such as `fabric.${operationId.replace(".", "-")}`. This phase
 still does not finish the broader binding exit while future gameplay breadth
 depends on hand-maintained bootstrap operation definitions instead of generic
 runtime discovery.
+Phase 89 makes Fabric navigation discovery the source for current transitional
+navigation and task operation ids. `FabricDriverBackend` and
+`FabricClientSmokeController` may reference `FabricNavigationOperationIds`
+constants, but they must not repeat operation id literals such as
+`navigation.plan`, `navigation.follow`, `task.run`, or `task.status`. This
+phase still does not finish the broader binding exit while future gameplay
+breadth depends on hand-maintained bootstrap/navigation operation definitions
+instead of generic runtime discovery.
 
 ## Acceptance Scenarios Are Not Product APIs
 

@@ -215,9 +215,9 @@ class FabricDriverBackend private constructor(
                 return@DriverOperationAdapter unsupportedGraphOperation(invocation)
             }
             when (invocation.operation.id) {
-                "navigation.plan" -> planNavigation(invocation)
-                "navigation.follow" -> followNavigation(invocation)
-                "navigation.stop" -> stopNavigation(invocation)
+                FabricNavigationOperationIds.PLAN -> planNavigation(invocation)
+                FabricNavigationOperationIds.FOLLOW -> followNavigation(invocation)
+                FabricNavigationOperationIds.STOP -> stopNavigation(invocation)
                 else -> unsupportedGraphOperation(invocation)
             }
         }
@@ -231,8 +231,8 @@ class FabricDriverBackend private constructor(
                 return@DriverOperationAdapter unsupportedGraphOperation(invocation)
             }
             when (invocation.operation.id) {
-                "task.run" -> runTask(invocation)
-                "task.status" -> queryTaskStatus(invocation)
+                FabricNavigationOperationIds.TASK_RUN -> runTask(invocation)
+                FabricNavigationOperationIds.TASK_STATUS -> queryTaskStatus(invocation)
                 else -> unsupportedGraphOperation(invocation)
             }
         }

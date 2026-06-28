@@ -188,6 +188,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-88-binding-adapter-key-derivation-removal-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-88-binding-adapter-key-derivation-removal-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-89-navigation-operation-id-source-ownership-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-89-navigation-operation-id-source-ownership-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -2836,6 +2840,33 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-binding-adapter-key-derivation-removal.md`.
 
+## Phase 89: Navigation Operation Id Source Ownership
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-89-navigation-operation-id-source-ownership-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-89-navigation-operation-id-source-ownership-plan.md`.
+- [x] `FabricNavigationDiscovery.kt` owns current transitional navigation and
+  task operation ids through `FabricNavigationOperationIds`.
+- [x] `FabricDriverBackend.kt` and `FabricClientSmokeController.kt` consume
+  navigation operation constants instead of duplicated quoted operation-id
+  literals.
+- [~] The broader binding-exit blocker remains active until future gameplay
+  breadth is generated from generic runtime discovery instead of
+  hand-maintained bootstrap/navigation operation definitions.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
+  lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend and smoke do not own navigation operation id literals*'`
+- Green focused test:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend and smoke do not own navigation operation id literals*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-navigation-operation-id-source-ownership.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -2847,7 +2878,7 @@ Verification:
   operation definition isolation, and Phase 85 binding operation id source
   ownership, Phase 86 Fabric adapter key source ownership, and Phase 87 backend
   operation id source ownership, and Phase 88 binding adapter key derivation
-  removal.
+  removal, and Phase 89 navigation operation id source ownership.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest and representative older runtime lanes have the requested support or

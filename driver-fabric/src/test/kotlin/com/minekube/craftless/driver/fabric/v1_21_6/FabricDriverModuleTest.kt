@@ -1219,6 +1219,43 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric backend and smoke do not own navigation operation id literals`() {
+        val root = repositoryRoot()
+        val backendSource =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt",
+                ),
+            )
+        val smokeSource =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricClientSmokeController.kt",
+                ),
+            )
+
+        assertEquals(
+            emptyList(),
+            listOf(
+                "\"navigation.plan\"",
+                "\"navigation.follow\"",
+                "\"navigation.stop\"",
+                "\"task.run\"",
+                "\"task.status\"",
+            ).filter { token -> backendSource.contains(token) },
+            "Fabric backend dispatch must reference navigation operation constants instead of owning operation ids.",
+        )
+        assertEquals(
+            emptyList(),
+            listOf(
+                "\"navigation.plan\"",
+                "\"navigation.follow\"",
+            ).filter { token -> smokeSource.contains(token) },
+            "Fabric smoke required-action checks must reference navigation operation constants instead of owning operation ids.",
+        )
+    }
+
+    @Test
     fun `fabric backend can expose unavailable actions only from runtime discovery probes`() {
         val backend = FabricDriverBackend.metadataOnly()
 
