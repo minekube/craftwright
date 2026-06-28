@@ -1,18 +1,19 @@
 # Craftless Project Completion Checklist
 
 This is the active completion board. It is not a phase archive, design doc, or
-dumping ground for every task ever attempted.
+raw command log. Keep it short enough that the next agent can immediately see
+what is closed, what is blocked, and what command moves the project forward.
 
-Craftless is complete only when every CL gate below is `[x]`, the named
-evidence files are fresh, local verification passed, the worktree is clean, and
-`main` is pushed.
+Craftless is complete only when every CL gate below is `[x]`, the named evidence
+files are fresh, local verification passed, the worktree is clean, and `main` is
+pushed.
 
-Status legend: `[ ]` open, `[~]` in progress, `[x]` closed with evidence, `[!]`
-blocked with an exact blocker and next command.
+Status legend: `[ ]` open, `[~]` in progress, `[x]` closed with evidence,
+`[!]` blocked with exact blocker evidence and the next diagnostic command.
 
-## Operating Rules
+## Checklist Rules
 
-- Work top-down from **Current Execution Packet**.
+- Work from **Current Execution Packet** first.
 - Put specs in `docs/superpowers/specs/`.
 - Put implementation plans in `docs/superpowers/plans/`.
 - Put command transcripts and artifact summaries in
@@ -20,87 +21,94 @@ blocked with an exact blocker and next command.
 - Put phase index entries in `docs/superpowers/phase-index.md`.
 - Put durable rules in `docs/agent-operating-contract.md` or
   `docs/agent-module-contracts.md`.
-- Do not append phase history or raw logs to this file.
-- Do not close a gate from compile-only output, old evidence, remote CI
-  waiting, hand-maintained gameplay catalogs, or scenario shortcuts.
+- Do not append phase history, raw logs, or long rule lists to this file.
+- Do not close a gate from compile-only output, old evidence, remote CI waiting,
+  hand-maintained gameplay catalogs, direct driver calls, or scenario shortcuts.
 
 ## At A Glance
 
 | Field | Current State |
 | --- | --- |
 | Active gate | CL-07 final honest public gameplay |
-| Exact next work | Finish the rerunnable CL-07 public gameplay probe and run it without server provisioning |
-| Do not do yet | Do not claim CL-08 or final project completion |
-| Current blocker | `scripts/final-public-gameplay-probe.sh`, `tasks.final-public-gameplay-probe`, and CL-07 evidence do not exist yet |
-| Completion rule | Close one gate only when its evidence file contains fresh commands and results |
+| Active blocker | Packaged `clients create` for the final public gameplay probe returns `BAD_REQUEST` with `Not enough data available` before the client is created. |
+| Exact next work | Diagnose that create-client/cache/artifact failure, fix the generic product path, then rerun `mise run final-public-gameplay-probe`. |
+| Recently fixed in CL-07 | Final probe script/task exist, smoke provisioning can be disabled, distribution/provisioning guards pass, and `task.*` is removed from the Fabric public runtime graph. |
+| Do not do | Do not add hard-coded survival tasks, preloaded inventory, `/give`, static gameplay catalogs, version-specific public API trees, or manual gameplay shortcuts. |
+| Completion rule | Close one gate only when its evidence file contains fresh commands, artifacts, and observed public state transitions. |
 
 ## Gate Board
 
 | Gate | Status | Closure Standard | Evidence |
 | --- | --- | --- | --- |
-| CL-01 | [x] | Public gameplay authority is generated runtime graph/OpenAPI, not `/actions` or static lists. | Phases 171-173. |
-| CL-02 | [x] | Static gameplay catalog regressions are guarded; transitional Fabric bootstrap cannot become public API authority. | Phase 178. |
-| CL-03 | [x] | Latest/current Minecraft `26.2` packaged lane completes create/attach/connect/OpenAPI/projections/SSE/JSON-RPC/adaptive CLI invocation. | `docs/superpowers/evidence/2026-06-28-latest-current-generated-primitive-smoke.md` |
-| CL-04 | [x] | Representative older Minecraft `1.20.6` packaged lane completes the same public product gate set as CL-03. | `docs/superpowers/evidence/2026-06-28-representative-older-product-lane.md` |
-| CL-05 | [x] | External users and agents can install, run, inspect, stream, invoke, and debug Craftless without reading source. | `docs/superpowers/evidence/2026-06-28-user-facing-usability-docs.md` |
-| CL-06 | [x] | Local release-quality gates pass after CL-05 is closed. | `docs/superpowers/evidence/2026-06-28-final-local-release-gates.md` |
-| CL-07 | [~] | Honest survival gameplay succeeds through public generated API/CLI only. | `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md` |
-| CL-08 | [ ] | Final state is clean, committed, pushed to `main`, and indexed. | `docs/superpowers/evidence/2026-06-28-final-completion.md` |
+| CL-01 Generated authority | [x] | Public gameplay authority is generated runtime graph/OpenAPI, not `/actions` or static lists. | Phases 171-173. |
+| CL-02 Static shortcut guards | [x] | Static gameplay catalog regressions are guarded; transitional Fabric bootstrap cannot become public API authority. | Phase 178. |
+| CL-03 Latest/current lane | [x] | Minecraft `26.2` packaged lane completes create/attach/connect/OpenAPI/projections/SSE/JSON-RPC/adaptive CLI invocation. | `docs/superpowers/evidence/2026-06-28-latest-current-generated-primitive-smoke.md` |
+| CL-04 Representative older lane | [x] | Minecraft `1.20.6` packaged lane completes the same public product gate set as CL-03. | `docs/superpowers/evidence/2026-06-28-representative-older-product-lane.md` |
+| CL-05 External usability | [x] | External users and agents can install, run, inspect, stream, invoke, and debug Craftless without reading source. | `docs/superpowers/evidence/2026-06-28-user-facing-usability-docs.md` |
+| CL-06 Release-quality local gates | [x] | Local release-quality gates pass after CL-05 is closed. | `docs/superpowers/evidence/2026-06-28-final-local-release-gates.md` |
+| CL-07 Final public gameplay | [~] | Honest survival gameplay succeeds through public generated API/CLI only. | `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md` |
+| CL-08 Publish completed state | [ ] | Final state is clean, committed, pushed to `main`, and indexed. | `docs/superpowers/evidence/2026-06-28-final-completion.md` |
 
 ## Current Execution Packet: CL-07
 
-Only this packet is active. Treat checked items here as local progress, not as
-gate closure. CL-07 closes only when its evidence file exists and the Gate
-Board row is changed to `[x]`.
+Only this packet is active. Treat checked items here as local progress, not gate
+closure. CL-07 closes only when its evidence file exists and the Gate Board row
+is changed to `[x]`.
 
-| Step | Status | Required Output | Next Command |
+| Step | Status | Required Output | Evidence Or Next Command |
 | --- | --- | --- | --- |
-| 1 | [x] | CL-07 spec and implementation plan exist. | Already done: `docs/superpowers/specs/2026-06-28-187-final-public-gameplay-design.md`, `docs/superpowers/plans/2026-06-28-187-final-public-gameplay-plan.md`. |
-| 2 | [~] | Distribution guard proves the final probe uses generated public surfaces only and rejects scenario shortcuts. | `mise exec -- bun test playwright/src/distribution.test.ts` must fail red until the script and mise task exist, then pass green. |
-| 3 | [ ] | Real-client smoke provisioning can be disabled and is disabled for CL-07. | Add/verify `CRAFTLESS_DISABLE_SMOKE_PROVISIONING=1` and guard against default `CRAFTLESS_SMOKE_PROVISION_ITEM_ID`. |
-| 4 | [ ] | `scripts/final-public-gameplay-probe.sh` starts packaged Craftless, uses generated OpenAPI as authority, and writes artifacts. | Create script through `apply_patch`, then `chmod +x scripts/final-public-gameplay-probe.sh`. |
-| 5 | [ ] | `.mise.toml` has `tasks.final-public-gameplay-probe` that packages the CLI and runs the real Fabric smoke with provisioning disabled. | Add the task and keep it `mise`/Bun/Gradle only. |
-| 6 | [ ] | Guard tests pass for the distribution surface and provisioning boundary. | Run focused Bun/Gradle tests, then `git diff --check`. |
-| 7 | [ ] | Final gameplay probe runs through public generated API/CLI only. | `mise run final-public-gameplay-probe`. |
-| 8 | [ ] | Probe captures connected OpenAPI, actions/resources, SSE or JSON-RPC subscription, action log, state log, and server log. | Inspect `driver-fabric/build/craftless-final-gameplay/artifacts/`. |
-| 9 | [ ] | Gameplay proof covers chat, observation, resource collection, inventory change, craft/equip, block change, and entity interaction. | If it fails, record `missing-generic-primitive:<id>` and fix the generic discovery/projection/invocation system, not a scenario shortcut. |
-| 10 | [ ] | CL-07 evidence file summarizes commands, artifacts, and verified state transitions. | Write `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md`. |
-| 11 | [ ] | Checklist and phase index mark CL-07 closed only after evidence passes. | Update this file and `docs/superpowers/phase-index.md`. |
-| 12 | [ ] | CL-07 work is committed and pushed to `main`. | `git status --short --branch`, `git add ...`, `git commit ...`, `git push origin main`. |
+| 1 | [x] | CL-07 spec and implementation plan exist. | `docs/superpowers/specs/2026-06-28-187-final-public-gameplay-design.md`, `docs/superpowers/plans/2026-06-28-187-final-public-gameplay-plan.md` |
+| 2 | [x] | Distribution guard proves the final probe uses generated public surfaces and rejects scenario shortcuts. | `mise exec -- bun test playwright/src/distribution.test.ts` passed. |
+| 3 | [x] | Real-client smoke provisioning can be disabled and is disabled for CL-07. | `CRAFTLESS_DISABLE_SMOKE_PROVISIONING=1` guard added; focused Gradle provisioning test passed. |
+| 4 | [x] | `scripts/final-public-gameplay-probe.sh` starts packaged Craftless, uses generated OpenAPI as authority, and writes artifacts. | Script exists and `bash -n scripts/final-public-gameplay-probe.sh` passed. |
+| 5 | [x] | `.mise.toml` has `tasks.final-public-gameplay-probe` that packages the CLI and runs Fabric smoke with provisioning disabled. | `tasks.final-public-gameplay-probe` exists; do not re-add `CRAFTLESS_FABRIC_CLIENT_SMOKE=1`. |
+| 6 | [x] | Guard tests pass for distribution, provisioning, Fabric runtime graph, and OpenAPI generation. | Focused Bun and Gradle tests passed after `task.*` removal. |
+| 7 | [!] | Packaged `clients create` succeeds for the final public gameplay probe. | Current failure: `clients-create.log` contains `{"code":"BAD_REQUEST","message":"Not enough data available"}`. Next: inspect daemon create/cache/artifact path and reproduce with more diagnostics. |
+| 8 | [ ] | Final gameplay probe runs through public generated API/CLI only. | `mise run final-public-gameplay-probe` after Step 7 is fixed. |
+| 9 | [ ] | Probe captures connected OpenAPI, actions/resources, SSE or JSON-RPC subscription, action log, state log, and server log. | Inspect `driver-fabric/build/craftless-final-gameplay/artifacts/`. |
+| 10 | [ ] | Gameplay proof covers chat, observation, resource collection, inventory change, craft/equip, block change, and entity interaction. | If a primitive is absent, record `missing-generic-primitive:<id>` and fix discovery/projection/invocation. |
+| 11 | [ ] | CL-07 evidence file summarizes commands, artifacts, and verified state transitions. | Write `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md`. |
+| 12 | [ ] | Checklist and phase index mark CL-07 closed only after evidence passes. | Update this file and `docs/superpowers/phase-index.md`. |
+| 13 | [ ] | CL-07 work is committed and pushed to `main`. | `git status --short --branch`, `git add ...`, `git commit ...`, `git push origin main`. |
 
-### Exact Next Commands
+## Immediate Diagnostic Queue
 
-Verify the currently red CL-07 guard:
-
-```sh
-mise exec -- bun test playwright/src/distribution.test.ts
-```
-
-Implement and verify the probe surface:
+Run these before adding more gameplay features:
 
 ```sh
-mise run package-cli
-mise exec -- bun test playwright/src/distribution.test.ts
-git diff --check
+rg -n "ClientCreate|clients create|prepare|cache|artifact|driver-mods|BadRequest|Not enough data" daemon cli driver-runtime driver-fabric -S
 ```
-
-CL-07 final verification:
 
 ```sh
 mise run final-public-gameplay-probe
+```
+
+If the same `BAD_REQUEST` repeats, capture the full create path with more daemon
+diagnostics instead of guessing:
+
+```sh
+tail -200 driver-fabric/build/craftless-final-gameplay/artifacts/packaged-daemon.log
+cat driver-fabric/build/craftless-final-gameplay/artifacts/clients-create.log
+```
+
+After any fix, rerun the focused guard set:
+
+```sh
+mise exec -- bun test playwright/src/distribution.test.ts
+mise exec -- gradle :driver-fabric:test --tests '*FabricNavigationDiscoveryTest*' --tests '*FabricDriverModuleTest.fabric client smoke can disable default server item provisioning*'
+mise exec -- gradle :protocol:test --tests '*OpenApiGenerationTest*'
 git diff --check
 ```
 
-### CL-07 Failure Rules
+## CL-07 Failure Rules
 
 - If a required primitive is not discovered from live per-client OpenAPI, write
   `missing-generic-primitive:<id>` and fix generic discovery/projection or
   invocation.
 - If inventory does not change after a world action, improve public state,
   pickup/drop perception, or invocation evidence. Do not preload inventory.
-- If movement or targeting is unreliable, improve generated navigation,
-  raycast, query handles, or adapter behavior. Do not script a fixed survival
-  route.
+- If movement or targeting is unreliable, improve generated navigation, raycast,
+  query handles, or adapter behavior. Do not script a fixed survival route.
 - If a Minecraft version or lane diverges, isolate the diverging adapter or
   provider behind the version lane. Do not create version-specific public API,
   CLI command trees, or copied gameplay catalogs.
@@ -112,9 +120,8 @@ git diff --check
 ### CL-05: External User And Agent Usability
 
 - README covers install script, packaged CLI, Docker runtime image, reusable
-  GitHub Action, supervisor OpenAPI, generated per-client OpenAPI, adaptive
-  CLI, SSE, JSON-RPC query/subscription, cache behavior, and evidence
-  expectations.
+  GitHub Action, supervisor OpenAPI, generated per-client OpenAPI, adaptive CLI,
+  SSE, JSON-RPC query/subscription, cache behavior, and evidence expectations.
 - README/docs have no active TypeScript SDK positioning, previous brand name,
   `.dev` domain, HMC-as-final-driver wording, static gameplay SDK wording, or
   server-cheat completion wording.
@@ -142,8 +149,8 @@ probe, and representative older packaged lane probe.
 ### CL-07: Final Honest Public Gameplay
 
 The final gameplay replay must use public generated API/CLI only. It must not
-use creative inventory, `/give`, preloaded inventory, human movement,
-hard-coded survival scenario actions, or direct in-process test calls.
+use creative inventory, `/give`, preloaded inventory, human movement, hard-coded
+survival scenario actions, or direct in-process test calls.
 
 Required proof:
 
@@ -164,12 +171,12 @@ Required proof:
 
 Required negative proof:
 
-- No `/give`, creative inventory, preloaded inventory, direct driver calls,
-  human movement, server provisioning, `task.*`, `task.survival`, `kill.cow`,
-  `find.tree`, `craft.sword`, or other scenario shortcut can appear in the
-  final probe path.
-- `/clients/{id}/actions` and `/clients/{id}/resources` are projection
-  artifacts only. The authority for gameplay selection is
+- No `/give`, creative inventory, preloaded inventory, direct driver calls, human
+  movement, server provisioning, `task.*`, `task.survival`, `kill.cow`,
+  `find.tree`, `craft.sword`, or other scenario shortcut can appear in the final
+  probe path.
+- `/clients/{id}/actions` and `/clients/{id}/resources` are projection artifacts
+  only. The authority for gameplay selection is
   `GET /clients/{id}/openapi.json`.
 
 ### CL-08: Publish Completed State
@@ -179,30 +186,18 @@ Required negative proof:
 - `git status --short --branch` is clean after commit.
 - `git push origin main` succeeds.
 
-## Final Completion Gate
-
-Completion remains blocked until CL-01 through CL-08 are checked with fresh
-evidence. The final record must include runnable support evidence for both the
-latest/current lane and the representative older lane under the same public
-API/CLI gates.
-
-Historical phase sections do not close the product goal. They are indexed in
-`docs/superpowers/phase-index.md` and backed by specs, plans, and evidence
-files.
-
 ## Current Baseline
 
 Craftless currently has a Kotlin/JVM Ktor supervisor, adaptive JVM CLI,
 generated per-client OpenAPI, graph-projected actions/resources, generic
 invocation, SSE plus JSON-RPC-style query/control, packaged distribution paths,
-and staged Fabric gameplay evidence.
+staged Fabric gameplay evidence, and version-aware driver-mod lane selection.
 
 CL-03 is closed for latest/current Minecraft `26.2`. CL-04 is closed for
-representative older Minecraft `1.20.6`. CL-05 is closed for external-user
-and agent usability. CL-06 is closed for local release-quality gates. CL-07 is
-the active blocker: implement and run a rerunnable final honest survival
-gameplay probe through public generated API/CLI only, with server provisioning
-disabled.
+representative older Minecraft `1.20.6`. CL-05 is closed for external-user and
+agent usability. CL-06 is closed for local release-quality gates. CL-07 is the
+active blocker: make the final public gameplay probe run honestly through public
+generated API/CLI only, with server provisioning disabled.
 
 ## Closed Evidence Index
 
