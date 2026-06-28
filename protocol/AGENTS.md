@@ -23,6 +23,12 @@ protocol DTOs.
   described as metadata and action descriptors, not as static route expansion
   for every possible Minecraft operation.
 - Use `kotlinx.serialization` DTOs for public protocol shapes.
+- Keep protocol DTOs version-agnostic. Version-specific facts should be data in
+  runtime metadata, source evidence, fingerprints, availability reasons, graph
+  nodes, schemas, and descriptors.
+- Do not model Minecraft/Fabric version differences with new static protocol
+  enums or duplicated DTOs unless the public machine contract itself truly
+  changes.
 
 ## Verification
 

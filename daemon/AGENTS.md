@@ -11,6 +11,8 @@ sessions.
 - Per-client `/clients/{id}/openapi.json`, `/clients/{id}/actions`, and
   `POST /clients/{id}:run`.
 - Runtime driver factory integration.
+- Version, loader, Java runtime, artifact cache, driver mod selection, and
+  attach-environment orchestration.
 
 ## Rules
 
@@ -25,6 +27,14 @@ sessions.
 - Preserve typed JSON action args. Do not coerce every action arg to strings.
 - Emit structured session events for lifecycle, chat, movement, stop, and
   errors where the driver result provides enough information.
+- Keep version-specific knowledge in data and resolver services: Mojang
+  manifests, Fabric loader/API resolution, Java runtime selection, driver mod
+  manifests, and compatibility probes. Do not branch daemon routes or public API
+  shapes per Minecraft version.
+- A launched client is not enough completion evidence. The daemon must surface
+  whether the prepared runtime session was replaced by an attached in-client
+  driver before generated gameplay OpenAPI/actions/resources are claimed as
+  working.
 
 ## Verification
 

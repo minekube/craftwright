@@ -252,6 +252,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 139. packaged older Fabric lane selection smoke.
 140. parameterized Fabric smoke client command.
 141. representative older Fabric real-client smoke.
+142. installed packaged older Fabric live attach.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -298,6 +299,14 @@ action invocation, server join/chat/disconnect, and runtime metadata for that
 older lane. It still is not final completion evidence because the diagnostic
 smoke may provision an item and does not prove installed packaged CLI older
 lane operation or honest survival gameplay without shortcuts.
+
+Phase 142 proves the installed packaged CLI distribution can launch and attach
+the representative older Fabric lane through the public supervisor and CLI/API
+surface. Use `mise run package-cli`, the packaged `craftless server start`, and
+packaged `craftless clients create --version 1.20.6 --loader fabric
+--loader-version 0.19.3`, then fetch generated OpenAPI/actions/resources and
+events. This closes the packaged older-lane proof gap, but still does not prove
+honest final survival gameplay.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

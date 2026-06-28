@@ -20,6 +20,11 @@
   boundary.
 - Prefer shared runtime behavior here over duplicating lifecycle/event logic in
   each driver backend.
+- Keep runtime adapters version-neutral. Minecraft/Fabric version divergence
+  should arrive as runtime metadata, capability graph nodes, compatibility lane
+  decisions, or backend-specific adapters, not duplicated session mechanics.
+- Attached in-client drivers must replace prepared-runtime placeholders before
+  their generated OpenAPI/actions/resources are used as evidence.
 
 ## Verification
 

@@ -24,6 +24,11 @@
   `--json`/`--jsonl` output, explicit exit codes, and non-interactive
   `--no-input` behavior.
 - Use Ktor Client for daemon/API calls.
+- Keep version selection and compatibility visible as data from the supervisor
+  and live OpenAPI. Do not add separate static CLI command trees for Minecraft
+  versions, loaders, or Fabric lanes.
+- CLI smoke evidence must prove the installed/packaged command talks to the
+  same generated OpenAPI/actions/resources that agents would use.
 
 ## Verification
 

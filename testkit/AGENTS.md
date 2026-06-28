@@ -17,6 +17,9 @@
 - Do not hide product behavior in test-only shortcuts that bypass public
   protocol or driver contracts.
 - Prefer focused fixtures over broad global test state.
+- Version compatibility fixtures should validate resolver, lane, metadata, and
+  attach behavior through public contracts. Do not fake success by hard-coding
+  gameplay catalogs or bypassing generated OpenAPI/action/resource discovery.
 
 ## Verification
 

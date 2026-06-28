@@ -18,6 +18,10 @@ material.
 - Describe the durable driver direction as Fabric with generated per-client
   OpenAPI/action descriptors, adaptive CLI dispatch/help, and consolidated
   version-aware bindings where practical.
+- Describe multi-version support as version-agnostic system work first:
+  manifests, Java/runtime selection, Fabric Loader/API resolution, driver mod
+  manifests, compatibility lanes, and runtime graph evidence. Per-version code
+  is acceptable only for documented divergence behind lane boundaries.
 - Avoid stale public routes such as `/player/sendChat`; use
   `POST /clients/{id}:run` and generated aliases such as
   `POST /clients/{id}/player:chat` when discussing action invocation.

@@ -228,6 +228,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-141-representative-older-fabric-real-client-smoke-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-141-representative-older-fabric-real-client-smoke-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-142-installed-packaged-older-fabric-live-attach-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-142-installed-packaged-older-fabric-live-attach-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -3967,6 +3971,41 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-representative-older-fabric-real-client-smoke.md`.
 
+## Phase 142: Installed Packaged Older Fabric Live Attach
+
+- [x] `mise run package-cli` passed and rebuilt the packaged CLI distribution
+  plus Docker staging directory.
+- [x] The packaged binary started a supervisor at `http://127.0.0.1:18082`
+  with workspace `/tmp/craftless-packaged-older-live-attach/workspace`.
+- [x] The packaged CLI created client `older-cli` with Minecraft `1.20.6`,
+  loader `FABRIC`, Fabric Loader `0.19.3`, and offline profile `OlderCli`.
+- [x] The packaged client staged both `craftless-driver-fabric
+  0.1.0-SNAPSHOT` for Minecraft `1.20.6` and Fabric API `0.100.8+1.20.6`.
+- [x] SSE events showed `client.created` followed by `client.attached`.
+- [x] The attached generated per-client OpenAPI reported
+  `x-craftless-driver=craftless-driver-fabric`,
+  `x-craftless-minecraft-version=1.20.6`,
+  `x-craftless-loader-version=0.19.3`, mappings fingerprint
+  `craftless-fabric-bindings-1-20-6`, and runtime graph fingerprint
+  `graph:90a3b5c0f713c767`.
+- [x] The attached generated OpenAPI exposed 22 generated actions, 14
+  generated resources, and 22 generated action alias paths through the packaged
+  CLI/API surface.
+- [x] The client stopped with state `STOPPED`, the supervisor was stopped, and
+  no managed Craftless/older-lane processes remained.
+- [x] This phase adds no public gameplay API, static gameplay catalog,
+  version-specific public route family, survival shortcut, or final honest
+  survival completion claim.
+
+Verification:
+
+- Package build:
+  `mise run package-cli` passed.
+- Packaged live attach artifact root:
+  `/tmp/craftless-packaged-older-live-attach/artifacts/`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-installed-packaged-older-fabric-live-attach.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -4012,13 +4051,15 @@ Verification:
   137 reflective recipe bridge, and Phase 138 packaged representative older
   Fabric lane, Phase 139 packaged older Fabric lane selection smoke, and Phase
   140 parameterized Fabric smoke client command, and Phase 141 representative
-  older Fabric real-client smoke.
+  older Fabric real-client smoke, and Phase 142 installed packaged older
+  Fabric live attach.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
   122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128,
   Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
-  135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, and Phase 141 do not
+  135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141, and
+  Phase 142 do not
   satisfy the full runnable latest/older support
   requirement by themselves.
   The broader project goal remains active until
@@ -4060,9 +4101,11 @@ Verification:
   compile, Phase 138 packages that lane as a selectable artifact, Phase 139
   proves supervisor selection, Phase 140 prevents false smoke evidence, and
   Phase 141 proves real Gradle-harness launch, attach, generated API, SSE, and
-  diagnostic generated-action smoke for Minecraft `1.20.6`. Full product
-  support still requires installed packaged CLI proof, latest/current-version
-  evidence refresh, and honest final survival gameplay without server-provisioned
-  inventory.
+  diagnostic generated-action smoke for Minecraft `1.20.6`. Phase 142 proves
+  installed packaged CLI launch, self-attach, generated OpenAPI, generated
+  actions/resources, SSE events, and cleanup for Minecraft `1.20.6`. Full
+  product support still requires latest/current-version evidence refresh,
+  final compatibility audit, and honest final survival gameplay without
+  server-provisioned inventory.
 - [x] Changes are committed and pushed to `main`. This entry is current only
   after the checklist update that changes it is also pushed.
