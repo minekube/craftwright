@@ -15,6 +15,9 @@ import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
+import com.minekube.craftless.protocol.JsonRpcMethod
+import com.minekube.craftless.protocol.JsonRpcRequest
+import com.minekube.craftless.protocol.JsonRpcResponse
 import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.Profile
 import com.minekube.craftless.testkit.LocalServerFixture
@@ -36,8 +39,11 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import java.io.IOException
 import java.net.ServerSocket
 import java.nio.file.Files
@@ -101,11 +107,17 @@ private class OfficialFabricAttachProbe(
                         val openApiText = http.get("$daemonUrl/clients/${config.clientId}/openapi.json").bodyAsText()
                         val actionsText = http.get("$daemonUrl/clients/${config.clientId}/actions").bodyAsText()
                         val resourcesText = http.get("$daemonUrl/clients/${config.clientId}/resources").bodyAsText()
+                        val rpcOpenApiText = queryJsonRpc(http, daemonUrl, "openapi")
+                        val rpcActionsText = queryJsonRpc(http, daemonUrl, "actions")
+                        val rpcResourcesText = queryJsonRpc(http, daemonUrl, "resources")
                         val clientEventsStreamText = http.get("$daemonUrl/clients/${config.clientId}/events:stream").bodyAsText()
                         config.artifactsDir.resolve("daemon-events.json").writeText(eventsText + "\n")
                         config.artifactsDir.resolve("client-openapi.json").writeText(openApiText + "\n")
                         config.artifactsDir.resolve("client-actions.json").writeText(actionsText + "\n")
                         config.artifactsDir.resolve("client-resources.json").writeText(resourcesText + "\n")
+                        config.artifactsDir.resolve("client-rpc-openapi.json").writeText(rpcOpenApiText + "\n")
+                        config.artifactsDir.resolve("client-rpc-actions.json").writeText(rpcActionsText + "\n")
+                        config.artifactsDir.resolve("client-rpc-resources.json").writeText(rpcResourcesText + "\n")
                         config.artifactsDir.resolve("client-events-stream.sse").writeText(clientEventsStreamText + "\n")
                         if (connected) {
                             config.artifactsDir.resolve("client-openapi-connected.json").writeText(openApiText + "\n")
@@ -124,6 +136,9 @@ private class OfficialFabricAttachProbe(
                             streamedEventTypes = sseEventTypes(clientEventsStreamText),
                             publicActionCount = jsonArraySize(actionsText),
                             publicResourceIds = publicResourceIds(resourcesText),
+                            rpcQueryTargets = listOf("openapi", "actions", "resources"),
+                            rpcActionCount = rpcResultArraySize(rpcActionsText),
+                            rpcResourceIds = rpcResourceIds(rpcResourcesText),
                             message =
                                 if (connected) {
                                     "official Fabric probe observed connected client state for ${config.clientId}"
@@ -244,6 +259,28 @@ private class OfficialFabricAttachProbe(
         return false
     }
 
+    private suspend fun queryJsonRpc(
+        http: HttpClient,
+        daemonUrl: String,
+        target: String,
+    ): String =
+        http
+            .post("$daemonUrl/clients/${config.clientId}:rpc") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    probeJson.encodeToString(
+                        JsonRpcRequest(
+                            id = "rpc:official_probe:$target",
+                            method = JsonRpcMethod.QUERY,
+                            params =
+                                buildJsonObject {
+                                    put("target", target)
+                                },
+                        ),
+                    ),
+                )
+            }.bodyAsText()
+
     private fun hasConnectedClientState(openApiText: String): Boolean {
         val available = connectedResourceIds(openApiText).toSet()
         return CONNECTED_CLIENT_STATE_RESOURCES.all(available::contains)
@@ -271,6 +308,16 @@ private class OfficialFabricAttachProbe(
     private fun publicResourceIds(resourcesText: String): List<String> =
         (probeJson.parseToJsonElement(resourcesText) as? JsonArray)
             .orEmpty()
+            .mapNotNull { element -> element.jsonObject["id"]?.jsonPrimitive?.content }
+
+    private fun rpcResultArraySize(text: String): Int =
+        requireNotNull(probeJson.decodeFromString<JsonRpcResponse>(text).result)
+            .jsonArray
+            .size
+
+    private fun rpcResourceIds(text: String): List<String> =
+        requireNotNull(probeJson.decodeFromString<JsonRpcResponse>(text).result)
+            .jsonArray
             .mapNotNull { element -> element.jsonObject["id"]?.jsonPrimitive?.content }
 
     private companion object {
@@ -323,6 +370,9 @@ private data class OfficialFabricAttachProbeResult(
     val streamedEventTypes: List<String> = emptyList(),
     val publicActionCount: Int = 0,
     val publicResourceIds: List<String> = emptyList(),
+    val rpcQueryTargets: List<String> = emptyList(),
+    val rpcActionCount: Int = 0,
+    val rpcResourceIds: List<String> = emptyList(),
 )
 
 @Serializable
