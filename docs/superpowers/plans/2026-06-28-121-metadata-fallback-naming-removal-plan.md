@@ -87,7 +87,7 @@
   mise run ci
   ```
 
-- [ ] **Step 3: Commit and push**
+- [x] **Step 3: Commit and push**
 
   ```sh
   git add AGENTS.md daemon/src/main/kotlin/com/minekube/craftless/daemon/MinecraftJavaRuntimeRequirementResolver.kt daemon/src/main/kotlin/com/minekube/craftless/daemon/CachePreparationService.kt daemon/src/test/kotlin/com/minekube/craftless/daemon/JavaRuntimeRequirementResolverTest.kt docs/project-completion-checklist.md docs/superpowers/specs/2026-06-28-121-metadata-fallback-naming-removal-design.md docs/superpowers/plans/2026-06-28-121-metadata-fallback-naming-removal-plan.md docs/superpowers/evidence/2026-06-28-metadata-fallback-naming-removal.md
