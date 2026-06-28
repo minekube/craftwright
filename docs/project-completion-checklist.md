@@ -23,52 +23,119 @@ blocked.
 
 ## Active Completion Board
 
-### Current Slice
+### Completion Rules
 
-- [x] Phase 171: daemon OpenAPI/action/resource authority is graph-only.
-  Evidence:
-  `docs/superpowers/evidence/2026-06-28-daemon-openapi-graph-only-authority.md`.
+- Close items in order unless a later item is a pure documentation or guardrail
+  cleanup that does not change runtime behavior.
+- Every open item needs a fresh spec, plan, evidence file, focused regression
+  test, and local verification command before it can move to `[x]`.
+- Public gameplay breadth must come from generated runtime graph/OpenAPI data.
+  Static descriptor/binding pairs, static CLI gameplay commands, scenario
+  shortcuts, and per-version public APIs do not close any item here.
+- Latest/current and representative older lanes must pass the same public
+  API/CLI gates. A diagnostic probe or explicit unsupported result is useful
+  evidence, but not completion evidence.
 
-### Next Critical Path
+### Open Work Queue
 
-1. [ ] Finish binding exit.
-   - New gameplay breadth must come from generic Fabric discovery/projection:
-     reflection, mappings, registries, callbacks, screens, handlers, world,
-     entity, inventory, client state, permissions, and installed mods.
-   - No new public gameplay action may be added by writing a descriptor plus a
-     binding pair directly.
-   - Evidence required: guardrail tests that fail on hand-maintained public
-     gameplay descriptors, plus Fabric lane code that exposes graph nodes and
-     executable adapters instead of copied public catalogs.
-2. [ ] Land real latest/current lane support.
-   - Latest/current official lane must be packaged and selected by the normal
-     supervisor/CLI path.
-   - Evidence required: launch, self-attach, generated OpenAPI/actions/resources,
-     SSE, JSON-RPC query/subscription, CLI smoke, and public gameplay artifact.
-3. [ ] Land representative older lane support under the same gates.
-   - The older lane cannot be accepted as a weaker diagnostic path.
-   - Evidence required: the same gate set as latest/current, including final
-     public API/CLI gameplay.
-4. [ ] Make transport and generated-client docs complete.
-   - README/docs must show generated OpenAPI plus SSE/JSON-RPC usage without
-     implying a fixed gameplay catalog.
-   - Evidence required: protocol/daemon tests for metadata, event filters,
-     correlation ids, subscription behavior, and generated-client friendly
-     examples.
-5. [ ] Run final local completion gates.
-   - `mise run ci`
-   - `mise run architecture-check`
-   - `mise run package-cli`
-   - Docker runtime smoke
-   - install script smoke
-   - latest/current lane probe
-   - representative older lane probe
-   - final public API/CLI gameplay run
-6. [ ] Rerun final honest survival gameplay through public API/CLI only.
-   - Required evidence: generated OpenAPI/actions/resources, SSE/JSON-RPC
-     transcript, CLI/API transcript, inventory/world/entity/crafting/movement/
-     combat/pickup proof, no server-provisioned inventory, no product
-     hard-coded survival task action, and no manual movement.
+1. [ ] CL-01: Remove the remaining public action-list authority paths.
+   Done means: daemon, CLI, public-agent runner, attach transport, and driver
+   runtime code treat generated per-client OpenAPI/runtime graph as the action
+   authority; `/actions` remains only a projection/debug endpoint and cannot
+   be required for gameplay.
+   Evidence required: a red/green guard proving public gameplay still works
+   when `/actions` is empty or absent while `x-craftless-actions` is present,
+   plus an architecture guard for new action-list authority uses.
+   Suggested commands:
+   `mise exec -- gradle :daemon:test :cli:test :testkit:test`,
+   `mise run architecture-check`.
+   Current evidence: Phase 171 closed daemon OpenAPI authority with
+   `docs/superpowers/evidence/2026-06-28-daemon-openapi-graph-only-authority.md`;
+   continue with attach/HTTP/CLI remnants.
+2. [ ] CL-02: Finish transitional Fabric binding exit.
+   Done means: new gameplay breadth is discovered/projected from Fabric
+   runtime inputs such as reflection, mappings, registries, callbacks, screens,
+   handlers, world/entity/inventory/client state, permissions, server
+   features, and installed mods; executable adapters attach to graph nodes
+   without copying a public catalog.
+   Evidence required: guards that reject hand-maintained public gameplay
+   descriptors and descriptor/binding pairs, plus Fabric tests proving graph
+   nodes and executable adapters are derived from discovery inputs.
+   Suggested commands:
+   `mise exec -- gradle :protocol:test :driver-api:test :driver-fabric-discovery:test :driver-fabric:test`,
+   `mise run architecture-check`.
+3. [ ] CL-03: Make latest/current lane a real product lane.
+   Done means: `latest-release` resolves to the current Mojang release, selects
+   a packaged Craftless driver lane through the normal supervisor/CLI path,
+   launches, self-attaches, exposes generated OpenAPI/actions/resources,
+   streams SSE, supports JSON-RPC query/subscription, and can execute the same
+   generated gameplay primitives used by the verified current lane.
+   Evidence required: packaged CLI smoke, generated OpenAPI artifact,
+   actions/resources projections, SSE transcript, JSON-RPC query/subscription
+   transcript, runtime metadata/fingerprint, and public gameplay artifact.
+   Suggested commands:
+   `mise run package-cli`,
+   `mise run fabric-lane-check-latest-official`,
+   latest/current packaged create-client smoke,
+   `mise run ci`.
+4. [ ] CL-04: Make representative older lane a real product lane under the
+   same gate set.
+   Done means: the older lane is not a weaker smoke path. It uses the same
+   cache, Java/runtime, Fabric Loader/API resolution, packaged driver
+   selection, attach, generated OpenAPI, SSE, JSON-RPC, CLI, and gameplay
+   verification path as latest/current.
+   Evidence required: the same artifacts as CL-03 for the representative older
+   Minecraft version, plus a note explaining which compatibility behavior is
+   shared and which code is narrow version divergence.
+   Suggested commands:
+   `mise run package-cli`,
+   representative older packaged create-client smoke,
+   representative older final public gameplay smoke,
+   `mise run ci`.
+5. [ ] CL-05: Complete transport and generated-client documentation.
+   Done means: README, roadmap, runbooks, and agent skill docs explain the
+   stable supervisor API, live generated per-client OpenAPI, generic
+   invocation, SSE, JSON-RPC query/subscription, ETag/fingerprint caching,
+   adaptive CLI, Docker, install script, and reusable GitHub Action without
+   implying a static gameplay SDK.
+   Evidence required: protocol/daemon/CLI tests for metadata, event filters,
+   correlation ids, subscriptions, generated aliases, and OpenAPI cache
+   behavior; docs examples must match real command/API shapes.
+   Suggested commands:
+   `mise exec -- gradle :protocol:test :daemon:test :cli:test`,
+   `mise exec -- bun test playwright`,
+   docs grep for removed legacy/static wording.
+6. [ ] CL-06: Run final local release-quality gates after CL-01 through CL-05.
+   Done means all local gates pass from a clean tree without waiting on remote
+   CI as proof.
+   Required commands:
+   `mise run lint`,
+   `mise run architecture-check`,
+   `mise run ci`,
+   `mise run package-cli`,
+   Docker runtime smoke,
+   install script smoke,
+   latest/current lane probe,
+   representative older lane probe,
+   `git diff --check`.
+7. [ ] CL-07: Rerun final honest survival gameplay through public API/CLI only.
+   Done means an external/public-agent path creates or attaches to a real
+   client, fetches generated OpenAPI/actions/resources, subscribes to SSE or
+   uses JSON-RPC subscription filters, writes chat, observes world/player/
+   inventory/entity state, collects resources, crafts/equips a tool, mines or
+   places blocks, attacks a target, picks up drops, and records machine
+   evidence without server-provisioned inventory, manual movement, or a
+   product `task.survival.*` shortcut.
+   Evidence required: generated OpenAPI, actions/resources projections,
+   SSE/JSON-RPC transcript, CLI/API transcript, inventory/world/entity/
+   crafting/movement/combat/pickup proof, server log, and final artifact
+   summary under `driver-fabric/build/craftless-final-gameplay/artifacts/`.
+8. [ ] CL-08: Publish the completed state.
+   Done means checklist, phase index, specs/plans, evidence, README/docs, and
+   any code changes are committed and pushed directly to `main`, with the final
+   commit message naming the closed CL items.
+   Evidence required: clean `git status --short --branch`, local verification
+   commands listed in the final evidence file, and `git push origin main`.
 
 ### Closed Gates
 
@@ -5047,23 +5114,18 @@ Verification:
 
 ## Final Completion Gate
 
-- [~] Phase history is indexed in `docs/superpowers/phase-index.md` and partly
-  detailed above. Historical phases establish direction and guardrails, but
-  they do not by themselves close the product goal.
-- [ ] Completion remains blocked until the Active Completion Board is fully
-  checked: daemon authority is graph-only, public authority exits independent
-  static action catalogs, binding breadth moves behind generic
-  discovery/projection/invocation, latest/current and representative older
-  lanes have runnable support evidence and pass the same public API/CLI
-  gameplay gates, generated-client transport docs are complete, and the final
-  local gate set is rerun after that work.
+- [~] Phase history is indexed in `docs/superpowers/phase-index.md` and
+  detailed in the phase sections above. Historical phases establish direction
+  and guardrails, but they do not by themselves close the product goal.
+- [ ] Completion remains blocked until CL-01 through CL-08 in the Active
+  Completion Board are checked with fresh evidence.
 - [x] `mise run lint` passes. Current 2026-06-28 evidence: `mise run ci`
-  completed lint successfully after the Phase 158 update.
+  completed lint successfully during the latest local verification sweep.
 - [x] `mise run architecture-check` passes. Current 2026-06-28 evidence:
   `mise run architecture-check` completed successfully before this checklist
   update.
 - [x] `mise run ci` passes. Current 2026-06-28 evidence: `mise run ci`
-  completed successfully after the Phase 158 update.
+  completed successfully during the latest local verification sweep.
 - [x] CLI packaging succeeds. Current 2026-06-28 local evidence:
   `mise run package-cli` built `:cli:distZip`, `:cli:distTar`, refreshed
   `build/docker/craftless`, and the packaged binary returned
@@ -5103,4 +5165,4 @@ Verification:
   SSE, packaged launch, final compatibility audit, and honest final survival
   gameplay without server-provisioned inventory.
 - [ ] Checklist, active code slice, evidence, and phase index are committed and
-  pushed to `main` after the current Phase 171 work is verified.
+  pushed to `main` after the next CL item is verified.
