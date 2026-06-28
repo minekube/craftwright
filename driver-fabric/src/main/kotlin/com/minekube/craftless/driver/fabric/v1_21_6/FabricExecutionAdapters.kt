@@ -33,7 +33,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 
-internal interface FabricActionBinding {
+internal interface FabricExecutionAdapter {
     val operationId: String
 
     fun invoke(
@@ -58,23 +58,23 @@ internal data class FabricActionContext(
     }
 }
 
-internal fun defaultFabricActionBindings(): List<FabricActionBinding> =
+internal fun defaultFabricExecutionAdapters(): List<FabricExecutionAdapter> =
     listOf(
-        FabricPlayerQueryActionBinding,
-        FabricPlayerLookActionBinding,
-        FabricPlayerRaycastActionBinding,
-        FabricPlayerMoveActionBinding,
-        FabricPlayerChatActionBinding,
-        FabricInventoryQueryActionBinding,
-        FabricInventoryEquipActionBinding,
-        FabricWorldTimeQueryActionBinding,
-        FabricWorldBlockBreakActionBinding,
-        FabricWorldBlockInteractActionBinding,
-        FabricScreenQueryActionBinding,
-        FabricScreenCloseActionBinding,
+        FabricPlayerQueryExecutionAdapter,
+        FabricPlayerLookExecutionAdapter,
+        FabricPlayerRaycastExecutionAdapter,
+        FabricPlayerMoveExecutionAdapter,
+        FabricPlayerChatExecutionAdapter,
+        FabricInventoryQueryExecutionAdapter,
+        FabricInventoryEquipExecutionAdapter,
+        FabricWorldTimeQueryExecutionAdapter,
+        FabricWorldBlockBreakExecutionAdapter,
+        FabricWorldBlockInteractExecutionAdapter,
+        FabricScreenQueryExecutionAdapter,
+        FabricScreenCloseExecutionAdapter,
     )
 
-internal object FabricPlayerQueryActionBinding : FabricActionBinding {
+internal object FabricPlayerQueryExecutionAdapter : FabricExecutionAdapter {
     override val operationId: String = FabricBootstrapOperationIds.PLAYER_QUERY
 
     override fun invoke(
@@ -109,7 +109,7 @@ internal object FabricPlayerQueryActionBinding : FabricActionBinding {
     }
 }
 
-internal object FabricPlayerLookActionBinding : FabricActionBinding {
+internal object FabricPlayerLookExecutionAdapter : FabricExecutionAdapter {
     override val operationId: String = FabricBootstrapOperationIds.PLAYER_LOOK
 
     override fun invoke(
@@ -160,7 +160,7 @@ internal object FabricPlayerLookActionBinding : FabricActionBinding {
     private const val MAX_PITCH = 90.0
 }
 
-internal object FabricInventoryQueryActionBinding : FabricActionBinding {
+internal object FabricInventoryQueryExecutionAdapter : FabricExecutionAdapter {
     override val operationId: String = FabricBootstrapOperationIds.INVENTORY_QUERY
 
     override fun invoke(
@@ -182,7 +182,7 @@ internal object FabricInventoryQueryActionBinding : FabricActionBinding {
     }
 }
 
-internal object FabricInventoryEquipActionBinding : FabricActionBinding {
+internal object FabricInventoryEquipExecutionAdapter : FabricExecutionAdapter {
     override val operationId: String = FabricBootstrapOperationIds.INVENTORY_EQUIP
 
     override fun invoke(
@@ -221,7 +221,7 @@ internal object FabricInventoryEquipActionBinding : FabricActionBinding {
     private val HOTBAR_SLOT_RANGE = 0..8
 }
 
-internal object FabricWorldBlockBreakActionBinding : FabricActionBinding {
+internal object FabricWorldBlockBreakExecutionAdapter : FabricExecutionAdapter {
     override val operationId: String = FabricBootstrapOperationIds.WORLD_BLOCK_BREAK
 
     override fun invoke(
@@ -301,7 +301,7 @@ internal object FabricWorldBlockBreakActionBinding : FabricActionBinding {
     }
 }
 
-internal object FabricWorldBlockInteractActionBinding : FabricActionBinding {
+internal object FabricWorldBlockInteractExecutionAdapter : FabricExecutionAdapter {
     override val operationId: String = FabricBootstrapOperationIds.WORLD_BLOCK_INTERACT
 
     override fun invoke(
@@ -429,7 +429,7 @@ internal fun craftlessBlockInteractAccepted(
     itemResult: ActionResult,
 ): Boolean = blockResult.isAccepted || itemResult.isAccepted
 
-internal object FabricWorldTimeQueryActionBinding : FabricActionBinding {
+internal object FabricWorldTimeQueryExecutionAdapter : FabricExecutionAdapter {
     override val operationId: String = FabricBootstrapOperationIds.WORLD_TIME_QUERY
 
     override fun invoke(
@@ -454,7 +454,7 @@ internal object FabricWorldTimeQueryActionBinding : FabricActionBinding {
     }
 }
 
-internal object FabricPlayerRaycastActionBinding : FabricActionBinding {
+internal object FabricPlayerRaycastExecutionAdapter : FabricExecutionAdapter {
     override val operationId: String = FabricBootstrapOperationIds.PLAYER_RAYCAST
 
     override fun invoke(
@@ -586,7 +586,7 @@ private fun blockInteractFailure(reason: String): JsonObject =
         put("reason", reason)
     }
 
-internal object FabricScreenQueryActionBinding : FabricActionBinding {
+internal object FabricScreenQueryExecutionAdapter : FabricExecutionAdapter {
     override val operationId: String = FabricBootstrapOperationIds.SCREEN_QUERY
 
     override fun invoke(
@@ -607,7 +607,7 @@ internal object FabricScreenQueryActionBinding : FabricActionBinding {
     }
 }
 
-internal object FabricScreenCloseActionBinding : FabricActionBinding {
+internal object FabricScreenCloseExecutionAdapter : FabricExecutionAdapter {
     override val operationId: String = FabricBootstrapOperationIds.SCREEN_CLOSE
 
     override fun invoke(
@@ -626,7 +626,7 @@ internal object FabricScreenCloseActionBinding : FabricActionBinding {
     }
 }
 
-private object FabricPlayerChatActionBinding : FabricActionBinding {
+private object FabricPlayerChatExecutionAdapter : FabricExecutionAdapter {
     override val operationId: String = FabricBootstrapOperationIds.PLAYER_CHAT
 
     override fun invoke(
@@ -671,7 +671,7 @@ private object FabricPlayerChatActionBinding : FabricActionBinding {
     }
 }
 
-private object FabricPlayerMoveActionBinding : FabricActionBinding {
+private object FabricPlayerMoveExecutionAdapter : FabricExecutionAdapter {
     override val operationId: String = FabricBootstrapOperationIds.PLAYER_MOVE
 
     override fun invoke(

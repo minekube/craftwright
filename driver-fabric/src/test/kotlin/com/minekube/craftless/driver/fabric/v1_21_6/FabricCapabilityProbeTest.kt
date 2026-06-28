@@ -98,15 +98,15 @@ class FabricCapabilityProbeTest {
     }
 
     @Test
-    fun `fabric capability probe context does not receive action bindings for graph schemas`() {
+    fun `fabric capability probe context does not receive execution adapters for graph schemas`() {
         assertTrue(
             FabricCapabilityProbeContext::class.java.declaredFields.none { field ->
-                field.name == "bindings" || field.type.name.contains("FabricActionBinding")
+                field.name == "bindings" || field.type.name.contains("FabricExecutionAdapter")
             },
         )
         assertTrue(
             FabricCapabilityProbeContext::class.java.constructors.none { constructor ->
-                constructor.parameterTypes.any { type -> type.name.contains("FabricActionBinding") }
+                constructor.parameterTypes.any { type -> type.name.contains("FabricExecutionAdapter") }
             },
         )
     }

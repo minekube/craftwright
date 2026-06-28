@@ -59,14 +59,14 @@ import kotlin.math.sqrt
 class FabricDriverBackend private constructor(
     private val mode: Mode,
     private val gateway: FabricClientGateway?,
-    actionBindings: List<FabricActionBinding> = defaultFabricActionBindings(),
+    executionAdapters: List<FabricExecutionAdapter> = defaultFabricExecutionAdapters(),
     private val capabilityDiscovery: FabricCapabilityDiscovery = defaultFabricCapabilityDiscovery(),
     private val runtimeMetadataProvider: FabricRuntimeMetadataProvider = staticFabricRuntimeMetadataProvider(),
     private val pathfinderBackend: FabricPathfinderBackend = UnavailableFabricPathfinderBackend,
     private val taskExecutor: FabricTaskExecutor = UnavailableFabricTaskExecutor,
 ) : DriverBackend {
     private val events = mutableListOf<String>()
-    private val actionBindingsById = actionBindings.associateBy { it.operationId }
+    private val executionAdaptersByOperationId = executionAdapters.associateBy { it.operationId }
     private val bootstrapAdapterKeysByOperationId =
         fabricBootstrapOperationDefinitions().associate { definition -> definition.id to definition.adapter }
 
@@ -106,15 +106,15 @@ class FabricDriverBackend private constructor(
     override fun operationAdapters(clientId: String): DriverOperationAdapters {
         val adapters =
             navigationTaskOperationAdapters() +
-                actionBindingsById.values
-                    .map { binding ->
+                executionAdaptersByOperationId.values
+                    .map { executionAdapter ->
                         val adapterKey =
-                            requireNotNull(bootstrapAdapterKeysByOperationId[binding.operationId]) {
-                                "missing bootstrap operation adapter for ${binding.operationId}"
+                            requireNotNull(bootstrapAdapterKeysByOperationId[executionAdapter.operationId]) {
+                                "missing bootstrap operation adapter for ${executionAdapter.operationId}"
                             }
                         adapterKey to
                             DriverOperationAdapter { invocation ->
-                                binding.invoke(
+                                executionAdapter.invoke(
                                     clientId = invocation.clientId,
                                     invocation =
                                         DriverActionInvocation(

@@ -70,6 +70,10 @@ blocked.
    Suggested commands:
    `mise exec -- gradle :protocol:test :driver-api:test :driver-fabric-discovery:test :driver-fabric:test`,
    `mise run architecture-check`.
+   Current evidence: Phase 174 removes stale action-binding names from private
+   Fabric execution adapter code and keeps CL-02 open for the real bootstrap
+   definition exit:
+   `docs/superpowers/evidence/2026-06-28-fabric-execution-adapter-naming.md`.
 3. [ ] CL-03: Make latest/current lane a real product lane.
    Done means: `latest-release` resolves to the current Mojang release, selects
    a packaged Craftless driver lane through the normal supervisor/CLI path,

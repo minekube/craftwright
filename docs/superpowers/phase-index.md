@@ -56,6 +56,7 @@ not grow with every completed phase.
 - Phase 171: daemon OpenAPI graph-only authority.
 - Phase 172: remote driver action graph authority.
 - Phase 173: public-agent actions projection optional.
+- Phase 174: Fabric execution adapter naming.
 
 ## Current Direction
 
@@ -90,6 +91,9 @@ runtime-graph projection default instead of fetching a separate loopback
 The public-agent runner treats `/clients/{id}/actions` as optional projection
 evidence; generated per-client OpenAPI `x-craftless-actions` remains the
 gameplay authority even when the projection endpoint is absent.
+The private Fabric execution layer no longer uses stale `FabricActionBinding`
+naming; these classes are execution adapters, while CL-02 remains open for the
+real bootstrap operation-definition exit.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the

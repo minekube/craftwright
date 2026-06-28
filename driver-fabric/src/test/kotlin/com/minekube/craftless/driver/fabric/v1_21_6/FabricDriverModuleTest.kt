@@ -640,7 +640,7 @@ class FabricDriverModuleTest {
         val source =
             Files.readString(
                 repositoryRoot()
-                    .resolve("driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionBindings.kt"),
+                    .resolve("driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricExecutionAdapters.kt"),
             )
 
         assertFalse(source.contains("PlayerInput"))
@@ -781,7 +781,7 @@ class FabricDriverModuleTest {
 
     @Test
     fun `transitional fabric binding operation ids are represented as runtime graph operations`() {
-        val bindingIds = defaultFabricActionBindings().map { binding -> binding.operationId }.sorted()
+        val executionAdapterIds = defaultFabricExecutionAdapters().map { adapter -> adapter.operationId }.sorted()
         val definitionIds = fabricBootstrapOperationDefinitions().map { definition -> definition.id }.sorted()
         val graphOperationIds =
             FabricDriverBackend
@@ -792,20 +792,20 @@ class FabricDriverModuleTest {
                 .sorted()
 
         assertEquals(
-            definitionIds.filter { id -> id in bindingIds },
-            bindingIds,
-            "Private Fabric bindings must expose operation ids only through bootstrap definitions.",
+            definitionIds.filter { id -> id in executionAdapterIds },
+            executionAdapterIds,
+            "Private Fabric execution adapters must expose operation ids only through bootstrap definitions.",
         )
-        assertEquals(bindingIds, graphOperationIds.filter { it in bindingIds })
+        assertEquals(executionAdapterIds, graphOperationIds.filter { it in executionAdapterIds })
     }
 
     @Test
-    fun `fabric action bindings do not own operation id literals`() {
+    fun `fabric execution adapters do not own operation id literals`() {
         val root = repositoryRoot()
         val source =
             Files.readString(
                 root.resolve(
-                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionBindings.kt",
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricExecutionAdapters.kt",
                 ),
             )
         val operationIdLiterals =
@@ -819,7 +819,29 @@ class FabricDriverModuleTest {
         assertEquals(
             emptyList(),
             operationIdLiterals,
-            "Private Fabric bindings must reference bootstrap operation ids instead of owning operation id literals.",
+            "Private Fabric execution adapters must reference bootstrap operation ids instead of owning operation id literals.",
+        )
+    }
+
+    @Test
+    fun `fabric execution adapters do not use stale action binding names`() {
+        val root = repositoryRoot()
+        val sourceRoot = root.resolve("driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6")
+        val sources =
+            listOf("FabricExecutionAdapters.kt", "FabricDriverBackend.kt")
+                .joinToString(separator = "\n") { file -> Files.readString(sourceRoot.resolve(file)) }
+        val forbidden =
+            listOf(
+                "FabricActionBinding",
+                "defaultFabricActionBindings",
+                "actionBindings",
+                "actionBindingsById",
+            )
+
+        assertEquals(
+            emptyList(),
+            forbidden.filter { token -> sources.contains(token) },
+            "Private Fabric execution adapters must not use stale execution adapter names.",
         )
     }
 
@@ -1548,12 +1570,12 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric action bindings do not own public descriptors or schemas`() {
+    fun `fabric execution adapters do not own public descriptors or schemas`() {
         val root = repositoryRoot()
         val source =
             Files.readString(
                 root.resolve(
-                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricActionBindings.kt",
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricExecutionAdapters.kt",
                 ),
             )
         val forbidden =
@@ -1571,7 +1593,7 @@ class FabricDriverModuleTest {
         assertEquals(
             emptyList(),
             forbidden.filter { token -> source.contains(token) },
-            "Private Fabric bindings must not own public descriptors or schemas; graph discovery owns those.",
+            "Private Fabric execution adapters must not own public descriptors or schemas; graph discovery owns those.",
         )
     }
 
