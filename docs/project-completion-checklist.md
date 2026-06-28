@@ -38,114 +38,203 @@ blocked.
 
 ### Open Work Queue
 
-1. [x] CL-01: Remove the remaining public action-list authority paths.
-   Done means: daemon, CLI, public-agent runner, attach transport, and driver
-   runtime code treat generated per-client OpenAPI/runtime graph as the action
-   authority; `/actions` remains only a projection/debug endpoint and cannot
-   be required for gameplay.
-   Evidence required: a red/green guard proving public gameplay still works
-   when `/actions` is empty or absent while `x-craftless-actions` is present,
-   plus an architecture guard for new action-list authority uses.
-   Suggested commands:
-   `mise exec -- gradle :daemon:test :cli:test :testkit:test`,
-   `mise run architecture-check`.
-   Current evidence: Phase 171 closed daemon OpenAPI authority with
-   `docs/superpowers/evidence/2026-06-28-daemon-openapi-graph-only-authority.md`;
-   Phase 172 removed the remote `HttpDriverSession.actions()` fetch from the
-   attach HTTP path with
-   `docs/superpowers/evidence/2026-06-28-remote-driver-action-graph-authority.md`;
-   Phase 173 made public-agent `/actions` projection fetches optional,
-   added CLI/HTTP authority guards, and records the remaining production scan
-   with
+Work from the first unchecked sub-gate unless a later docs-only gate is needed
+to keep the repo honest. A CL item closes only when every sub-gate below it is
+checked and the named evidence file exists.
+
+1. [x] CL-01: Public action-list authority is removed.
+   Closed by Phases 171-173. `/actions` is only a projection/debug endpoint;
+   generated per-client OpenAPI and the runtime graph are the authority.
+   Evidence:
+   `docs/superpowers/evidence/2026-06-28-daemon-openapi-graph-only-authority.md`,
+   `docs/superpowers/evidence/2026-06-28-remote-driver-action-graph-authority.md`,
    `docs/superpowers/evidence/2026-06-28-public-agent-actions-projection-optional.md`.
-2. [ ] CL-02: Finish transitional Fabric binding exit.
-   Done means: new gameplay breadth is discovered/projected from Fabric
-   runtime inputs such as reflection, mappings, registries, callbacks, screens,
-   handlers, world/entity/inventory/client state, permissions, server
-   features, and installed mods; executable adapters attach to graph nodes
-   without copying a public catalog.
-   Evidence required: guards that reject hand-maintained public gameplay
-   descriptors and descriptor/binding pairs, plus Fabric tests proving graph
-   nodes and executable adapters are derived from discovery inputs.
+
+2. [~] CL-02: Exit transitional Fabric bootstrap/catalog design.
+   Done means Fabric gameplay breadth is represented as discovered runtime
+   graph affordances plus private execution adapters. The bootstrap path may
+   remain only as a narrow compatibility seed while discovery is incomplete;
+   it must not be the public gameplay catalog or a template for adding new
+   actions.
+
+   Sub-gates:
+   - [x] CL-02a: Public consumers do not require descriptor/action-list
+     authority. Evidence: CL-01.
+   - [x] CL-02b: Private Fabric execution code no longer uses stale
+     `ActionBinding` names. Evidence:
+     `docs/superpowers/evidence/2026-06-28-fabric-execution-adapter-naming.md`.
+   - [ ] CL-02c: Bootstrap operation definitions stop duplicating public
+     resource ownership by hand. Resource ids must be derived from operation
+     graph/discovery metadata or a shared projection helper, with a guard that
+     rejects new `resource = "..."`
+     gameplay catalog entries in bootstrap definitions.
+   - [ ] CL-02d: Bootstrap operation ids and adapter keys are separated from
+     public descriptor shape. Execution adapters may keep private adapter ids;
+     public ids/schemas must come from graph nodes or discovery-owned
+     projection fragments, not descriptor/binding pairs.
+   - [ ] CL-02e: At least one real Fabric discovery path proves an operation
+     node from runtime inputs rather than a hand-maintained bootstrap list.
+     Acceptable inputs include registries, callbacks, screens, handlers,
+     world/entity/inventory/client state, permissions, server features, or
+     installed mods.
+   - [ ] CL-02f: Architecture guards reject new hand-maintained public
+     gameplay descriptors, descriptor/binding pairs, static CLI gameplay
+     commands, static alias route families, and scenario shortcut actions.
+
+   Must not count: adding another `player.*`, `world.*`, `inventory.*`,
+   `entity.*`, `recipe.*`, `navigation.*`, or `task.*` descriptor by hand,
+   even if it has a real Fabric implementation.
+
+   Evidence required:
+   `docs/superpowers/evidence/2026-06-28-fabric-bootstrap-catalog-exit.md`
+   or successor evidence naming each closed CL-02 sub-gate.
+
    Suggested commands:
    `mise exec -- gradle :protocol:test :driver-api:test :driver-fabric-discovery:test :driver-fabric:test`,
-   `mise run architecture-check`.
-   Current evidence: Phase 174 removes stale action-binding names from private
-   Fabric execution adapter code and keeps CL-02 open for the real bootstrap
-   definition exit:
-   `docs/superpowers/evidence/2026-06-28-fabric-execution-adapter-naming.md`.
-3. [ ] CL-03: Make latest/current lane a real product lane.
-   Done means: `latest-release` resolves to the current Mojang release, selects
-   a packaged Craftless driver lane through the normal supervisor/CLI path,
-   launches, self-attaches, exposes generated OpenAPI/actions/resources,
-   streams SSE, supports JSON-RPC query/subscription, and can execute the same
-   generated gameplay primitives used by the verified current lane.
-   Evidence required: packaged CLI smoke, generated OpenAPI artifact,
-   actions/resources projections, SSE transcript, JSON-RPC query/subscription
-   transcript, runtime metadata/fingerprint, and public gameplay artifact.
+   `mise run architecture-check`, `git diff --check`.
+
+3. [ ] CL-03: Latest/current lane is a real product lane.
+   Done means `latest-release` resolves through normal product machinery and
+   reaches the same public generated API/CLI behavior as the current compiled
+   lane.
+
+   Sub-gates:
+   - [ ] CL-03a: Mojang version manifest resolves `latest-release` and records
+     the concrete Minecraft version in runtime metadata/evidence.
+   - [ ] CL-03b: Java/runtime selection works for that version without relying
+     on a locally installed Java outside `mise`/resolved runtimes.
+   - [ ] CL-03c: Fabric Loader/API and Craftless driver artifacts resolve
+     through cache/manifest services, not hand-picked local files.
+   - [ ] CL-03d: Packaged CLI creates or attaches a latest/current client
+     through the supervisor API.
+   - [ ] CL-03e: Generated per-client OpenAPI, actions/resources projections,
+     SSE, JSON-RPC query, and JSON-RPC subscription evidence are captured.
+   - [ ] CL-03f: A public API/CLI gameplay smoke executes generated
+     primitives on the latest/current lane.
+
+   Must not count: a probe that only compiles, a launch that never self-attaches,
+   a manual mod drop, or official-lane code copied from the Yarn/remap lane.
+
+   Evidence required:
+   `docs/superpowers/evidence/2026-06-28-latest-current-product-lane.md`
+   or successor evidence with artifacts for every sub-gate.
+
    Suggested commands:
-   `mise run package-cli`,
-   `mise run fabric-lane-check-latest-official`,
-   latest/current packaged create-client smoke,
-   `mise run ci`.
-4. [ ] CL-04: Make representative older lane a real product lane under the
-   same gate set.
-   Done means: the older lane is not a weaker smoke path. It uses the same
-   cache, Java/runtime, Fabric Loader/API resolution, packaged driver
-   selection, attach, generated OpenAPI, SSE, JSON-RPC, CLI, and gameplay
-   verification path as latest/current.
-   Evidence required: the same artifacts as CL-03 for the representative older
-   Minecraft version, plus a note explaining which compatibility behavior is
-   shared and which code is narrow version divergence.
-   Suggested commands:
-   `mise run package-cli`,
-   representative older packaged create-client smoke,
-   representative older final public gameplay smoke,
-   `mise run ci`.
-5. [ ] CL-05: Complete transport and generated-client documentation.
-   Done means: README, roadmap, runbooks, and agent skill docs explain the
-   stable supervisor API, live generated per-client OpenAPI, generic
-   invocation, SSE, JSON-RPC query/subscription, ETag/fingerprint caching,
-   adaptive CLI, Docker, install script, and reusable GitHub Action without
-   implying a static gameplay SDK.
-   Evidence required: protocol/daemon/CLI tests for metadata, event filters,
-   correlation ids, subscriptions, generated aliases, and OpenAPI cache
-   behavior; docs examples must match real command/API shapes.
+   `mise run package-cli`, `mise run fabric-lane-check-latest-official`,
+   packaged latest/current create-client smoke, `mise run ci`.
+
+4. [ ] CL-04: Representative older lane passes the same gate set.
+   Done means the older lane is not a weaker smoke path. It uses the same
+   resolver, cache, Java/runtime selection, Fabric artifact resolution,
+   packaged driver selection, attach, generated OpenAPI, SSE, JSON-RPC, CLI,
+   and gameplay verification path as CL-03.
+
+   Sub-gates:
+   - [ ] CL-04a: Pick and document the representative older Minecraft version
+     and why it is the compatibility lane.
+   - [ ] CL-04b: Runtime/cache/Fabric resolution uses shared services with
+     only proven lane divergence isolated behind a boundary.
+   - [ ] CL-04c: Packaged CLI creates or attaches the older-lane client through
+     the supervisor API.
+   - [ ] CL-04d: Generated OpenAPI/actions/resources, SSE, JSON-RPC query, and
+     JSON-RPC subscription evidence are captured.
+   - [ ] CL-04e: The same public API/CLI gameplay smoke used for CL-03 runs on
+     the older lane or produces an explicit generated unsupported result with
+     evidence.
+
+   Must not count: an older compile-only check, copied per-version gameplay
+   bindings, or a one-off local runtime directory.
+
+   Evidence required:
+   `docs/superpowers/evidence/2026-06-28-representative-older-product-lane.md`
+   or successor evidence with artifacts for every sub-gate.
+
+5. [ ] CL-05: Transport, CLI, Docker, release, and agent docs are current.
+   Done means external users and agents can install, start, inspect, stream,
+   invoke, and debug Craftless without reading source code and without being
+   taught a static gameplay SDK.
+
+   Sub-gates:
+   - [ ] CL-05a: README explains install script, packaged CLI, Docker runtime
+     image, reusable GitHub Action, stable supervisor OpenAPI, generated
+     per-client OpenAPI, adaptive CLI, SSE, JSON-RPC query/subscription,
+     caching/fingerprints, and evidence expectations.
+   - [ ] CL-05b: README and docs contain no active TypeScript SDK, Craftwright,
+     `.dev`, HMC-as-final-driver, static gameplay SDK, or server-cheat
+     completion wording.
+   - [ ] CL-05c: CLI help/examples are generated or adaptive where gameplay is
+     involved and match real command/API shapes.
+   - [ ] CL-05d: Docker runtime smoke proves the image uses a copied packaged
+     Craftless artifact rather than building software at container runtime.
+   - [ ] CL-05e: Install script smoke proves a fresh user can run the packaged
+     CLI.
+   - [ ] CL-05f: Agent skill docs teach generated OpenAPI/SSE/JSON-RPC
+     composition, missing-primitive reporting, and no scenario shortcuts.
+
+   Evidence required:
+   `docs/superpowers/evidence/2026-06-28-user-facing-usability-docs.md`
+   or successor evidence with command transcripts and docs grep output.
+
    Suggested commands:
    `mise exec -- gradle :protocol:test :daemon:test :cli:test`,
-   `mise exec -- bun test playwright`,
-   docs grep for removed legacy/static wording.
-6. [ ] CL-06: Run final local release-quality gates after CL-01 through CL-05.
-   Done means all local gates pass from a clean tree without waiting on remote
-   CI as proof.
+   `mise exec -- bun test playwright`, Docker runtime smoke,
+   install script smoke, docs grep for legacy wording.
+
+6. [ ] CL-06: Local release-quality gates pass after CL-01 through CL-05.
+   Done means the repo is clean and local gates prove the state without waiting
+   on remote CI.
+
    Required commands:
-   `mise run lint`,
-   `mise run architecture-check`,
-   `mise run ci`,
-   `mise run package-cli`,
-   Docker runtime smoke,
-   install script smoke,
-   latest/current lane probe,
-   representative older lane probe,
-   `git diff --check`.
-7. [ ] CL-07: Rerun final honest survival gameplay through public API/CLI only.
+   - [ ] `mise run lint`
+   - [ ] `mise run architecture-check`
+   - [ ] `mise run ci`
+   - [ ] `mise run package-cli`
+   - [ ] Docker runtime smoke
+   - [ ] install script smoke
+   - [ ] latest/current lane probe
+   - [ ] representative older lane probe
+   - [ ] `git diff --check`
+
+   Evidence required:
+   `docs/superpowers/evidence/2026-06-28-final-local-release-gates.md`.
+
+7. [ ] CL-07: Final honest survival gameplay passes through public API/CLI.
    Done means an external/public-agent path creates or attaches to a real
    client, fetches generated OpenAPI/actions/resources, subscribes to SSE or
-   uses JSON-RPC subscription filters, writes chat, observes world/player/
-   inventory/entity state, collects resources, crafts/equips a tool, mines or
-   places blocks, attacks a target, picks up drops, and records machine
-   evidence without server-provisioned inventory, manual movement, or a
-   product `task.survival.*` shortcut.
-   Evidence required: generated OpenAPI, actions/resources projections,
-   SSE/JSON-RPC transcript, CLI/API transcript, inventory/world/entity/
-   crafting/movement/combat/pickup proof, server log, and final artifact
-   summary under `driver-fabric/build/craftless-final-gameplay/artifacts/`.
+   JSON-RPC subscription filters, and composes normal gameplay without
+   server-provisioned inventory, manual movement, or product
+   `task.survival.*` shortcuts.
+
+   Required public proof:
+   - [ ] generated OpenAPI artifact
+   - [ ] actions/resources projection artifacts
+   - [ ] SSE or JSON-RPC subscription transcript
+   - [ ] CLI/API transcript
+   - [ ] chat write proof
+   - [ ] player/world/entity observation proof
+   - [ ] inventory observation proof
+   - [ ] resource collection proof
+   - [ ] craft/equip proof
+   - [ ] block mine or place proof
+   - [ ] combat or entity-interaction proof
+   - [ ] pickup/drop proof
+   - [ ] server log
+   - [ ] final artifact summary under
+     `driver-fabric/build/craftless-final-gameplay/artifacts/`
+
+   Must not count: creative inventory, `/give`, preloaded inventory, manual
+   movement by a human, hard-coded survival scenario actions, or direct
+   in-process test calls that bypass public API/CLI.
+
 8. [ ] CL-08: Publish the completed state.
    Done means checklist, phase index, specs/plans, evidence, README/docs, and
-   any code changes are committed and pushed directly to `main`, with the final
-   commit message naming the closed CL items.
-   Evidence required: clean `git status --short --branch`, local verification
-   commands listed in the final evidence file, and `git push origin main`.
+   code changes are committed and pushed directly to `main`, with a clean tree.
+
+   Required proof:
+   - [ ] final evidence file names every closed CL item and command
+   - [ ] `git status --short --branch` is clean after commit
+   - [ ] final commit message names the closed CL items
+   - [ ] `git push origin main` succeeds
 
 ### Closed Gates
 
