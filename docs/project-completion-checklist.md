@@ -196,6 +196,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-90-smoke-bootstrap-action-id-source-ownership-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-90-smoke-bootstrap-action-id-source-ownership-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-91-version-support-completion-gate-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-91-version-support-completion-gate-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -2896,6 +2900,32 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-smoke-bootstrap-action-id-source-ownership.md`.
 
+## Phase 91: Version Support Completion Gate
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-91-version-support-completion-gate-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-91-version-support-completion-gate-plan.md`.
+- [x] The final completion gate requires runnable support evidence for latest
+  and representative older runtime lanes.
+- [x] Unsupported latest/older compatibility lanes remain diagnostic evidence
+  only and do not satisfy completion.
+- [~] Actual latest/current and representative older Fabric client runtime
+  support remains open until runnable lane support and generated API/CLI
+  gameplay verification land.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
+  lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.completion gate does not accept unsupported version lanes as support*'`
+- Green focused test:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.completion gate does not accept unsupported version lanes as support*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-version-support-completion-gate.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -2908,13 +2938,13 @@ Verification:
   ownership, Phase 86 Fabric adapter key source ownership, and Phase 87 backend
   operation id source ownership, and Phase 88 binding adapter key derivation
   removal, Phase 89 navigation operation id source ownership, and Phase 90
-  smoke bootstrap action id source ownership.
+  smoke bootstrap action id source ownership, and Phase 91 version support
+  completion gate.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
-  latest and representative older runtime lanes have the requested support or
-  an explicitly accepted support boundary, and every generic-discovery,
-  multi-version, transport, CLI, docs, and gameplay requirement is reverified
-  after that exit work.
+  latest/current and representative older runtime lanes have runnable support
+  evidence, and every generic-discovery, multi-version, transport, CLI, docs,
+  and gameplay requirement is reverified after that exit work.
 - [x] `mise run lint` passes. Current 2026-06-28 evidence: `mise run ci`
   completed lint successfully before this checklist update.
 - [x] `mise run architecture-check` passes. Current 2026-06-28 evidence:

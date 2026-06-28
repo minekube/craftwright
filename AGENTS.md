@@ -201,6 +201,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 88. binding adapter key derivation removal.
 89. navigation operation id source ownership.
 90. smoke bootstrap action id source ownership.
+91. version support completion gate.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -705,6 +706,12 @@ must not repeat quoted bootstrap action ids such as `player.chat`,
 broader binding exit while future gameplay breadth depends on hand-maintained
 bootstrap/navigation operation definitions instead of generic runtime
 discovery.
+Phase 91 tightens completion truth for multi-version support. Unsupported
+latest or representative older compatibility lanes are useful diagnostic
+evidence, but they must not satisfy final completion. Final completion requires
+runnable support evidence for latest/current and representative older runtime
+lanes, with generated API/CLI gameplay verification on those lanes, and this
+phase must not claim new support by changing docs alone.
 
 ## Acceptance Scenarios Are Not Product APIs
 

@@ -1286,6 +1286,25 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `completion gate does not accept unsupported version lanes as support`() {
+        val checklist = Files.readString(repositoryRoot().resolve("docs/project-completion-checklist.md"))
+        val finalGate = checklist.substringAfter("## Final Completion Gate")
+            .replace(Regex("\\s+"), " ")
+
+        assertFalse(
+            finalGate.contains("accepted support boundary", ignoreCase = true),
+            "Final completion must require runnable version support evidence, not an accepted unsupported boundary.",
+        )
+        assertFalse(
+            Regex("unsupported lane.*completion", RegexOption.IGNORE_CASE).containsMatchIn(finalGate),
+            "Unsupported compatibility lanes are diagnostics and must not satisfy completion.",
+        )
+        assertTrue(finalGate.contains("runnable support evidence", ignoreCase = true))
+        assertTrue(finalGate.contains("latest", ignoreCase = true))
+        assertTrue(finalGate.contains("representative older", ignoreCase = true))
+    }
+
+    @Test
     fun `fabric backend can expose unavailable actions only from runtime discovery probes`() {
         val backend = FabricDriverBackend.metadataOnly()
 
