@@ -3504,6 +3504,29 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-latest-version-alias-resolution.md`.
 
+## Phase 112: Resolved Driver Mod Lane Request
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-112-resolved-driver-mod-lane-request-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-112-resolved-driver-mod-lane-request-plan.md`.
+- [x] Prepared client runtime driver-mod selection uses the concrete
+  `CachePrepareResult.minecraftVersion` after alias resolution.
+- [x] Prepared client runtime driver-mod selection still passes the resolved
+  Fabric Loader version.
+- [x] Exact version requests keep the same provider request behavior.
+- [x] This phase adds no new compiled Fabric lane, public gameplay action,
+  generated route family, CLI gameplay catalog, Fabric gameplay binding,
+  scenario shortcut, public version-specific API, runnable latest/older lane,
+  or new Minecraft support claim.
+
+Verification:
+
+- Red/green guard:
+  `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.prepared runtime asks driver mod provider for *runtime lane*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-resolved-driver-mod-lane-request.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3529,9 +3552,10 @@ Verification:
   explicit unused/dead-code gates, and Phase 107 version-aware driver mod
   selection, and Phase 108 driver mod manifest provider, and Phase 109
   packaged driver mod manifest, and Phase 110 strict Fabric runtime lane
-  identity, and Phase 111 latest version alias resolution. Phase 105, Phase
-  107, Phase 108, Phase 109, Phase 110, and Phase 111 do not satisfy the
-  runnable latest/older support requirement by themselves.
+  identity, and Phase 111 latest version alias resolution, and Phase 112
+  resolved driver mod lane request. Phase 105, Phase 107, Phase 108, Phase
+  109, Phase 110, Phase 111, and Phase 112 do not satisfy the runnable
+  latest/older support requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

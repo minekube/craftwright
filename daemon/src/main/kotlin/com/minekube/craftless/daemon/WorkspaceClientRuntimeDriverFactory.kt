@@ -52,7 +52,7 @@ class WorkspaceClientRuntimeDriverFactory(
                         minecraftVersion = request.version,
                         loader = request.loader,
                     ),
-                ).withConfiguredDriverMod(request)
+                ).withConfiguredDriverMod()
         val files = request.instanceFiles()
         val launch = launcher.launch(request, cache, files, root, attachEnvironment)
         return PreparedClientRuntime(
@@ -65,11 +65,11 @@ class WorkspaceClientRuntimeDriverFactory(
         }
     }
 
-    private fun CachePrepareResult.withConfiguredDriverMod(request: CreateClientRequest): CachePrepareResult {
+    private fun CachePrepareResult.withConfiguredDriverMod(): CachePrepareResult {
         val driverModRequest =
             ClientRuntimeDriverModRequest(
-                loader = request.loader,
-                minecraftVersion = request.version,
+                loader = loader,
+                minecraftVersion = minecraftVersion,
                 loaderVersion = loaderVersion,
             )
         val source = driverModProvider.modFor(driverModRequest)?.toAbsolutePath()?.normalize() ?: return this

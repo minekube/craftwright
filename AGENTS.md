@@ -222,6 +222,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 109. packaged driver mod manifest.
 110. strict Fabric runtime lane identity.
 111. latest version alias resolution.
+112. resolved driver mod lane request.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -844,6 +845,13 @@ metadata, or prepared manifests. This improves generic version handling only;
 it must not add compiled lanes, gameplay descriptors, static route families,
 scenario shortcuts, public version-specific APIs, or latest/older runnable
 support claims.
+Phase 112 makes prepared client runtime driver-mod selection consume the
+resolved cache-preparation runtime identity. Manifest-backed driver-mod
+providers must receive the concrete prepared Minecraft version and resolved
+loader version, not an unresolved user alias such as `latest-release`. This is
+runtime artifact selection only; it must not add compiled lanes, gameplay
+descriptors, static route families, scenario shortcuts, public
+version-specific APIs, or latest/older runnable support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 
