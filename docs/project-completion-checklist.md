@@ -55,7 +55,7 @@ Board row is changed to `[x]`.
 
 | Step | Status | Required Output |
 | --- | --- | --- |
-| 1 | [ ] | Write CL-07 spec and implementation plan before new gameplay work. |
+| 1 | [x] | Write CL-07 spec and implementation plan before new gameplay work. |
 | 2 | [ ] | Start Craftless supervisor and a real Minecraft server from packaged/public surfaces. |
 | 3 | [ ] | Create or attach a real Craftless-controlled client through public API/CLI. |
 | 4 | [ ] | Fetch generated per-client OpenAPI and select only generated operations. |

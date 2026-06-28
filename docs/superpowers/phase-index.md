@@ -69,6 +69,7 @@ not grow with every completed phase.
 - Phase 184: representative older product lane.
 - Phase 185: user-facing usability docs.
 - Phase 186: final local release gates.
+- Phase 187: final public gameplay.
 
 ## Current Direction
 
@@ -166,3 +167,8 @@ Continue with CL-07: final honest survival gameplay must be driven through
 public generated API/CLI only, with generated OpenAPI as authority and no
 server-provisioned inventory, static scenario action, creative shortcut,
 direct in-process call, or human movement shortcut.
+CL-07 now has a spec and implementation plan. The next work is to implement a
+rerunnable final gameplay probe that uses the packaged CLI and live generated
+OpenAPI, writes public action/state/SSE artifacts, and fails with
+`missing-generic-primitive:*` instead of adding scenario shortcuts when a
+required generic primitive is absent.
