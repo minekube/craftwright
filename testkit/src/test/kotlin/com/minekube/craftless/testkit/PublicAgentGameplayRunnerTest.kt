@@ -6,6 +6,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.OutgoingContent
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
@@ -109,6 +110,26 @@ class PublicAgentGameplayRunnerTest {
             assertEquals("[]", result.actions)
             assertEquals(completeActionCatalog().toSet(), result.availableActions.toSet())
             assertTrue(result.actionLog.map { it.action }.contains("world.block.break"))
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
+    fun `runner does not require actions projection endpoint when live openapi has actions`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog(),
+                    projectedActions = null,
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blockerWithActions())
+            assertTrue(server.requests.contains("GET /clients/fabric-smoke/openapi.json"))
+            assertTrue(server.requests.contains("GET /clients/fabric-smoke/actions"))
+            assertEquals("[]", result.actions)
+            assertEquals(completeActionCatalog().toSet(), result.availableActions.toSet())
             assertFalse(server.requestBodies.anyScenarioShortcut())
         }
 
@@ -2950,7 +2971,7 @@ class PublicAgentGameplayRunnerTest {
 
 private class RecordingCraftlessHttpServer(
     private val actions: List<String>,
-    private val projectedActions: List<String> = actions,
+    private val projectedActions: List<String>? = actions,
     private val actionArguments: Map<String, List<String>> = emptyMap(),
     private val blockQueryResponses: List<String> = listOf(logBlockQueryResponse),
     private val inventoryResponses: List<String>? = null,
@@ -3013,16 +3034,28 @@ private class RecordingCraftlessHttpServer(
                 requestBodies += request.body.contentText()
                 respond(
                     content = responseBody(request),
+                    status = responseStatus(request),
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
             },
         )
 
+    private fun responseStatus(request: HttpRequestData): HttpStatusCode =
+        if (request.method == HttpMethod.Get &&
+            request.url.encodedPath.endsWith("/actions") &&
+            projectedActions == null
+        ) {
+            HttpStatusCode.NotFound
+        } else {
+            HttpStatusCode.OK
+        }
+
     private fun responseBody(request: HttpRequestData): String =
         when {
             request.method == HttpMethod.Get && request.url.encodedPath == "/openapi.json" -> """{"openapi":"3.1.0"}"""
             request.method == HttpMethod.Get && request.url.encodedPath.endsWith("/openapi.json") -> clientOpenApiJson()
-            request.method == HttpMethod.Get && request.url.encodedPath.endsWith("/actions") -> actionsJson(projectedActions)
+            request.method == HttpMethod.Get && request.url.encodedPath.endsWith("/actions") ->
+                projectedActions?.let(::actionsJson) ?: """{"code":"not-found","message":"actions projection disabled"}"""
             request.method == HttpMethod.Get && request.url.encodedPath.endsWith("/events:stream") -> "event: ready\ndata: {}\n\n"
             request.method == HttpMethod.Post && request.url.encodedPath.endsWith(":run") -> actionResponse()
             else -> """{"code":"not-found","message":"unexpected request"}"""

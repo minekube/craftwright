@@ -17,10 +17,20 @@ import io.ktor.server.routing.routing
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.net.ServerSocket
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 class HttpDriverSessionTest {
+    @Test
+    fun `http driver session does not fetch actions endpoint as remote authority`() {
+        val source = Files.readString(repositoryRoot().resolve("daemon/src/main/kotlin/com/minekube/craftless/daemon/HttpDriverSession.kt"))
+
+        assertFalse(source.contains("get(\"actions\")"))
+    }
+
     @Test
     fun `remote actions derive from runtime graph without calling actions endpoint`() {
         RuntimeGraphOnlyEndpoint("alice").use { endpoint ->
@@ -32,6 +42,17 @@ class HttpDriverSessionTest {
             assertEquals(listOf("player.chat"), actions.map { action -> action.id })
             assertEquals(0, endpoint.actionsRequests)
         }
+    }
+
+    private fun repositoryRoot(): Path {
+        var current: Path? = Path.of("").toAbsolutePath()
+        while (current != null) {
+            if (Files.exists(current.resolve("settings.gradle.kts"))) {
+                return current
+            }
+            current = current.parent
+        }
+        error("repository root not found")
     }
 }
 

@@ -55,6 +55,7 @@ not grow with every completed phase.
 - Phase 170: active docs and agent onboarding alignment.
 - Phase 171: daemon OpenAPI graph-only authority.
 - Phase 172: remote driver action graph authority.
+- Phase 173: public-agent actions projection optional.
 
 ## Current Direction
 
@@ -86,6 +87,9 @@ or agent workflow metadata when the runtime graph is empty.
 Remote attached `HttpDriverSession.actions()` now uses the shared
 runtime-graph projection default instead of fetching a separate loopback
 `/actions` endpoint.
+The public-agent runner treats `/clients/{id}/actions` as optional projection
+evidence; generated per-client OpenAPI `x-craftless-actions` remains the
+gameplay authority even when the projection endpoint is absent.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the

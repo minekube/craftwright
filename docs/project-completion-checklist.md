@@ -38,7 +38,7 @@ blocked.
 
 ### Open Work Queue
 
-1. [ ] CL-01: Remove the remaining public action-list authority paths.
+1. [x] CL-01: Remove the remaining public action-list authority paths.
    Done means: daemon, CLI, public-agent runner, attach transport, and driver
    runtime code treat generated per-client OpenAPI/runtime graph as the action
    authority; `/actions` remains only a projection/debug endpoint and cannot
@@ -54,7 +54,10 @@ blocked.
    Phase 172 removed the remote `HttpDriverSession.actions()` fetch from the
    attach HTTP path with
    `docs/superpowers/evidence/2026-06-28-remote-driver-action-graph-authority.md`;
-   continue with the remaining backend/CLI/projection scans.
+   Phase 173 made public-agent `/actions` projection fetches optional,
+   added CLI/HTTP authority guards, and records the remaining production scan
+   with
+   `docs/superpowers/evidence/2026-06-28-public-agent-actions-projection-optional.md`.
 2. [ ] CL-02: Finish transitional Fabric binding exit.
    Done means: new gameplay breadth is discovered/projected from Fabric
    runtime inputs such as reflection, mappings, registries, callbacks, screens,

@@ -45,6 +45,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.net.ServerSocket
 import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -52,6 +53,15 @@ import kotlin.test.assertTrue
 import io.ktor.server.cio.CIO as ServerCIO
 
 class CraftlessCliTest {
+    @Test
+    fun `adaptive cli does not fetch actions projection as gameplay authority`() {
+        val source = Files.readString(repositoryRoot().resolve("cli/src/main/kotlin/com/minekube/craftless/cli/Main.kt"))
+
+        assertFalse(source.contains("/clients/\$clientId/actions"))
+        assertFalse(source.contains("/clients/\${clientId}/actions"))
+        assertTrue(source.contains("/clients/\$clientId/openapi.json"))
+    }
+
     @Test
     fun `cli registers first jvm command tree`() {
         val commands = CraftlessCli.registeredCommandPaths()
@@ -90,6 +100,17 @@ class CraftlessCliTest {
                     path.contains("raycast")
             },
         )
+    }
+
+    private fun repositoryRoot(): Path {
+        var current: Path? = Path.of("").toAbsolutePath()
+        while (current != null) {
+            if (Files.exists(current.resolve("settings.gradle.kts"))) {
+                return current
+            }
+            current = current.parent
+        }
+        error("repository root not found")
     }
 
     @Test

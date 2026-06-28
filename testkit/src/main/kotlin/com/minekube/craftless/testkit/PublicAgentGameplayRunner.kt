@@ -9,6 +9,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -46,7 +47,7 @@ class PublicAgentGameplayRunner(
     suspend fun runOnce(artifactsDir: Path? = null): PublicAgentGameplayResult {
         val supervisorSpec = http.get("$baseUrl/openapi.json").bodyAsText()
         val clientSpec = http.get("$baseUrl/clients/$clientId/openapi.json").bodyAsText()
-        val actionProjection = http.get("$baseUrl/clients/$clientId/actions").bodyAsText()
+        val actionProjection = fetchOptionalActionProjection()
         val eventStream = http.get("$baseUrl/clients/$clientId/events:stream").bodyAsText()
         val actionMetadata =
             clientSpec.openApiActionsJson()
@@ -1144,6 +1145,14 @@ class PublicAgentGameplayRunner(
             JsonObject.serializer(),
             JsonObject(entries.toMap()),
         )
+
+    private suspend fun fetchOptionalActionProjection(): String =
+        try {
+            val response = http.get("$baseUrl/clients/$clientId/actions")
+            if (response.status.isSuccess()) response.bodyAsText() else "[]"
+        } catch (_: IOException) {
+            "[]"
+        }
 
     private fun publicAgentInvocation(
         action: String,
