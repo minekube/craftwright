@@ -33,7 +33,10 @@ All local gates passed before commit.
 
 ## Remote CI
 
-Pending until the phase commit is pushed to `main` and GitHub Actions passes.
+- Commit: `74ac1fe480f94cfd504dfbcc5c92c28d25e94b78`
+- GitHub Actions run: `28310939885`
+- Workflow: `ci`
+- Result: passed.
 
 ## Notes
 
