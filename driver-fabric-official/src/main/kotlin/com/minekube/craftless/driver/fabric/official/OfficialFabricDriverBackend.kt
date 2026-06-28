@@ -5,7 +5,6 @@ import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
-import com.minekube.craftless.driver.fabric.discovery.FabricClientStateGraphSnapshot
 import com.minekube.craftless.driver.fabric.discovery.FabricLoaderRuntimeMetadataReader
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataSnapshot
@@ -22,6 +21,7 @@ import com.minekube.craftless.protocol.RuntimeSourceEvidence
 
 internal class OfficialFabricDriverBackend(
     private val runtimeMetadataProvider: FabricRuntimeMetadataProvider = officialFabricRuntimeMetadataProvider(),
+    private val clientStateProvider: OfficialFabricClientStateProvider = MinecraftOfficialFabricClientStateProvider(),
 ) : DriverBackend {
     override fun connect(
         clientId: String,
@@ -29,7 +29,7 @@ internal class OfficialFabricDriverBackend(
     ): DriverBackendResult =
         DriverBackendResult(
             action = DriverBackendAction.CONNECT,
-            message = "official lane metadata-only backend cannot connect $clientId to ${target.host}:${target.port}",
+            message = "official lane probe backend cannot connect $clientId to ${target.host}:${target.port}",
             observed = false,
         )
 
@@ -46,7 +46,7 @@ internal class OfficialFabricDriverBackend(
                             sourceEvidence =
                                 listOf(
                                     RuntimeSourceEvidence("runtime-lane", "latest-current-official"),
-                                    RuntimeSourceEvidence("runtime-status", "metadata-only"),
+                                    RuntimeSourceEvidence("runtime-status", "client-state-probe"),
                                     RuntimeSourceEvidence("runtime-java", "java:25"),
                                 ),
                         ),
@@ -58,7 +58,7 @@ internal class OfficialFabricDriverBackend(
                             sourceEvidence = emptyList(),
                             available = false,
                         ),
-                        fabricClientStateGraphFragment(FabricClientStateGraphSnapshot.disconnected()),
+                        fabricClientStateGraphFragment(clientStateProvider.snapshot()),
                     ),
             )
         }
@@ -70,13 +70,13 @@ internal class OfficialFabricDriverBackend(
         DriverActionResult(
             action = invocation.action,
             status = DriverActionStatus.UNSUPPORTED,
-            message = "official lane metadata-only backend has no generated runtime operation for ${invocation.action}",
+            message = "official lane probe backend has no generated runtime operation for ${invocation.action}",
         )
 
     override fun stop(clientId: String): DriverBackendResult =
         DriverBackendResult(
             action = DriverBackendAction.STOP,
-            message = "stopped official lane metadata-only backend for $clientId",
+            message = "stopped official lane probe backend for $clientId",
         )
 }
 

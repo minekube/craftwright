@@ -1,9 +1,11 @@
 package com.minekube.craftless.driver.fabric.official
 
+import com.minekube.craftless.driver.fabric.discovery.FabricClientStateGraphSnapshot
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataSnapshot
 import com.minekube.craftless.driver.fabric.discovery.SnapshotFabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeFingerprint
+import com.minekube.craftless.protocol.RuntimeAvailability
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -105,5 +107,56 @@ class OfficialFabricSharedRuntimeMetadataTest {
         assertEquals("craftless-driver-fabric-official", metadata.driver)
         assertTrue(metadata.installedModsFingerprint.startsWith("mods:"))
         assertNotEquals("mods:official-lane-probe", metadata.installedModsFingerprint)
+    }
+
+    @Test
+    fun `official backend projects client state from lane provider without adding operations`() {
+        val backend =
+            OfficialFabricDriverBackend(
+                runtimeMetadataProvider =
+                    FabricRuntimeMetadataProvider { clientId ->
+                        SnapshotFabricRuntimeMetadataProvider(
+                            FabricRuntimeMetadataSnapshot(
+                                loaderVersion = "0.19.3",
+                                driver = "craftless-driver-fabric-official",
+                                driverVersion = "0.1.0-SNAPSHOT",
+                                mappings = "craftless-official-bindings-26-2",
+                                installedModsFingerprint = fabricRuntimeFingerprint("mods", listOf("test-mod@1.0.0")),
+                                registryFingerprint = "registries:not-discovered",
+                                serverFeatureFingerprint = "server-features:not-connected",
+                                permissionsFingerprint = "permissions:local-client",
+                            ),
+                        ).runtimeMetadata(clientId)
+                    },
+                clientStateProvider =
+                    OfficialFabricClientStateProvider {
+                        FabricClientStateGraphSnapshot(
+                            connected = true,
+                            player = true,
+                            inventory = true,
+                            camera = true,
+                            interactionManager = true,
+                            world = true,
+                            recipes = false,
+                            recipeCrafting = false,
+                        )
+                    },
+            )
+
+        val graph = backend.runtimeGraph("official-probe")
+        val resources = graph.resources.associateBy { resource -> resource.id }
+        val handles = graph.handles.associateBy { handle -> handle.id }
+
+        assertEquals(emptyList(), graph.operations)
+        assertEquals(RuntimeAvailability.available(), resources.getValue("client").availability)
+        assertEquals(RuntimeAvailability.available(), resources.getValue("player").availability)
+        assertEquals(RuntimeAvailability.available(), resources.getValue("inventory").availability)
+        assertEquals(RuntimeAvailability.available(), resources.getValue("world").availability)
+        assertEquals(RuntimeAvailability.available(), resources.getValue("entity").availability)
+        assertEquals(RuntimeAvailability.unavailable("recipe-discovery-unavailable"), resources.getValue("recipe").availability)
+        assertEquals(RuntimeAvailability.available(), handles.getValue("inventory.slot").availability)
+        assertEquals(RuntimeAvailability.available(), handles.getValue("world.block.handle").availability)
+        assertEquals(RuntimeAvailability.available(), handles.getValue("entity.handle").availability)
+        assertEquals(RuntimeAvailability.unavailable("recipe-discovery-unavailable"), handles.getValue("recipe.handle").availability)
     }
 }

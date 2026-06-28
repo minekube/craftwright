@@ -277,6 +277,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 154. shared Fabric registry graph projection.
 155. shared Fabric event graph projection.
 156. shared Fabric client-state graph projection.
+157. official Fabric live client-state probe.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -455,6 +456,14 @@ actual Minecraft client-thread state inspection, accessors, mixins, and
 execution adapters when those diverge. They must not copy client-state graph
 builders, add gameplay actions, package the 26.x official lane, or claim
 latest/current support.
+
+Phase 157 makes the latest/current official lane provide its client-state graph
+snapshot from the running official/Mojang-mapped Minecraft client rather than a
+hard-coded disconnected snapshot. This is live runtime evidence only: the
+official lane may read booleans such as player, world, inventory, camera,
+interaction manager, recipe access, and screen availability, but it must not
+copy Yarn/remap gateways or gameplay bindings, add public gameplay actions,
+package the 26.x official lane, or claim latest/current support.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

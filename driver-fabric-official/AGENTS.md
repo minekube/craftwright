@@ -56,6 +56,10 @@ divergence that forced it.
 - Runtime metadata must come from the running Fabric Loader/client where
   possible. Do not replace unknown data with official-lane placeholder
   fingerprints, static installed-mod lists, or hard-coded version claims.
+- Client-state evidence should come from the running official/Mojang-mapped
+  Minecraft client when available. Keep it to lane-provided booleans projected
+  through shared discovery; do not turn this module into a copied Yarn/remap
+  gateway or gameplay binding catalog.
 - Do not package this module as a supported driver lane or add it to
   `driver-mods.json` until launch, self-attach, generated OpenAPI/actions,
   resources, SSE, and public API/CLI gameplay evidence pass.
