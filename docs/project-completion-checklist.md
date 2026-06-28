@@ -12,123 +12,170 @@ Legend:
 - `[x]` done with evidence
 - `[!]` blocked
 
-## Completion Gate Summary
+## Active Completion Board
 
-Do not mark Craftless complete while the Fabric driver is still a small
-hand-written binding list or while new gameplay breadth depends on adding more
-hand-written descriptor/binding pairs.
+This board is the source of truth for what remains. Keep it short, dependency
+ordered, and evidence driven. Put phase history in the phase sections below
+and put raw logs in `docs/superpowers/evidence/`.
 
-Final completion requires all of the following to have current
-Codex-verifiable evidence:
+Do not mark Craftless complete while public gameplay breadth still depends on
+hand-maintained action catalogs, descriptor/binding pairs, scenario shortcuts,
+or one-version-only driver behavior.
 
-- Generic runtime capability graph.
-- Reflection/mapping/registry/callback/screen/handler discovery.
-- Generated per-client OpenAPI from that graph.
-- Executable adapters or probe-backed availability for advertised
-  actions/resources.
-- SSE event streaming for live observations.
-- Honest survival gameplay without server-provisioned items.
-- Current multi-version compatibility evidence.
-- Public API/CLI final gameplay artifacts.
+### 0. Current Slice
 
-## Current Goal Worklist
+- [~] Phase 169: public-agent action metadata authority.
+  The public-agent gameplay runner now treats generated per-client OpenAPI
+  `x-craftless-actions` as the action metadata authority. `/clients/{id}/actions`
+  is still fetched as a projection artifact, not as the source of truth.
+  Closure evidence: this checklist update is included in the Phase 169 commit
+  pushed to `main`.
 
-This is the operator-facing checklist. Keep this section short and current.
-Move historical detail into phase entries and evidence files instead of
-growing this list.
-
-### A. System Design And Governance
+### 1. Governance And Docs Alignment
 
 - [x] Root and module `AGENTS.md` files are short routing files.
 - [x] Durable repository rules live in `docs/agent-operating-contract.md`.
 - [x] Durable module rules live in `docs/agent-module-contracts.md`.
-- [ ] README, roadmap, checklist, specs, plans, and repository agent skills all
-  say the same thing: work on discovery/projection/invocation/streaming
-  systems, not hand-written gameplay catalogs.
-  Evidence needed: docs search for stale static SDK/action wording, plus
-  `git diff --check` and relevant docs/architecture tests.
+- [ ] README, roadmap/checklist, specs/plans, and repository agent skills all
+  state the same architecture:
+  generated runtime graph and per-client OpenAPI are the public authority;
+  Fabric/launcher/bridge/version code is internal evidence or adapter code.
 
-### B. Runtime Graph As Public API Authority
+Evidence to close:
+
+- `rg` checks for stale `craftwright`, `.dev`, TypeScript SDK, static action
+  catalog, scenario shortcut, and hand-written gameplay wording.
+- `git diff --check`.
+- Relevant docs/architecture tests.
+
+### 2. Public API Authority Exit
 
 - [x] `DriverSession.actions()` defaults to runtime graph operation projection.
 - [x] `DriverBackend.actions(clientId)` defaults to runtime graph operation
   projection.
-- [x] `ClientSessionService.routesFor(clientId)` is moved to project
-  from generated per-client OpenAPI instead of a separate action list.
-  Evidence: Phase 168 red/green daemon tests and `mise run ci`.
+- [x] `ClientSessionService.routesFor(clientId)` projects routes from generated
+  per-client OpenAPI.
+- [~] Public-agent workflow uses generated per-client OpenAPI action metadata
+  instead of the `/actions` projection.
 - [ ] `/clients/{id}/actions`, `/clients/{id}/resources`, generated aliases,
-  CLI help, tool export, and agent workflows are all verified as projections
-  of generated per-client OpenAPI/runtime graph.
-  Evidence needed: focused API/CLI tests where graph-backed sessions work even
-  when independent action-list catalogs are unavailable.
+  CLI help, tool export, and agent workflows are all proven to be projections
+  of the same generated per-client OpenAPI/runtime graph.
 
-### C. Binding-Exit Work
+Evidence to close:
+
+- Focused tests where graph-backed sessions still power API, CLI help, tool
+  export, and agent workflow behavior when any independent action-list catalog
+  is unavailable or empty.
+- No new public route families such as `/clients/{id}/player/sendChat`.
+
+### 3. Binding-Exit Work
 
 - [~] Transitional Fabric bootstrap operation definitions still own current
   gameplay operation ids/schemas.
-- [ ] New gameplay breadth is generated from reflection/mapping/registry/
-  callback/screen/handler discovery and projection, not by adding another
-  descriptor/binding pair.
-- [ ] Bootstrap/navigation operation constants are either reduced to narrow
+- [ ] New gameplay breadth is generated from reflection, mappings, registries,
+  callbacks, screens, handlers, world/entity/inventory/client-state probes,
+  and projection.
+- [ ] Bootstrap/navigation constants are either reduced to narrow internal
   compatibility adapters or replaced by generic runtime discovery evidence.
-  Evidence needed: tests that fail if future public gameplay operations are
-  added through hand-maintained bootstrap catalogs.
 
-### D. Multi-Version Foundation
+Evidence to close:
+
+- Guardrail tests fail when new public gameplay operations are added by
+  hand-maintained descriptor/binding pairs.
+- Fabric lane code exposes capability graph nodes and executable adapters, not
+  copied public action catalogs.
+
+### 4. Multi-Version Support
 
 - [x] Version manifest handling, Java/runtime selection, Fabric Loader/API
   resolution, cache layout, launch metadata, and compatibility probes have
   staged evidence.
-- [~] Latest/current official lane has launch/attach/projection/SSE/JSON-RPC
-  probe evidence, but is not yet packaged as supported runtime gameplay lane.
+- [~] Latest/current official lane has launch, attach, projection, SSE, and
+  JSON-RPC probe evidence, but is not yet a packaged supported gameplay lane.
 - [~] Representative older lane has historical and installed-smoke evidence,
-  but final support still requires current end-to-end public API/CLI gameplay
-  verification.
+  but does not yet pass the same final public API/CLI gameplay gate.
 - [ ] Latest/current and representative older supported versions pass the same
-  public API/CLI gates as the default lane.
-  Evidence needed: packaged launch, self-attach, generated OpenAPI/actions/
-  resources, SSE/JSON-RPC, CLI smoke, and gameplay artifacts for both lanes.
+  public gates as the default lane.
 
-### E. Transport And Consumers
+Evidence to close for each supported lane:
+
+- Packaged launch.
+- Self-attach to in-client driver.
+- Generated OpenAPI/actions/resources.
+- SSE and JSON-RPC query/subscription.
+- CLI smoke through generated metadata.
+- Honest gameplay artifact through public API/CLI only.
+
+### 5. Transport And Generated-Client Usability
 
 - [x] JVM HTTP/client/SSE foundation uses Ktor.
 - [x] Generic invocation exists at `POST /clients/{id}:run`.
 - [x] SSE stream and JSON-RPC-style query/subscription evidence exists.
 - [ ] JSON-RPC invocation and SSE event streaming are documented and verified
-  as generated-client friendly across current supported lanes.
-  Evidence needed: protocol/daemon tests plus docs examples that use generated
-  OpenAPI metadata and event filters.
+  as generated-client friendly across supported lanes.
 
-### F. Distribution And Agent Usability
+Evidence to close:
+
+- Protocol/daemon tests for generated metadata, event filters, correlation ids,
+  and subscription behavior.
+- README/docs examples that use generated OpenAPI plus SSE/JSON-RPC, not
+  static examples that imply a fixed gameplay catalog.
+
+### 6. Distribution And Agent Onboarding
 
 - [x] CLI binary is `craftless`.
 - [x] Install script, Docker runtime image, release checks, and packaged CLI
   smoke have current evidence.
-- [ ] Reusable GitHub Action and agent skill docs are current and verified
-  against the generated OpenAPI/CLI workflow.
-- [ ] README quickstart presents current install, Docker, API, CLI, and agent
-  usage without legacy TypeScript SDK or static gameplay catalog wording.
+- [ ] Reusable GitHub Action is current and documented for external repos.
+- [ ] Agent skill docs are current and verified against the generated
+  OpenAPI/CLI workflow.
+- [ ] README quickstart presents install, Docker, API, CLI, and agent usage
+  without legacy TypeScript SDK or static gameplay catalog wording.
 
-### G. Quality Gates
+Evidence to close:
+
+- Local CLI smoke.
+- Local Docker smoke.
+- Release/install smoke.
+- GitHub Action syntax review or workflow test where practical.
+
+### 7. Quality Gates
 
 - [x] Kotlin lint, formatting, unused/dead-code checks, and mise tasks exist.
-- [x] Current Phase 168 working tree passes `mise run ci`.
-- [x] Current Phase 168 working tree passes `git diff --check`.
-- [x] Current Phase 168 work is committed and pushed to `main`. This entry is
-  current only after the checklist update that contains it is also pushed.
+- [x] Phase 168 passed `mise run ci`, `git diff --check`, commit, and push.
+- [x] Phase 169 passes `mise run ci`.
+- [x] Phase 169 passes `git diff --check`.
+- [x] Phase 169 is committed and pushed to `main`.
+- [ ] Final pre-completion verification reruns the complete local gate set.
 
-### H. Final Gameplay Gate
+Final local gate set:
+
+- `mise run ci`
+- `mise run architecture-check`
+- `mise run package-cli`
+- Docker runtime smoke
+- install script smoke
+- focused multi-version lane probes
+- final public API/CLI gameplay run
+
+### 8. Final Gameplay Gate
 
 - [~] Existing final gameplay evidence proves useful public API/CLI smoke, but
-  the goal remains open until the design exits transitional static gameplay
-  catalogs and multi-version support is current.
-- [ ] Final honest survival gameplay is rerun through public API/CLI only,
-  without server-provisioned inventory and without product hard-coded survival
-  shortcuts, after the API authority, binding-exit, and multi-version gates
-  above are complete.
-  Evidence needed: generated OpenAPI/actions/resources, SSE/JSON-RPC event
-  stream, CLI/API transcript, gameplay artifacts, inventory/world/entity
-  observations, and no provisioning shortcuts.
+  the project is still not complete because binding-exit and multi-version
+  support are not fully closed.
+- [ ] Final honest survival gameplay is rerun through public API/CLI only
+  after sections 1-7 are closed.
+
+Evidence to close:
+
+- Generated OpenAPI/actions/resources captured for the live client.
+- SSE/JSON-RPC event stream transcript captured.
+- CLI/API transcript captured.
+- Inventory, world, entity, crafting, movement, combat, and pickup evidence
+  captured from public resources/actions.
+- No server-provisioned inventory.
+- No product hard-coded survival task action.
+- No manual movement required for the product evidence.
 
 ## Current Baseline
 
@@ -5301,88 +5348,48 @@ Verification:
 - Current local CI:
   `mise run ci`.
 
+## Phase 169: Public-Agent OpenAPI Action Authority
+
+- [x] Spec written:
+  `docs/superpowers/specs/2026-06-28-169-public-agent-openapi-action-authority-design.md`.
+- [x] Plan written:
+  `docs/superpowers/plans/2026-06-28-169-public-agent-openapi-action-authority-plan.md`.
+- [x] The public-agent gameplay runner now parses action ids and action
+  argument metadata from generated per-client OpenAPI `x-craftless-actions`.
+- [x] `/clients/{id}/actions` remains fetched and recorded as a projection
+  artifact, but it is no longer the public-agent workflow authority for
+  required primitive checks or argument support checks.
+- [x] A focused regression proves the runner succeeds when generated OpenAPI
+  has the complete action metadata but the `/actions` projection is empty.
+- [x] This phase adds no gameplay operation, no public route shape, no CLI
+  command, no action adapter, no static action catalog, no scenario shortcut,
+  no version lane, and no support claim.
+
+Verification:
+
+- Red public-agent regression:
+  `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest.runner uses generated client openapi actions as authority over actions projection*'`
+  failed before implementation because the runner blocked on the empty
+  `/actions` projection.
+- Focused green public-agent regression:
+  `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest.runner uses generated client openapi actions as authority over actions projection*'`.
+- Public-agent class regression:
+  `mise exec -- gradle :testkit:test --tests '*PublicAgentGameplayRunnerTest*'`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-public-agent-openapi-action-authority.md`.
+
 ## Final Completion Gate
 
-- [~] All implementation phases above have current Phase 75 evidence, a Phase
-  76 completion audit, Phase 77 graph-owned public Fabric action descriptors,
-  Phase 78 graph-native bootstrap operation schemas, Phase 79 graph-owned
-  generic invoke compatibility dispatch, Phase 80 deletion of standalone action discovery,
-  Phase 81 HMC bridge gameplay removal, and Phase 82 README public entrypoint
-  overhaul, Phase 83 Fabric binding descriptor removal, and Phase 84 bootstrap
-  operation definition isolation, and Phase 85 binding operation id source
-  ownership, Phase 86 Fabric adapter key source ownership, and Phase 87 backend
-  operation id source ownership, and Phase 88 binding adapter key derivation
-  removal, Phase 89 navigation operation id source ownership, and Phase 90
-  smoke bootstrap action id source ownership, and Phase 91 version support
-  completion gate, and Phase 92 build-generated compiled lane metadata, and
-  Phase 93 static unsupported version lane removal, and Phase 94 Fabric API
-  cache resolution, Phase 95 launch mod materialization, Phase 96 Craftless
-  driver mod launch artifact, Phase 97 packaged driver mod distribution, Phase
-  98 driver attach proxy, Phase 99 launch attach environment, and Phase 100
-  Fabric driver self-attach, Phase 101 packaged driver runtime dependencies,
-  Phase 102 packaged live attach and cold-cache usability, and Phase 103
-  installed CLI driver mod distribution, Phase 104 v0.1.1 release install
-  evidence, Phase 105 active unsupported lane fixture cleanup, and Phase 106
-  explicit unused/dead-code gates, and Phase 107 version-aware driver mod
-  selection, and Phase 108 driver mod manifest provider, and Phase 109
-  packaged driver mod manifest, and Phase 110 strict Fabric runtime lane
-  identity, and Phase 111 latest version alias resolution, and Phase 112
-  resolved driver mod lane request, and Phase 113 shared version index
-  resolution, and Phase 114 active docs latest alias, and Phase 115 local
-  server latest alias, and Phase 116 local smoke default latest alias, and
-  Phase 117 live event action fallback removal, and Phase 118 action result
-  event type removal, Phase 119 driver event type gameplay removal, and Phase
-  120 invoke fallback naming removal, and Phase 121 metadata fallback naming
-  removal, Phase 122 removed survival namespace wording, and Phase 123
-  create-client loader version, and Phase 124 CLI create-client loader
-  version, Phase 125 driver-mod manifest miss, Phase 126 driver manifest
-  loader default, Phase 127 alias driver manifest loader default, Phase
-  128 generated driver lane catalog, Phase 129 catalog-driven driver
-  artifact staging, Phase 130 projected driver mod manifest, Phase 131
-  transitional Fabric action allowlist deletion, and Phase 132 strict Fabric
-  API artifact resolution, Phase 133 driver mod manifest runtime identity, and
-  Phase 134 parameterized Fabric compiled lane build, Phase 135 reflective
-  Fabric world-change callback, Phase 136 reflective movement input shim, Phase
-  137 reflective recipe bridge, and Phase 138 packaged representative older
-  Fabric lane, Phase 139 packaged older Fabric lane selection smoke, and Phase
-  140 parameterized Fabric smoke client command, and Phase 141 representative
-  older Fabric real-client smoke, and Phase 142 installed packaged older
-  Fabric live attach, Phase 143 installed latest-release alias compatibility
-  probe, Phase 144 latest driver lane preflight, Phase 145 latest official
-  mapping lane probe, Phase 146 latest official Fabric lane boundary, Phase
-  147 shared Fabric attach boundary, Phase 148 official Fabric runtime
-  dependency packaging, Phase 149 official Fabric launch attach probe, Phase
-  150 official Fabric runtime metadata discovery, Phase 151 shared Fabric
-  runtime metadata discovery, and Phase 152 shared Fabric runtime resource
-  projection, Phase 153 shared Fabric runtime graph composition, and Phase 154
-  shared Fabric registry graph projection, and Phase 155 shared Fabric event
-  graph projection, Phase 156 shared Fabric client-state graph projection, and
-  Phase 157 official Fabric live client-state probe, Phase 158 official
-  Fabric connected client-state probe, Phase 159 official Fabric connected
-  server-feature metadata, Phase 160 official Fabric registry metadata probe,
-  Phase 161 official Fabric event-source metadata, and Phase 162 official
-  Fabric connected SSE evidence, and Phase 163 official Fabric public
-  projection endpoints, Phase 164 official Fabric JSON-RPC query evidence,
-  Phase 165 official Fabric JSON-RPC subscription SSE evidence, Phase 166
-  runtime graph default action projection, and Phase 167 backend runtime graph
-  action default, and Phase 168 OpenAPI route authority.
-  Phase 105, Phase 107, Phase
-  108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
-  115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
-  122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128,
-  Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
-  135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141,
-  Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, Phase 147, Phase
-  148, Phase 149, Phase 150, Phase 151, Phase 152, Phase 153, Phase 154, and
-  Phase 155, Phase 156, Phase 157, Phase 158, Phase 159, Phase 160, and Phase
-  161, Phase 162, Phase 163, Phase 164, Phase 165, Phase 166, Phase 167, and
-  Phase 168 do not satisfy the full runnable latest/older support requirement by
-  themselves.
-  The broader project goal remains active until
-  transitional bootstrap code no longer owns future public gameplay breadth,
-  latest/current and representative older runtime lanes have runnable support
-  evidence, and every generic-discovery, multi-version, transport, CLI, docs,
-  and gameplay requirement is reverified after that exit work.
+- [~] Phase history through Phase 169 is indexed in
+  `docs/superpowers/phase-index.md` and detailed above. Those phases establish
+  the direction and several important guardrails, but they do not by themselves
+  close the product goal.
+- [ ] Completion remains blocked until the Active Completion Board is fully
+  checked: public authority exits independent/static action catalogs, binding
+  breadth moves behind generic discovery/projection/invocation, latest/current
+  and representative older lanes pass the same public API/CLI gameplay gates,
+  docs and agent skills match the architecture, and the final local gate set is
+  rerun after that work.
 - [x] `mise run lint` passes. Current 2026-06-28 evidence: `mise run ci`
   completed lint successfully after the Phase 158 update.
 - [x] `mise run architecture-check` passes. Current 2026-06-28 evidence:

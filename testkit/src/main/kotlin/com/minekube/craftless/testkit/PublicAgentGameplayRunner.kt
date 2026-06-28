@@ -46,9 +46,25 @@ class PublicAgentGameplayRunner(
     suspend fun runOnce(artifactsDir: Path? = null): PublicAgentGameplayResult {
         val supervisorSpec = http.get("$baseUrl/openapi.json").bodyAsText()
         val clientSpec = http.get("$baseUrl/clients/$clientId/openapi.json").bodyAsText()
-        val actions = http.get("$baseUrl/clients/$clientId/actions").bodyAsText()
+        val actionProjection = http.get("$baseUrl/clients/$clientId/actions").bodyAsText()
         val eventStream = http.get("$baseUrl/clients/$clientId/events:stream").bodyAsText()
-        val actionIds = actions.actionIds()
+        val actionMetadata =
+            clientSpec.openApiActionsJson()
+                ?: run {
+                    val result =
+                        PublicAgentGameplayResult(
+                            state = PublicAgentGameplayState.BLOCKED,
+                            blocker = "missing-generated-openapi-actions",
+                            supervisorSpec = supervisorSpec,
+                            clientSpec = clientSpec,
+                            actions = actionProjection,
+                            eventStream = eventStream,
+                            availableActions = emptyList(),
+                        )
+                    artifactsDir?.let { writeArtifacts(it, result) }
+                    return result
+                }
+        val actionIds = actionMetadata.actionIds()
         val missingAction = requiredActions.firstOrNull { it !in actionIds }
         if (missingAction != null) {
             val result =
@@ -57,7 +73,7 @@ class PublicAgentGameplayRunner(
                     blocker = "missing-generic-primitive:$missingAction",
                     supervisorSpec = supervisorSpec,
                     clientSpec = clientSpec,
-                    actions = actions,
+                    actions = actionProjection,
                     eventStream = eventStream,
                     availableActions = actionIds.sorted(),
                 )
@@ -79,7 +95,7 @@ class PublicAgentGameplayRunner(
                 blocker = blocker,
                 supervisorSpec = supervisorSpec,
                 clientSpec = clientSpec,
-                actions = actions,
+                actions = actionProjection,
                 eventStream = eventStream,
                 actionLog = actionLog.toList(),
                 availableActions = actionIds.sorted(),
@@ -592,7 +608,7 @@ class PublicAgentGameplayRunner(
                 var stationTarget: PublicBlockTarget? = null
                 var stationOpenOrigin: CraftlessPoint? = null
                 val canVerifyPlacedBlock =
-                    actions.actionSupportsArgument("world.block.query", "target")
+                    actionMetadata.actionSupportsArgument("world.block.query", "target")
                 for (supportTarget in supportTargets.take(PLACEMENT_TARGET_ATTEMPTS)) {
                     navigateTo(position = supportTarget.position, radius = 2.5)?.let { blocker -> return blocker }
                     val refreshedSupportTarget =
@@ -784,7 +800,7 @@ class PublicAgentGameplayRunner(
                 }
             }
             val placementSlot = latestInventoryObject?.logHotbarSlot()
-            if (placementSlot != null && actions.actionSupportsArgument("world.block.interact", "target")) {
+            if (placementSlot != null && actionMetadata.actionSupportsArgument("world.block.interact", "target")) {
                 val supportTargets =
                     invokeGenerated(
                         action = "world.block.query",
@@ -954,7 +970,7 @@ class PublicAgentGameplayRunner(
                     state = PublicAgentGameplayState.RAN,
                     supervisorSpec = supervisorSpec,
                     clientSpec = clientSpec,
-                    actions = actions,
+                    actions = actionProjection,
                     eventStream = eventStream,
                     actionLog = actionLog,
                     availableActions = actionIds.sorted(),
@@ -1265,6 +1281,12 @@ private fun String.actionSupportsArgument(
             }
         else -> false
     }
+
+private fun String.openApiActionsJson(): String? =
+    runCatching {
+        val parsed = publicAgentJson.parseToJsonElement(this).jsonObject
+        (parsed["x-craftless-actions"] as? JsonArray)?.toString()
+    }.getOrNull()
 
 private val requiredActions =
     listOf(

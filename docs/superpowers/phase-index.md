@@ -51,6 +51,7 @@ not grow with every completed phase.
 - Phase 166: runtime graph default action projection.
 - Phase 167: backend runtime graph action default.
 - Phase 168: OpenAPI route authority.
+- Phase 169: public-agent OpenAPI action authority.
 
 ## Current Direction
 
@@ -67,6 +68,9 @@ lets Fabric use shared runtime behavior instead of a duplicate override.
 Client-specific route projections now derive from the generated per-client
 OpenAPI document, so graph-backed sessions no longer need a separate action
 list merely to expose alias routes through `routesFor(clientId)`.
+The public-agent gameplay runner now uses generated per-client OpenAPI
+`x-craftless-actions` as its action metadata authority, with `/actions`
+remaining a projection artifact instead of the agent workflow source of truth.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the

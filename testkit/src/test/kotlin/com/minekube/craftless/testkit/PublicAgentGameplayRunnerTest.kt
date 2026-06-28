@@ -92,6 +92,27 @@ class PublicAgentGameplayRunnerTest {
         }
 
     @Test
+    fun `runner uses generated client openapi actions as authority over actions projection`() =
+        runBlocking {
+            val server =
+                RecordingCraftlessHttpServer(
+                    actions = completeActionCatalog(),
+                    projectedActions = emptyList(),
+                )
+            val runner = PublicAgentGameplayRunner(baseUrl = server.url, clientId = "fabric-smoke", http = server.http)
+
+            val result = runner.runOnce()
+
+            assertEquals(PublicAgentGameplayState.RAN, result.state, result.blockerWithActions())
+            assertTrue(server.requests.contains("GET /clients/fabric-smoke/openapi.json"))
+            assertTrue(server.requests.contains("GET /clients/fabric-smoke/actions"))
+            assertEquals("[]", result.actions)
+            assertEquals(completeActionCatalog().toSet(), result.availableActions.toSet())
+            assertTrue(result.actionLog.map { it.action }.contains("world.block.break"))
+            assertFalse(server.requestBodies.anyScenarioShortcut())
+        }
+
+    @Test
     fun `runner prefers lower public material targets for collection reachability`() =
         runBlocking {
             val server =
@@ -2929,6 +2950,7 @@ class PublicAgentGameplayRunnerTest {
 
 private class RecordingCraftlessHttpServer(
     private val actions: List<String>,
+    private val projectedActions: List<String> = actions,
     private val actionArguments: Map<String, List<String>> = emptyMap(),
     private val blockQueryResponses: List<String> = listOf(logBlockQueryResponse),
     private val inventoryResponses: List<String>? = null,
@@ -2999,8 +3021,8 @@ private class RecordingCraftlessHttpServer(
     private fun responseBody(request: HttpRequestData): String =
         when {
             request.method == HttpMethod.Get && request.url.encodedPath == "/openapi.json" -> """{"openapi":"3.1.0"}"""
-            request.method == HttpMethod.Get && request.url.encodedPath.endsWith("/openapi.json") -> """{"openapi":"3.1.0"}"""
-            request.method == HttpMethod.Get && request.url.encodedPath.endsWith("/actions") -> actionsJson()
+            request.method == HttpMethod.Get && request.url.encodedPath.endsWith("/openapi.json") -> clientOpenApiJson()
+            request.method == HttpMethod.Get && request.url.encodedPath.endsWith("/actions") -> actionsJson(projectedActions)
             request.method == HttpMethod.Get && request.url.encodedPath.endsWith("/events:stream") -> "event: ready\ndata: {}\n\n"
             request.method == HttpMethod.Post && request.url.encodedPath.endsWith(":run") -> actionResponse()
             else -> """{"code":"not-found","message":"unexpected request"}"""
@@ -3110,7 +3132,9 @@ private class RecordingCraftlessHttpServer(
             ?: screenQueryResponse
     }
 
-    private fun actionsJson(): String =
+    private fun clientOpenApiJson(): String = """{"openapi":"3.1.0","x-craftless-actions":${actionsJson(actions)}}"""
+
+    private fun actionsJson(actions: List<String>): String =
         actions.joinToString(prefix = "[", postfix = "]") { action ->
             val args =
                 actionArguments
