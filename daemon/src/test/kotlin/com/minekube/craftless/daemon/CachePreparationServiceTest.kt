@@ -317,6 +317,84 @@ class CachePreparationServiceTest {
         }
 
     @Test
+    fun `fabric cache preparation requires matching fabric api artifact`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-missing-fabric-api")
+            val versionUrl = "https://metadata.test/1.21.7.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.7.json"
+            val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.7"
+            val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.7/0.17.2/profile/json"
+            val fabricLoaderJarUrl = "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.17.2/fabric-loader-0.17.2.jar"
+            val fabricApiMetadataUrl = "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml"
+            val service =
+                CachePreparationService(
+                    workspaceRoot = workspace,
+                    metadataFetcher =
+                        StaticCacheMetadataFetcher(
+                            mapOf(
+                                MINECRAFT_VERSION_INDEX_URL to
+                                    """
+                                    { "versions": [{ "id": "1.21.7", "url": "$versionUrl" }] }
+                                    """.trimIndent(),
+                                versionUrl to
+                                    """
+                                    {
+                                      "id": "1.21.7",
+                                      "assetIndex": {
+                                        "id": "26",
+                                        "url": "$assetIndexUrl"
+                                      },
+                                      "downloads": {
+                                        "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                assetIndexUrl to """{"objects":{}}""",
+                                loaderVersionsUrl to """[{ "loader": { "version": "0.17.2", "stable": true } }]""",
+                                loaderProfileUrl to
+                                    """
+                                    {
+                                      "id": "fabric-loader-0.17.2-1.21.7",
+                                      "libraries": [
+                                        {
+                                          "name": "net.fabricmc:fabric-loader:0.17.2",
+                                          "url": "https://maven.fabricmc.net/"
+                                        }
+                                      ]
+                                    }
+                                    """.trimIndent(),
+                                fabricApiMetadataUrl to
+                                    """
+                                    <metadata>
+                                      <groupId>net.fabricmc.fabric-api</groupId>
+                                      <artifactId>fabric-api</artifactId>
+                                      <versioning>
+                                        <versions>
+                                          <version>0.129.0+1.21.6</version>
+                                        </versions>
+                                      </versioning>
+                                    </metadata>
+                                    """.trimIndent(),
+                            ),
+                            binaryResponses =
+                                mapOf(
+                                    clientJarUrl to "client-jar".encodeToByteArray(),
+                                    fabricLoaderJarUrl to "fabric-loader-jar".encodeToByteArray(),
+                                ),
+                        ),
+                )
+
+            val error =
+                assertFailsWith<IllegalStateException> {
+                    service.prepare(CachePrepareRequest("1.21.7", Loader.FABRIC))
+                }
+
+            assertTrue(error.message?.contains("Fabric API") == true)
+            assertTrue(error.message?.contains("1.21.7") == true)
+        }
+
+    @Test
     fun `fabric cache preparation lets fabric libraries replace duplicate minecraft libraries`() =
         runBlocking {
             val workspace = Files.createTempDirectory("craftless-cache-fabric-library-dedupe")
@@ -701,6 +779,7 @@ class CachePreparationServiceTest {
                     CachePreparedArtifactKind.FABRIC_LOADER_PROFILE,
                     CachePreparedArtifactKind.MINECRAFT_ASSET_OBJECT,
                     CachePreparedArtifactKind.FABRIC_LIBRARY,
+                    CachePreparedArtifactKind.FABRIC_MOD,
                 ),
                 result.artifacts.map { it.kind },
             )
@@ -754,6 +833,9 @@ class CachePreparationServiceTest {
             val fabricLibrary = result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_LIBRARY }
             assertEquals(fabricLoaderJarUrl, fabricLibrary.source)
             assertTrue(fabricLibrary.handle.startsWith("cache/libraries/fabric/"))
+            val fabricApi = result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_MOD }
+            assertEquals(DEFAULT_TEST_FABRIC_API_JAR_URL, fabricApi.source)
+            assertTrue(result.launch.mods.contains(fabricApi.handle))
             assertEquals(
                 listOf(
                     minecraftLibrary.handle,
@@ -1655,17 +1737,53 @@ private fun zipEntries(path: java.nio.file.Path): List<String> =
             }.toList()
     }
 
+private const val DEFAULT_TEST_FABRIC_API_VERSION = "0.129.0+1.21.6"
+private const val DEFAULT_TEST_FABRIC_API_METADATA_URL =
+    "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml"
+private const val DEFAULT_TEST_FABRIC_API_JAR_URL =
+    "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/0.129.0+1.21.6/fabric-api-0.129.0+1.21.6.jar"
+
+private fun defaultTestFabricApiMetadata(): String =
+    """
+    <metadata>
+      <groupId>net.fabricmc.fabric-api</groupId>
+      <artifactId>fabric-api</artifactId>
+      <versioning>
+        <versions>
+          <version>$DEFAULT_TEST_FABRIC_API_VERSION</version>
+        </versions>
+      </versioning>
+    </metadata>
+    """.trimIndent()
+
 private class StaticCacheMetadataFetcher(
     private val responses: Map<String, String>,
     private val binaryResponses: Map<String, ByteArray> = emptyMap(),
 ) : CacheMetadataFetcher {
-    override suspend fun fetchText(url: String): String = requireNotNull(responses[url]) { "missing test response for $url" }
+    override suspend fun fetchText(url: String): String =
+        requireNotNull(responses[url] ?: defaultTestTextResponse(url)) {
+            "missing test response for $url"
+        }
 
     override suspend fun fetchBytes(url: String): ByteArray =
-        requireNotNull(binaryResponses[url]) {
+        requireNotNull(binaryResponses[url] ?: defaultTestBinaryResponse(url)) {
             "missing test binary response for $url"
         }
 }
+
+private fun defaultTestBinaryResponse(url: String): ByteArray? =
+    if (url == DEFAULT_TEST_FABRIC_API_JAR_URL) {
+        "fabric-api-jar".encodeToByteArray()
+    } else {
+        null
+    }
+
+private fun defaultTestTextResponse(url: String): String? =
+    if (url == DEFAULT_TEST_FABRIC_API_METADATA_URL) {
+        defaultTestFabricApiMetadata()
+    } else {
+        null
+    }
 
 private class CountingCacheMetadataFetcher(
     private val responses: Map<String, String>,
@@ -1674,11 +1792,14 @@ private class CountingCacheMetadataFetcher(
     private val binaryResponses = binaryResponses.toMutableMap()
     private val binaryFetches = linkedMapOf<String, Int>()
 
-    override suspend fun fetchText(url: String): String = requireNotNull(responses[url]) { "missing test response for $url" }
+    override suspend fun fetchText(url: String): String =
+        requireNotNull(responses[url] ?: defaultTestTextResponse(url)) {
+            "missing test response for $url"
+        }
 
     override suspend fun fetchBytes(url: String): ByteArray {
         binaryFetches[url] = binaryFetchCount(url) + 1
-        return requireNotNull(binaryResponses[url]) {
+        return requireNotNull(binaryResponses[url] ?: defaultTestBinaryResponse(url)) {
             "missing test binary response for $url"
         }
     }
@@ -1702,17 +1823,24 @@ private class ConcurrentCountingCacheMetadataFetcher(
     private val inFlight = AtomicInteger()
     private val maxInFlight = AtomicInteger()
 
-    override suspend fun fetchText(url: String): String = requireNotNull(responses[url]) { "missing test response for $url" }
+    override suspend fun fetchText(url: String): String =
+        requireNotNull(responses[url] ?: defaultTestTextResponse(url)) {
+            "missing test response for $url"
+        }
 
     override suspend fun fetchBytes(url: String): ByteArray {
         if (url !in delayedUrls) {
-            return requireNotNull(binaryResponses[url]) { "missing test binary response for $url" }
+            return requireNotNull(binaryResponses[url] ?: defaultTestBinaryResponse(url)) {
+                "missing test binary response for $url"
+            }
         }
         val current = inFlight.incrementAndGet()
         maxInFlight.updateAndGet { previous -> maxOf(previous, current) }
         return try {
             delay(delayMillis)
-            requireNotNull(binaryResponses[url]) { "missing test binary response for $url" }
+            requireNotNull(binaryResponses[url] ?: defaultTestBinaryResponse(url)) {
+                "missing test binary response for $url"
+            }
         } finally {
             inFlight.decrementAndGet()
         }

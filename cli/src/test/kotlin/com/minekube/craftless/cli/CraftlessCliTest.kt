@@ -3243,13 +3243,49 @@ private class StaticCacheMetadataFetcher(
     private val responses: Map<String, String>,
     private val binaryResponses: Map<String, ByteArray> = emptyMap(),
 ) : CacheMetadataFetcher {
-    override suspend fun fetchText(url: String): String = requireNotNull(responses[url]) { "missing test response for $url" }
+    override suspend fun fetchText(url: String): String =
+        requireNotNull(responses[url] ?: cliDefaultTestTextResponse(url)) {
+            "missing test response for $url"
+        }
 
     override suspend fun fetchBytes(url: String): ByteArray =
-        requireNotNull(binaryResponses[url]) {
+        requireNotNull(binaryResponses[url] ?: cliDefaultTestBinaryResponse(url)) {
             "missing test binary response for $url"
         }
 }
+
+private const val CLI_DEFAULT_TEST_FABRIC_API_VERSION = "0.129.0+1.21.6"
+private const val CLI_DEFAULT_TEST_FABRIC_API_METADATA_URL =
+    "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml"
+private const val CLI_DEFAULT_TEST_FABRIC_API_JAR_URL =
+    "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/0.129.0+1.21.6/fabric-api-0.129.0+1.21.6.jar"
+
+private fun cliDefaultTestFabricApiMetadata(): String =
+    """
+    <metadata>
+      <groupId>net.fabricmc.fabric-api</groupId>
+      <artifactId>fabric-api</artifactId>
+      <versioning>
+        <versions>
+          <version>$CLI_DEFAULT_TEST_FABRIC_API_VERSION</version>
+        </versions>
+      </versioning>
+    </metadata>
+    """.trimIndent()
+
+private fun cliDefaultTestTextResponse(url: String): String? =
+    if (url == CLI_DEFAULT_TEST_FABRIC_API_METADATA_URL) {
+        cliDefaultTestFabricApiMetadata()
+    } else {
+        null
+    }
+
+private fun cliDefaultTestBinaryResponse(url: String): ByteArray? =
+    if (url == CLI_DEFAULT_TEST_FABRIC_API_JAR_URL) {
+        "fabric-api-jar".encodeToByteArray()
+    } else {
+        null
+    }
 
 private fun preparedRuntimeMetadataFetcher(): CacheMetadataFetcher {
     val versionUrl = "https://metadata.test/1.21.6.json"

@@ -2168,13 +2168,49 @@ private class ServerStaticCacheMetadataFetcher(
     private val responses: Map<String, String>,
     private val binaryResponses: Map<String, ByteArray> = emptyMap(),
 ) : CacheMetadataFetcher {
-    override suspend fun fetchText(url: String): String = requireNotNull(responses[url]) { "missing test response for $url" }
+    override suspend fun fetchText(url: String): String =
+        requireNotNull(responses[url] ?: serverDefaultTestTextResponse(url)) {
+            "missing test response for $url"
+        }
 
     override suspend fun fetchBytes(url: String): ByteArray =
-        requireNotNull(binaryResponses[url]) {
+        requireNotNull(binaryResponses[url] ?: serverDefaultTestBinaryResponse(url)) {
             "missing test binary response for $url"
         }
 }
+
+private const val SERVER_DEFAULT_TEST_FABRIC_API_VERSION = "0.129.0+1.21.6"
+private const val SERVER_DEFAULT_TEST_FABRIC_API_METADATA_URL =
+    "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml"
+private const val SERVER_DEFAULT_TEST_FABRIC_API_JAR_URL =
+    "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/0.129.0+1.21.6/fabric-api-0.129.0+1.21.6.jar"
+
+private fun serverDefaultTestFabricApiMetadata(): String =
+    """
+    <metadata>
+      <groupId>net.fabricmc.fabric-api</groupId>
+      <artifactId>fabric-api</artifactId>
+      <versioning>
+        <versions>
+          <version>$SERVER_DEFAULT_TEST_FABRIC_API_VERSION</version>
+        </versions>
+      </versioning>
+    </metadata>
+    """.trimIndent()
+
+private fun serverDefaultTestTextResponse(url: String): String? =
+    if (url == SERVER_DEFAULT_TEST_FABRIC_API_METADATA_URL) {
+        serverDefaultTestFabricApiMetadata()
+    } else {
+        null
+    }
+
+private fun serverDefaultTestBinaryResponse(url: String): ByteArray? =
+    if (url == SERVER_DEFAULT_TEST_FABRIC_API_JAR_URL) {
+        "fabric-api-jar".encodeToByteArray()
+    } else {
+        null
+    }
 
 private data class RecordedClientRuntimeLaunch(
     val clientId: String,

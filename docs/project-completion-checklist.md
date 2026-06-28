@@ -3903,12 +3903,13 @@ Verification:
   version, Phase 125 driver-mod manifest miss, Phase 126 driver manifest
   loader default, Phase 127 alias driver manifest loader default, Phase
   128 generated driver lane catalog, Phase 129 catalog-driven driver
-  artifact staging, Phase 130 projected driver mod manifest, and Phase 131
-  transitional Fabric action allowlist deletion. Phase 105, Phase 107, Phase
+  artifact staging, Phase 130 projected driver mod manifest, Phase 131
+  transitional Fabric action allowlist deletion, and Phase 132 strict Fabric
+  API artifact resolution. Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
   122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128,
-  Phase 129, Phase 130, and Phase 131 do not satisfy the runnable
+  Phase 129, Phase 130, Phase 131, and Phase 132 do not satisfy the runnable
   latest/older support
   requirement by themselves.
   The broader project goal remains active until

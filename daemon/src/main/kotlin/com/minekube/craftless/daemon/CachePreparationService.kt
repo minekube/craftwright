@@ -271,11 +271,9 @@ class CachePreparationService(
         val loaderVersion = loaderVersions.compatibleFabricLoaderVersion(request.loaderVersion)
         val profileUrl = fabricLoaderProfileUrl(request.minecraftVersion, loaderVersion)
         val fabricApi =
-            runCatching {
-                metadataFetcher
-                    .fetchText(FABRIC_API_MAVEN_METADATA_URL)
-                    .fabricApiModArtifact(request.minecraftVersion)
-            }.getOrNull()
+            metadataFetcher
+                .fetchText(FABRIC_API_MAVEN_METADATA_URL)
+                .fabricApiModArtifact(request.minecraftVersion)
         return FabricCacheMetadata(
             loaderVersion = loaderVersion,
             loaderVersions = loaderVersions,
@@ -869,7 +867,7 @@ private fun fabricLoaderProfileUrl(
 private const val FABRIC_API_MAVEN_METADATA_URL =
     "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml"
 
-private fun String.fabricApiModArtifact(minecraftVersion: String): FabricModArtifact? {
+private fun String.fabricApiModArtifact(minecraftVersion: String): FabricModArtifact {
     requireFileSafeCacheSegment(minecraftVersion, "Minecraft version")
     val selectedVersion =
         Regex("<version>([^<]+)</version>")
@@ -877,7 +875,7 @@ private fun String.fabricApiModArtifact(minecraftVersion: String): FabricModArti
             .map { match -> match.groupValues[1].trim() }
             .filter { version -> version.endsWith("+$minecraftVersion") }
             .lastOrNull()
-            ?: return null
+            ?: error("Fabric API artifact for Minecraft $minecraftVersion was not found in Maven metadata")
     val source =
         "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/" +
             "$selectedVersion/fabric-api-$selectedVersion.jar"
