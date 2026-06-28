@@ -38,6 +38,11 @@ instead of relying on cached task state.
 Not waited on during active development. Local forced CI is the working gate;
 remote CI may continue in the background after push.
 
+## Push Evidence
+
+- Implementation commit pushed to `main`:
+  `04aec1e driver-fabric: centralize backend operation ids`
+
 ## Notes
 
 - No new public gameplay action, generated route family, CLI gameplay catalog,

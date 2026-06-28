@@ -86,7 +86,7 @@
   mise exec -- bun test playwright
   ```
 
-- [ ] **Step 3: Commit and push**
+- [x] **Step 3: Commit and push**
 
   ```sh
   git add AGENTS.md docs/project-completion-checklist.md docs/superpowers/specs/2026-06-28-87-backend-operation-id-source-ownership-design.md docs/superpowers/plans/2026-06-28-87-backend-operation-id-source-ownership-plan.md docs/superpowers/evidence/2026-06-28-backend-operation-id-source-ownership.md driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt
