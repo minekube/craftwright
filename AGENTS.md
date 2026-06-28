@@ -200,6 +200,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 87. backend operation id source ownership.
 88. binding adapter key derivation removal.
 89. navigation operation id source ownership.
+90. smoke bootstrap action id source ownership.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -697,6 +698,13 @@ constants, but they must not repeat operation id literals such as
 phase still does not finish the broader binding exit while future gameplay
 breadth depends on hand-maintained bootstrap/navigation operation definitions
 instead of generic runtime discovery.
+Phase 90 makes the Fabric smoke harness consume `FabricBootstrapOperationIds`
+for bootstrap action calls and required primitive checks. The smoke controller
+must not repeat quoted bootstrap action ids such as `player.chat`,
+`entity.query`, or `world.block.break`. This phase still does not finish the
+broader binding exit while future gameplay breadth depends on hand-maintained
+bootstrap/navigation operation definitions instead of generic runtime
+discovery.
 
 ## Acceptance Scenarios Are Not Product APIs
 

@@ -153,7 +153,7 @@ data class FabricClientSmokeController(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
                                 openApi = connectedOpenApi,
-                                action = "player.chat",
+                                action = FabricBootstrapOperationIds.PLAYER_CHAT,
                                 args = mapOf("message" to JsonPrimitive(chatMessage)),
                             )
                         val moveResult =
@@ -161,7 +161,7 @@ data class FabricClientSmokeController(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
                                 openApi = connectedOpenApi,
-                                action = "player.move",
+                                action = FabricBootstrapOperationIds.PLAYER_MOVE,
                                 args =
                                     mapOf(
                                         "forward" to JsonPrimitive(true),
@@ -173,28 +173,28 @@ data class FabricClientSmokeController(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
                                 openApi = connectedOpenApi,
-                                action = "screen.query",
+                                action = FabricBootstrapOperationIds.SCREEN_QUERY,
                             )
                         val worldTimeResult =
                             http.runAvailableAction(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
                                 openApi = connectedOpenApi,
-                                action = "world.time.query",
+                                action = FabricBootstrapOperationIds.WORLD_TIME_QUERY,
                             )
                         val playerResult =
                             http.runAvailableAction(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
                                 openApi = connectedOpenApi,
-                                action = "player.query",
+                                action = FabricBootstrapOperationIds.PLAYER_QUERY,
                             )
                         val entityResult =
                             http.runAvailableAction(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
                                 openApi = connectedOpenApi,
-                                action = "entity.query",
+                                action = FabricBootstrapOperationIds.ENTITY_QUERY,
                                 args =
                                     mapOf(
                                         "radius" to JsonPrimitive(16.0),
@@ -218,7 +218,7 @@ data class FabricClientSmokeController(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
                                 openApi = connectedOpenApi,
-                                action = "inventory.equip",
+                                action = FabricBootstrapOperationIds.INVENTORY_EQUIP,
                                 args = mapOf("slot" to JsonPrimitive(equipSlot)),
                             )
                         val lookResult =
@@ -226,7 +226,7 @@ data class FabricClientSmokeController(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
                                 openApi = connectedOpenApi,
-                                action = "player.look",
+                                action = FabricBootstrapOperationIds.PLAYER_LOOK,
                                 args =
                                     mapOf(
                                         "yaw" to JsonPrimitive(0.0),
@@ -238,7 +238,7 @@ data class FabricClientSmokeController(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
                                 openApi = connectedOpenApi,
-                                action = "world.block.break",
+                                action = FabricBootstrapOperationIds.WORLD_BLOCK_BREAK,
                                 args = mapOf("max-distance" to JsonPrimitive(4.0)),
                             )
                         val blockInteractResult =
@@ -246,7 +246,7 @@ data class FabricClientSmokeController(
                                 api = api,
                                 clientId = SMOKE_CLIENT_ID,
                                 openApi = connectedOpenApi,
-                                action = "world.block.interact",
+                                action = FabricBootstrapOperationIds.WORLD_BLOCK_INTERACT,
                                 args = mapOf("max-distance" to JsonPrimitive(4.0)),
                             )
                         val inventorySelectionEvidence =
@@ -748,7 +748,7 @@ private suspend fun HttpClient.runInventoryQuery(
                 api = api,
                 clientId = clientId,
                 openApi = openApi,
-                action = "inventory.query",
+                action = FabricBootstrapOperationIds.INVENTORY_QUERY,
             )
         if (!requireItem || inventoryResult.findHotbarSlotForItem(itemName) != null) {
             return inventoryResult
@@ -901,13 +901,13 @@ private val smokeJson =
 
 private val PUBLIC_AGENT_REQUIRED_ACTIONS =
     listOf(
-        "entity.query",
-        "inventory.query",
+        FabricBootstrapOperationIds.ENTITY_QUERY,
+        FabricBootstrapOperationIds.INVENTORY_QUERY,
         FabricNavigationOperationIds.PLAN,
         FabricNavigationOperationIds.FOLLOW,
-        "player.look",
-        "player.raycast",
-        "world.block.break",
+        FabricBootstrapOperationIds.PLAYER_LOOK,
+        FabricBootstrapOperationIds.PLAYER_RAYCAST,
+        FabricBootstrapOperationIds.WORLD_BLOCK_BREAK,
     )
 
 internal fun FabricClientGateway.awaitConnected(

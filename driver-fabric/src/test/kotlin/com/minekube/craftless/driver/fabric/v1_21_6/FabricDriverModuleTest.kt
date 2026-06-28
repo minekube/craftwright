@@ -1256,6 +1256,36 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric smoke controller does not own bootstrap action id literals`() {
+        val root = repositoryRoot()
+        val source =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricClientSmokeController.kt",
+                ),
+            )
+
+        assertEquals(
+            emptyList(),
+            listOf(
+                "\"player.chat\"",
+                "\"player.move\"",
+                "\"screen.query\"",
+                "\"world.time.query\"",
+                "\"player.query\"",
+                "\"entity.query\"",
+                "\"inventory.query\"",
+                "\"inventory.equip\"",
+                "\"player.look\"",
+                "\"player.raycast\"",
+                "\"world.block.break\"",
+                "\"world.block.interact\"",
+            ).filter { token -> source.contains(token) },
+            "Fabric smoke controller must reference bootstrap operation constants instead of owning action ids.",
+        )
+    }
+
+    @Test
     fun `fabric backend can expose unavailable actions only from runtime discovery probes`() {
         val backend = FabricDriverBackend.metadataOnly()
 
