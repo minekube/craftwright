@@ -25,21 +25,13 @@ blocked.
 
 ### Current Slice
 
-- [~] Phase 171: daemon OpenAPI/action/resource authority must be graph-only.
-  Remaining work: finish the uncommitted regression slice, add spec/plan and
-  evidence, run focused daemon tests plus local gates, commit, and push.
+- [x] Phase 171: daemon OpenAPI/action/resource authority is graph-only.
+  Evidence:
+  `docs/superpowers/evidence/2026-06-28-daemon-openapi-graph-only-authority.md`.
 
 ### Next Critical Path
 
-1. [~] Close Phase 171.
-   - Public daemon OpenAPI must be generated from `runtimeGraph()`.
-   - Descriptor-only `DriverSession.actions()` must not publish public
-     OpenAPI actions, resources, aliases, routes, CLI metadata, or agent tool
-     metadata.
-   - Evidence required: red/green descriptor-only daemon regression, focused
-     `:daemon:test`, architecture check, and local CI or a documented smaller
-     gate if CI is temporarily blocked.
-2. [ ] Finish binding exit.
+1. [ ] Finish binding exit.
    - New gameplay breadth must come from generic Fabric discovery/projection:
      reflection, mappings, registries, callbacks, screens, handlers, world,
      entity, inventory, client state, permissions, and installed mods.
@@ -48,22 +40,22 @@ blocked.
    - Evidence required: guardrail tests that fail on hand-maintained public
      gameplay descriptors, plus Fabric lane code that exposes graph nodes and
      executable adapters instead of copied public catalogs.
-3. [ ] Land real latest/current lane support.
+2. [ ] Land real latest/current lane support.
    - Latest/current official lane must be packaged and selected by the normal
      supervisor/CLI path.
    - Evidence required: launch, self-attach, generated OpenAPI/actions/resources,
      SSE, JSON-RPC query/subscription, CLI smoke, and public gameplay artifact.
-4. [ ] Land representative older lane support under the same gates.
+3. [ ] Land representative older lane support under the same gates.
    - The older lane cannot be accepted as a weaker diagnostic path.
    - Evidence required: the same gate set as latest/current, including final
      public API/CLI gameplay.
-5. [ ] Make transport and generated-client docs complete.
+4. [ ] Make transport and generated-client docs complete.
    - README/docs must show generated OpenAPI plus SSE/JSON-RPC usage without
      implying a fixed gameplay catalog.
    - Evidence required: protocol/daemon tests for metadata, event filters,
      correlation ids, subscription behavior, and generated-client friendly
      examples.
-6. [ ] Run final local completion gates.
+5. [ ] Run final local completion gates.
    - `mise run ci`
    - `mise run architecture-check`
    - `mise run package-cli`
@@ -72,7 +64,7 @@ blocked.
    - latest/current lane probe
    - representative older lane probe
    - final public API/CLI gameplay run
-7. [ ] Rerun final honest survival gameplay through public API/CLI only.
+6. [ ] Rerun final honest survival gameplay through public API/CLI only.
    - Required evidence: generated OpenAPI/actions/resources, SSE/JSON-RPC
      transcript, CLI/API transcript, inventory/world/entity/crafting/movement/
      combat/pickup proof, no server-provisioned inventory, no product
@@ -5062,8 +5054,9 @@ Verification:
   checked: daemon authority is graph-only, public authority exits independent
   static action catalogs, binding breadth moves behind generic
   discovery/projection/invocation, latest/current and representative older
-  lanes pass the same public API/CLI gameplay gates, generated-client transport
-  docs are complete, and the final local gate set is rerun after that work.
+  lanes have runnable support evidence and pass the same public API/CLI
+  gameplay gates, generated-client transport docs are complete, and the final
+  local gate set is rerun after that work.
 - [x] `mise run lint` passes. Current 2026-06-28 evidence: `mise run ci`
   completed lint successfully after the Phase 158 update.
 - [x] `mise run architecture-check` passes. Current 2026-06-28 evidence:

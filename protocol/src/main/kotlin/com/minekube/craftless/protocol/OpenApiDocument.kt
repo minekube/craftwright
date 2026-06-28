@@ -526,7 +526,7 @@ private fun RuntimeOperationNode.toOpenApiAction(): OpenApiAction =
                         "message" to OpenApiActionSchema("string"),
                         "data" to result.toOpenApiActionSchema(),
                     ),
-                required = listOf("action", "status"),
+                required = listOf("action", "status") + if (result.required) listOf("data") else emptyList(),
             ),
         source = OpenApiActionSource.RUNTIME_PROBE,
         availability = availability.toOpenApiActionAvailability(),

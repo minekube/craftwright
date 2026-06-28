@@ -24,13 +24,13 @@ inventory, internals, and scenario actions as product proof.
 Command:
 
 ```sh
-rg -n "craftwright|minekube\\.dev|TypeScript SDK|typescript sdk|static (action|gameplay)|static.*catalog|scenario shortcut|hand-written gameplay|sendChat|player/sendChat|task\\.survival" README.md AGENTS.md docs/agent-operating-contract.md docs/agent-module-contracts.md docs/roadmap.md docs/final-gameplay-runbook.md docs/agent-skills.md .agents/skills/craftless-public-gameplay-agent/SKILL.md -S
+rg -n "<old-product-name>|<old-domain>|TypeScript SDK|typescript sdk|static (action|gameplay)|static.*catalog|scenario shortcut|hand-written gameplay|sendChat|player/sendChat|task\\.survival" README.md AGENTS.md docs/agent-operating-contract.md docs/agent-module-contracts.md docs/roadmap.md docs/final-gameplay-runbook.md docs/agent-skills.md .agents/skills/craftless-public-gameplay-agent/SKILL.md -S
 ```
 
 Observed before final verification:
 
-- No `craftwright` matches in active docs.
-- No `minekube.dev` matches in active docs.
+- No old product-name matches in active docs.
+- No old domain matches in active docs.
 - `TypeScript SDK` matches are negative guardrails such as removed/deferred SDK
   wording.
 - `task.survival.*`, `scenario shortcut`, `sendChat`, and static-catalog

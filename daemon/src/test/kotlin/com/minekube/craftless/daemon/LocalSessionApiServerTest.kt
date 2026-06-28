@@ -1704,7 +1704,7 @@ class LocalSessionApiServerTest {
                             setBody("""{"action":"player.chat","args":{"message":"hello"}}""")
                         }.let { response ->
                             assertEquals(HttpStatusCode.BadRequest, response.status)
-                            assertError(response.bodyAsText(), "INVALID_ACTION_INPUT", "duplicate action id player.chat")
+                            assertError(response.bodyAsText(), "INVALID_ACTION_INPUT", "duplicate runtime operation id player.chat")
                         }
 
                     assertEquals(0, driver.invokeCount)
@@ -2925,6 +2925,8 @@ private class EventMetadataDriverSession(
 
     override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
 
+    override fun runtimeGraph(): RuntimeCapabilityGraph = actions().toRuntimeGraph(clientId)
+
     override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
         DriverActionResult(
             action = invocation.action,
@@ -2958,6 +2960,8 @@ private class UnavailableActionDriverSession(
         )
 
     override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
+
+    override fun runtimeGraph(): RuntimeCapabilityGraph = actions().toRuntimeGraph(clientId)
 
     override fun invoke(invocation: DriverActionInvocation): DriverActionResult {
         invokeCount += 1
@@ -2994,6 +2998,8 @@ private class DuplicateActionDriverSession(
 
     override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
 
+    override fun runtimeGraph(): RuntimeCapabilityGraph = actions().toRuntimeGraph(clientId)
+
     override fun invoke(invocation: DriverActionInvocation): DriverActionResult {
         invokeCount += 1
         return DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED)
@@ -3020,6 +3026,8 @@ private class DataActionDriverSession(
         )
 
     override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
+
+    override fun runtimeGraph(): RuntimeCapabilityGraph = actions().toRuntimeGraph(clientId)
 
     override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
         DriverActionResult(
@@ -3175,6 +3183,8 @@ private class MissingRequiredResultDataDriverSession(
 
     override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
 
+    override fun runtimeGraph(): RuntimeCapabilityGraph = actions().toRuntimeGraph(clientId)
+
     override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
         DriverActionResult(
             action = invocation.action,
@@ -3204,6 +3214,8 @@ private class NestedActionDriverSession(
 
     override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
 
+    override fun runtimeGraph(): RuntimeCapabilityGraph = actions().toRuntimeGraph(clientId)
+
     override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
         DriverActionResult(
             action = invocation.action,
@@ -3214,3 +3226,59 @@ private class NestedActionDriverSession(
 
     override fun events(): List<DriverEvent> = emptyList()
 }
+
+private fun List<DriverActionDescriptor>.toRuntimeGraph(clientId: String): RuntimeCapabilityGraph {
+    val operations = map { action -> action.toRuntimeOperationNode() }
+    return RuntimeCapabilityGraph(
+        clientId = clientId,
+        resources =
+            operations
+                .map { operation -> operation.resource }
+                .distinct()
+                .sorted()
+                .map { resource -> RuntimeResourceNode(resource, RuntimeAvailability.available()) },
+        operations = operations,
+    )
+}
+
+private fun DriverActionDescriptor.toRuntimeOperationNode(): RuntimeOperationNode =
+    RuntimeOperationNode(
+        id = id,
+        resource = id.substringBeforeLast("."),
+        adapter = "test.${id.replace('.', '-')}",
+        arguments = arguments.mapValues { (_, argument) -> argument.toRuntimeSchema() },
+        result = result.toRuntimeSchema(),
+        availability =
+            when (availability) {
+                DriverActionAvailability.AVAILABLE -> RuntimeAvailability.available()
+                DriverActionAvailability.UNAVAILABLE -> RuntimeAvailability.unavailable(requireNotNull(availabilityReason))
+            },
+    )
+
+private fun DriverActionArgument.toRuntimeSchema(): RuntimeSchema =
+    RuntimeSchema(
+        type = type,
+        required = required,
+        properties = properties.mapValues { (_, argument) -> argument.toRuntimeSchema() },
+        items = items?.toRuntimeSchema(),
+    )
+
+private fun DriverActionResultDescriptor.toRuntimeSchema(): RuntimeSchema =
+    properties["data"]?.toRuntimeSchema(required = "data" in required)
+        ?: RuntimeSchema(
+            type = "object",
+            properties =
+                properties
+                    .filterKeys { name -> name !in setOf("action", "status", "message") }
+                    .mapValues { (name, property) ->
+                        property.toRuntimeSchema(required = name in required)
+                    },
+        )
+
+private fun DriverActionResultProperty.toRuntimeSchema(required: Boolean = false): RuntimeSchema =
+    RuntimeSchema(
+        type = type,
+        required = required,
+        properties = properties.mapValues { (_, property) -> property.toRuntimeSchema() },
+        items = items?.toRuntimeSchema(),
+    )

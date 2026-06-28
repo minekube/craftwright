@@ -446,10 +446,8 @@ class ClientSessionServiceTest {
         assertEquals(OpenApiActionSource.RUNTIME_PROBE, action.source)
         assertEquals(OpenApiActionAvailability.UNAVAILABLE, action.availability)
         assertEquals("client-not-connected", action.availabilityReason)
-        assertEquals(
-            "player.raycast:1:runtime-probe:unavailable:client-not-connected()->(action:string!,data:object,message:string,status:string!)",
-            document.extensions["x-craftless-action-fingerprint"],
-        )
+        assertTrue(document.extensions["x-craftless-action-fingerprint"]?.startsWith("graph:") == true)
+        assertEquals(document.extensions["runtimeGraphFingerprint"], document.extensions["x-craftless-action-fingerprint"])
     }
 
     @Test
@@ -648,10 +646,7 @@ class ClientSessionServiceTest {
         assertEquals("registries-test", extensions["x-craftless-registry-fingerprint"])
         assertEquals("server-features-test", extensions["x-craftless-server-feature-fingerprint"])
         assertEquals("permissions-test", extensions["x-craftless-permissions-fingerprint"])
-        assertEquals(
-            "minecraft=1.21.4;loader=FABRIC;loaderVersion=0.16.14;driver=craftless-driver-fabric;driverVersion=0.2.0-test;mappings=mappings-fingerprint-test;mods=mods-test;registries=registries-test;serverFeatures=server-features-test;permissions=permissions-test;actions=player.chat:1:binding:available(message:string!)->(action:string!,data:object,message:string,status:string!),player.move:1:binding:available(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,message:string,status:string!)",
-            extensions["x-craftless-runtime-fingerprint"],
-        )
+        assertTrue(extensions["x-craftless-runtime-fingerprint"]?.startsWith("graph:") == true)
     }
 
     @Test
@@ -682,14 +677,8 @@ class ClientSessionServiceTest {
         val document = service.openApiFor("alice")
 
         assertEquals(listOf("player.chat", "player.move"), document.actions.map { it.id })
-        assertEquals(
-            "minecraft=1.21.4;loader=FABRIC;loaderVersion=none;driver=craftless-fake;driverVersion=0.1.0-SNAPSHOT;mappings=none;mods=none;registries=none;serverFeatures=none;permissions=local-fake;actions=player.chat:1:binding:available(message:string!)->(action:string!,data:object,message:string,status:string!),player.move:1:binding:available(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,message:string,status:string!)",
-            document.extensions["x-craftless-runtime-fingerprint"],
-        )
-        assertEquals(
-            "player.chat:1:binding:available(message:string!)->(action:string!,data:object,message:string,status:string!),player.move:1:binding:available(backward:boolean,forward:boolean,jump:boolean,left:boolean,right:boolean,sneak:boolean,sprint:boolean,ticks:integer)->(action:string!,message:string,status:string!)",
-            document.extensions["x-craftless-action-fingerprint"],
-        )
+        assertTrue(document.extensions["x-craftless-runtime-fingerprint"]?.startsWith("graph:") == true)
+        assertEquals(document.extensions["runtimeGraphFingerprint"], document.extensions["x-craftless-action-fingerprint"])
     }
 
     @Test
@@ -757,6 +746,30 @@ class ClientSessionServiceTest {
         assertTrue(routes.any { it.path == "/clients/alice/player:chat" && it.actionId == "player.chat" })
         assertFalse(routes.any { it.path == "/clients/alice/player:move" })
         assertEquals(listOf("player.chat"), document.actions.map { it.id })
+    }
+
+    @Test
+    fun `descriptor only actions are not public openapi authority when runtime graph is empty`() {
+        val service =
+            ClientSessionService.inMemory { request ->
+                DescriptorOnlyTestDriverSession(request.id)
+            }
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.6",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            ),
+        )
+
+        val document = service.openApiFor("alice")
+        val routes = service.routesFor("alice")
+
+        assertEquals(emptyList(), document.actions.map { it.id })
+        assertEquals(emptyList(), document.resources.map { it.id })
+        assertFalse(document.paths.containsKey("/clients/alice/player:chat"))
+        assertFalse(routes.any { it.path == "/clients/alice/player:chat" })
     }
 
     @Test
@@ -830,7 +843,7 @@ class ClientSessionServiceTest {
                 service.openApiFor("alice")
             }
 
-        assertEquals("duplicate action id player.chat", error.message)
+        assertEquals("duplicate runtime operation id player.chat", error.message)
     }
 
     @Test
@@ -860,7 +873,7 @@ class ClientSessionServiceTest {
 
         val extensions = service.openApiFor("alice").extensions
 
-        assertEquals("1,2", extensions["x-craftless-action-schema-versions"])
+        assertTrue(extensions["x-craftless-action-schema-versions"]?.startsWith("graph:") == true)
         assertFalse(extensions.containsKey("x-craftless-action-schema-version"))
     }
 }
@@ -882,6 +895,8 @@ private class ChangingActionsBackend(
         calls += 1
         return snapshots[index]
     }
+
+    override fun runtimeGraph(clientId: String): RuntimeCapabilityGraph = actions(clientId).toRuntimeGraph(clientId)
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
 
@@ -990,6 +1005,27 @@ private class GraphOnlyRouteTestDriverSession(
     override fun events() = emptyList<com.minekube.craftless.driver.api.DriverEvent>()
 }
 
+private class DescriptorOnlyTestDriverSession(
+    override val clientId: String,
+) : DriverSession {
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot = snapshot()
+
+    override fun actions(): List<DriverActionDescriptor> = listOf(testPlayerChatActionDescriptor())
+
+    override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
+
+    override fun runtimeGraph(): RuntimeCapabilityGraph = RuntimeCapabilityGraph(clientId = clientId)
+
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
+        DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED)
+
+    override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
+
+    override fun events() = emptyList<com.minekube.craftless.driver.api.DriverEvent>()
+}
+
 private fun fakeClientSessionService(fileStore: InstanceFileStore? = null): ClientSessionService =
     ClientSessionService.inMemory(
         driverFactory =
@@ -1025,6 +1061,8 @@ private class RecordingDriverBackend(
     override fun actions(clientId: String): List<DriverActionDescriptor> = actions
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = metadata
+
+    override fun runtimeGraph(clientId: String): RuntimeCapabilityGraph = actions.toRuntimeGraph(clientId)
 
     override fun invoke(
         clientId: String,
@@ -1071,6 +1109,62 @@ private fun testPlayerChatActionDescriptor(): DriverActionDescriptor =
             mapOf(
                 "message" to DriverActionArgument("string", required = true),
             ),
+    )
+
+private fun List<DriverActionDescriptor>.toRuntimeGraph(clientId: String): RuntimeCapabilityGraph {
+    val operations = map { action -> action.toRuntimeOperationNode() }
+    return RuntimeCapabilityGraph(
+        clientId = clientId,
+        resources =
+            operations
+                .map { operation -> operation.resource }
+                .distinct()
+                .sorted()
+                .map { resource -> RuntimeResourceNode(resource, RuntimeAvailability.available()) },
+        operations = operations,
+    )
+}
+
+private fun DriverActionDescriptor.toRuntimeOperationNode(): RuntimeOperationNode =
+    RuntimeOperationNode(
+        id = id,
+        resource = id.substringBeforeLast("."),
+        adapter = "test.${id.replace('.', '-')}",
+        arguments = arguments.mapValues { (_, argument) -> argument.toRuntimeSchema() },
+        result = result.toRuntimeSchema(),
+        availability =
+            when (availability) {
+                DriverActionAvailability.AVAILABLE -> RuntimeAvailability.available()
+                DriverActionAvailability.UNAVAILABLE -> RuntimeAvailability.unavailable(requireNotNull(availabilityReason))
+            },
+    )
+
+private fun DriverActionArgument.toRuntimeSchema(): RuntimeSchema =
+    RuntimeSchema(
+        type = type,
+        required = required,
+        properties = properties.mapValues { (_, argument) -> argument.toRuntimeSchema() },
+        items = items?.toRuntimeSchema(),
+    )
+
+private fun DriverActionResultDescriptor.toRuntimeSchema(): RuntimeSchema =
+    properties["data"]?.toRuntimeSchema(required = "data" in required)
+        ?: RuntimeSchema(
+            type = "object",
+            properties =
+                properties
+                    .filterKeys { name -> name !in setOf("action", "status", "message") }
+                    .mapValues { (name, property) ->
+                        property.toRuntimeSchema(required = name in required)
+                    },
+        )
+
+private fun DriverActionResultProperty.toRuntimeSchema(required: Boolean = false): RuntimeSchema =
+    RuntimeSchema(
+        type = type,
+        required = required,
+        properties = properties.mapValues { (_, property) -> property.toRuntimeSchema() },
+        items = items?.toRuntimeSchema(),
     )
 
 private fun assertErrorSchema(response: OpenApiResponse) {

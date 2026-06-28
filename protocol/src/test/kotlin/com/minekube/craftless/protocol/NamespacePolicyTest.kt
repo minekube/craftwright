@@ -216,12 +216,16 @@ class NamespacePolicyTest {
             "CLI distribution must package the remapped Fabric driver jar, not the dev jar",
         )
         assertTrue(
-            cliBuild.contains("into(\"mods\")") && cliBuild.contains("\"craftless-driver-fabric.jar\""),
-            "CLI distribution must include the Fabric driver mod under the deterministic mods path",
+            cliBuild.contains("from(stageFabricDriverLaneArtifacts)") && cliBuild.contains("from(driverModManifest)"),
+            "CLI distribution must include manifest-driven Fabric driver lane artifacts",
         )
         assertTrue(
             mise.contains("tar -tf cli/build/distributions/craftless-*.tar"),
             "package-cli must verify the tar distribution contains the Fabric driver mod",
+        )
+        assertTrue(
+            mise.contains("grep -q '/mods/craftless-driver-fabric.jar$'"),
+            "package-cli must verify the default Fabric driver mod path in packaged archives",
         )
         assertTrue(
             mise.contains("jar tf cli/build/distributions/craftless-*.zip"),
@@ -314,12 +318,6 @@ class NamespacePolicyTest {
     fun `private fabric gameplay bindings are limited to bootstrap operation id references`() {
         val root = repositoryRoot()
         val allowlistPath = root.resolve("docs/architecture/transitional-fabric-action-allowlist.txt")
-        val allowlist =
-            Files
-                .readAllLines(allowlistPath)
-                .map { line -> line.substringBefore("#").trim() }
-                .filter { line -> line.isNotBlank() }
-                .sorted()
         val actionBindings =
             Files.readString(
                 root.resolve(
@@ -332,6 +330,20 @@ class NamespacePolicyTest {
                     "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricBootstrapOperationDefinitions.kt",
                 ),
             )
+        val bindingOperationConstants =
+            Regex("""operationId(?:\s*:\s*String)?\s*=\s*FabricBootstrapOperationIds\.([A-Z0-9_]+)""")
+                .findAll(actionBindings)
+                .map { match -> match.groupValues[1] }
+                .distinct()
+                .sorted()
+                .toList()
+        val bootstrapDefinitionConstants =
+            Regex("""id\s*=\s*FabricBootstrapOperationIds\.([A-Z0-9_]+)""")
+                .findAll(bootstrapDefinitions)
+                .map { match -> match.groupValues[1] }
+                .distinct()
+                .sorted()
+                .toSet()
         val bindingOperationIdLiterals =
             Regex("""operationId(?:\s*:\s*String)?\s*=\s*"([a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)*)"""")
                 .findAll(actionBindings)
@@ -346,9 +358,18 @@ class NamespacePolicyTest {
                 bindingOperationIdLiterals.joinToString("\n"),
         )
         assertTrue(
-            allowlist.all { operationId -> bootstrapDefinitions.contains("\"$operationId\"") },
-            "The transitional binding allowlist must be represented by bootstrap operation definitions.\n" +
-                "allowlist=$allowlist",
+            !Files.exists(allowlistPath),
+            "The deleted transitional Fabric action allowlist must not be recreated.",
+        )
+        assertTrue(
+            bindingOperationConstants.isNotEmpty(),
+            "Private Fabric gameplay bindings must reference FabricBootstrapOperationIds constants.",
+        )
+        assertTrue(
+            bootstrapDefinitionConstants.containsAll(bindingOperationConstants),
+            "Private Fabric binding operation constants must be represented by bootstrap operation definitions.\n" +
+                "bindingConstants=$bindingOperationConstants\n" +
+                "definitionConstants=${bootstrapDefinitionConstants.sorted()}",
         )
         assertTrue(
             actionBindings.contains("FabricBootstrapOperationIds."),

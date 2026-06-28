@@ -53,6 +53,7 @@ not grow with every completed phase.
 - Phase 168: OpenAPI route authority.
 - Phase 169: public-agent OpenAPI action authority.
 - Phase 170: active docs and agent onboarding alignment.
+- Phase 171: daemon OpenAPI graph-only authority.
 
 ## Current Direction
 
@@ -77,6 +78,10 @@ docs now describe the same external-agent workflow: generated per-client
 OpenAPI is authority; `/actions` and `/resources` are projection evidence;
 SSE/public state proves results; scenario actions, internals, and
 server-provisioned inventory do not count as product proof.
+Daemon per-client OpenAPI generation now always comes from
+`DriverSession.runtimeGraph()`. Descriptor-only `DriverSession.actions()`
+cannot publish public OpenAPI actions, resources, alias routes, CLI metadata,
+or agent workflow metadata when the runtime graph is empty.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the
