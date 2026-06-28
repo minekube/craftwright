@@ -11,7 +11,6 @@ import com.minekube.craftless.driver.api.DriverActionResultProperty
 import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverClientSnapshot
-import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.driver.runtime.BackendDriverSession
@@ -565,7 +564,7 @@ class ClientSessionServiceTest {
                 ),
             )
         assertEquals(DriverActionStatus.ACCEPTED, chat.status)
-        assertTrue(driver.events().any { it.type == DriverEventType.CHAT })
+        assertTrue(driver.events().none { it.message == "from driver" })
     }
 
     @Test

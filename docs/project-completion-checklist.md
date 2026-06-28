@@ -3685,6 +3685,35 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-action-result-event-type-removal.md`.
 
+## Phase 119: Driver Event Type Gameplay Removal
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-119-driver-event-type-gameplay-removal-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-119-driver-event-type-gameplay-removal-plan.md`.
+- [x] `DriverEventType` exposes lifecycle/system values only:
+  `CLIENT_CREATED`, `CLIENT_CONNECTED`, `CLIENT_STOPPED`, and `ERROR`.
+- [x] Accepted fake driver gameplay invocations return accepted action results
+  without adding raw chat or movement driver events.
+- [x] Fabric self-attach loopback accepted action invocation leaves raw driver
+  events lifecycle-only.
+- [x] Error and lifecycle event regressions remain covered.
+- [x] This phase adds no new public gameplay action, generated route family,
+  CLI gameplay catalog, Fabric gameplay binding, scenario shortcut, public
+  version-specific API, runnable latest/older lane, replacement gameplay event
+  enum, or new Minecraft support claim.
+
+Verification:
+
+- Red/green driver API contract guard:
+  `mise exec -- gradle :driver-api:test --tests '*DriverSessionContractTest.driver event types do not expose static gameplay categories*'`
+- Focused fake/daemon/Fabric regressions:
+  `mise exec -- gradle :testkit:test --tests '*FakeDriverSessionTest.*'`
+  `mise exec -- gradle :daemon:test --tests '*ClientSessionServiceTest.created clients expose a driver session contract*'`
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverSelfAttachTest.loopback endpoint exposes driver session contract*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-driver-event-type-gameplay-removal.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3715,10 +3744,10 @@ Verification:
   resolution, and Phase 114 active docs latest alias, and Phase 115 local
   server latest alias, and Phase 116 local smoke default latest alias, and
   Phase 117 live event action fallback removal, and Phase 118 action result
-  event type removal. Phase 105, Phase 107, Phase 108, Phase 109, Phase 110,
-  Phase 111, Phase 112, Phase 113, Phase 114, Phase 115, Phase 116, Phase 117,
-  and Phase 118 do not satisfy the runnable latest/older support requirement by
-  themselves.
+  event type removal, and Phase 119 driver event type gameplay removal. Phase
+  105, Phase 107, Phase 108, Phase 109, Phase 110, Phase 111, Phase 112, Phase
+  113, Phase 114, Phase 115, Phase 116, Phase 117, Phase 118, and Phase 119 do
+  not satisfy the runnable latest/older support requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

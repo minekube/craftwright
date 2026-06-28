@@ -108,11 +108,10 @@ class FakeDriverSession(
                     if (message.startsWith("/")) {
                         return chatInputFailure(invocation.action, "minecraft-command-rejected")
                     }
-                    val event = recordChat(message)
                     DriverActionResult(
                         action = invocation.action,
                         status = DriverActionStatus.ACCEPTED,
-                        message = event.message,
+                        message = message,
                     )
                 }
 
@@ -121,11 +120,11 @@ class FakeDriverSession(
                     if (ticks <= 0) {
                         return actionFailure(invocation.action, "invalid-ticks", "moved")
                     }
-                    val event = recordMovement("accepted ${invocation.action} for $clientId")
+                    val message = "accepted ${invocation.action} for $clientId"
                     DriverActionResult(
                         action = invocation.action,
                         status = DriverActionStatus.ACCEPTED,
-                        message = event.message,
+                        message = message,
                     )
                 }
 
@@ -159,28 +158,6 @@ class FakeDriverSession(
     }
 
     override fun events(): List<DriverEvent> = events.toList()
-
-    private fun recordChat(message: String): DriverEvent {
-        val event =
-            DriverEvent(
-                type = DriverEventType.CHAT,
-                client = clientId,
-                message = message,
-            )
-        events += event
-        return event
-    }
-
-    private fun recordMovement(message: String): DriverEvent {
-        val event =
-            DriverEvent(
-                type = DriverEventType.MOVEMENT,
-                client = clientId,
-                message = message,
-            )
-        events += event
-        return event
-    }
 }
 
 private fun chatInputFailure(

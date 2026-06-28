@@ -223,8 +223,6 @@ data class DriverEvent(
 enum class DriverEventType {
     CLIENT_CREATED,
     CLIENT_CONNECTED,
-    CHAT,
-    MOVEMENT,
     CLIENT_STOPPED,
     ERROR,
 }

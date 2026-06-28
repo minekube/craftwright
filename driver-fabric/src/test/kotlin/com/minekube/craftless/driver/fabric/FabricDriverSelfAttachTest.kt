@@ -84,7 +84,7 @@ class FabricDriverSelfAttachTest {
 
             assertEquals(DriverActionStatus.ACCEPTED, result.status)
             assertEquals(listOf("player.chat:hello"), session.invocations)
-            assertEquals(listOf(DriverEventType.CLIENT_CREATED, DriverEventType.CHAT), remote.events().map { event -> event.type })
+            assertEquals(listOf(DriverEventType.CLIENT_CREATED), remote.events().map { event -> event.type })
         }
     }
 
@@ -176,7 +176,6 @@ private class RecordingDriverSession(
                 ?.trim('"')
                 .orEmpty()
         invocations += "${invocation.action}:$message"
-        events += DriverEvent(type = DriverEventType.CHAT, client = clientId, message = message)
         return DriverActionResult(
             action = invocation.action,
             status = DriverActionStatus.ACCEPTED,

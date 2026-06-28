@@ -225,6 +225,16 @@ class DriverSessionContractTest {
     }
 
     @Test
+    fun `driver event types do not expose static gameplay categories`() {
+        val eventTypes = DriverEventType.entries.map { type -> type.name }.toSet()
+
+        assertEquals(
+            setOf("CLIENT_CREATED", "CLIENT_CONNECTED", "CLIENT_STOPPED", "ERROR"),
+            eventTypes,
+        )
+    }
+
+    @Test
     fun `driver runtime metadata rejects non craftless public driver names`() {
         listOf(
             "",

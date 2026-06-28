@@ -118,13 +118,8 @@ class FakeDriverSessionTest {
             )
         assertEquals("player.move", action.action)
         assertEquals(DriverActionStatus.ACCEPTED, action.status)
-        assertTrue(
-            session.events().any {
-                it.type.name == "MOVEMENT" &&
-                    it.message == "accepted player.move for alice"
-            },
-        )
-        val movementEventsBeforeInvalidTicks = session.events().count { it.type == DriverEventType.MOVEMENT }
+        assertEquals("accepted player.move for alice", action.message)
+        val eventCountBeforeInvalidTicks = session.events().size
         val invalidTicks =
             session.invoke(
                 DriverActionInvocation(
@@ -136,7 +131,7 @@ class FakeDriverSessionTest {
         assertEquals("invalid-ticks", invalidTicks.message)
         assertEquals(JsonPrimitive(false), invalidTicks.data["moved"])
         assertEquals(JsonPrimitive("invalid-ticks"), invalidTicks.data["reason"])
-        assertEquals(movementEventsBeforeInvalidTicks, session.events().count { it.type == DriverEventType.MOVEMENT })
+        assertEquals(eventCountBeforeInvalidTicks, session.events().size)
 
         val unknown =
             session.invoke(
