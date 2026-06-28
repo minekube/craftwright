@@ -185,6 +185,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 72. generated actions help.
 73. asset object integrity resume.
 74. metadata binary checksums.
+75. post-cache-integrity evidence refresh.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -552,6 +553,13 @@ present. It must not add public gameplay actions, generated route families,
 CLI gameplay catalogs, Fabric descriptor/binding pairs, scenario shortcuts,
 new compiled lanes, public version-specific APIs, or new Minecraft support
 claims.
+Phase 75 refreshes the full Codex evidence gate after the Phase 73 and Phase
+74 cache-integrity changes. It records current distribution, installer, Docker,
+live Mojang manifest, compatibility matrix/probe, CI, and final public
+gameplay evidence from the current code. It must not add product behavior,
+public gameplay actions, generated route families, CLI gameplay catalogs,
+Fabric descriptor/binding pairs, scenario shortcuts, new compiled lanes,
+public version-specific APIs, or new Minecraft support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

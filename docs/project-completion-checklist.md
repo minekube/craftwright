@@ -124,6 +124,26 @@ Legend:
   `docs/superpowers/specs/2026-06-28-70-public-agent-operational-workflow-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-70-public-agent-operational-workflow-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-71-system-java-path-discovery-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-71-system-java-path-discovery-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-72-generated-actions-help-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-72-generated-actions-help-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-73-asset-object-integrity-resume-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-73-asset-object-integrity-resume-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-74-metadata-binary-checksums-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-74-metadata-binary-checksums-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-75-post-cache-integrity-evidence-refresh-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-75-post-cache-integrity-evidence-refresh-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -2308,6 +2328,47 @@ Verification:
 
 - `mise exec -- gradle :daemon:test --tests '*CachePreparationServiceTest.cache preparation refetches corrupt metadata checksum binaries'`
 - `mise exec -- gradle :daemon:test --tests '*CachePreparationServiceTest*'`
+- `git diff --check`
+- `mise run architecture-check`
+- `mise run ci`
+
+## Phase 75: Post-Cache-Integrity Evidence Refresh
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-75-post-cache-integrity-evidence-refresh-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-75-post-cache-integrity-evidence-refresh-plan.md`.
+- [x] Evidence file is refreshed:
+  `docs/superpowers/evidence/2026-06-28-post-cache-integrity-evidence-refresh.md`.
+- [x] Distribution evidence is refreshed after Phases 73/74: `mise run
+  package-cli`, packaged CLI smoke, Docker build, Docker smoke, and install
+  script smoke.
+- [x] Compatibility evidence is refreshed after Phases 73/74: live Mojang
+  metadata, matrix/probe tests, and the explicit unsupported latest Fabric
+  client lane smoke.
+- [x] Final public gameplay evidence is refreshed after Phases 73/74 through
+  generated OpenAPI/actions/resources and SSE, without server-provisioned
+  inventory, manual Craftless movement, or scenario shortcuts.
+- [x] Local `git diff --check`, `mise run architecture-check`, and `mise run
+  ci` pass after recording the evidence.
+- [ ] Changes are committed and pushed to `main`, and GitHub Actions CI passes
+  for the pushed commit.
+- [x] This phase records evidence and docs only. It adds no public gameplay
+  action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise run package-cli`
+- packaged CLI `server start --once --port 0`
+- `docker build -t craftless:local .`
+- Docker `server start --once --port 0`
+- installer smoke with `CRAFTLESS_VERSION=v0.1.0`
+- live Mojang manifest probe through `mise exec -- bun`
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricCompatibilityMatrixTest*' --tests '*FabricCapabilityProbeTest.runtime metadata probe emits sanitized compatibility lane evidence*' :testkit:test --tests '*LocalMinecraftServerSmokeTest.local server smoke records unsupported runtime lane without provisioning server*'`
+- `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 CRAFTLESS_SMOKE_MINECRAFT_VERSION=26.2 CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT=/tmp/craftless-fabric-smoke-26-lane-refresh CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricClientSmoke`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS=120000 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
 - `git diff --check`
 - `mise run architecture-check`
 - `mise run ci`
