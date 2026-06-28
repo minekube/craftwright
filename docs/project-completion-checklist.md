@@ -29,9 +29,9 @@ blocked with an exact blocker and next command.
 | Field | Current State |
 | --- | --- |
 | Active gate | CL-07 final honest public gameplay |
-| Exact next work | Write the CL-07 gameplay spec/plan, then run gameplay through public generated API/CLI only |
+| Exact next work | Finish the rerunnable CL-07 public gameplay probe and run it without server provisioning |
 | Do not do yet | Do not claim CL-08 or final project completion |
-| Current blocker | CL-07 evidence file does not exist yet |
+| Current blocker | `scripts/final-public-gameplay-probe.sh`, `tasks.final-public-gameplay-probe`, and CL-07 evidence do not exist yet |
 | Completion rule | Close one gate only when its evidence file contains fresh commands and results |
 
 ## Gate Board
@@ -53,40 +53,59 @@ Only this packet is active. Treat checked items here as local progress, not as
 gate closure. CL-07 closes only when its evidence file exists and the Gate
 Board row is changed to `[x]`.
 
-| Step | Status | Required Output |
-| --- | --- | --- |
-| 1 | [x] | Write CL-07 spec and implementation plan before new gameplay work. |
-| 2 | [ ] | Start Craftless supervisor and a real Minecraft server from packaged/public surfaces. |
-| 3 | [ ] | Create or attach a real Craftless-controlled client through public API/CLI. |
-| 4 | [ ] | Fetch generated per-client OpenAPI and select only generated operations. |
-| 5 | [ ] | Capture actions/resources projections, SSE or JSON-RPC subscription events, and server logs. |
-| 6 | [ ] | Write chat through public API/CLI. |
-| 7 | [ ] | Observe player/world/entity and inventory state through public API/CLI. |
-| 8 | [ ] | Collect a resource, craft/equip an item, mine/place a block, interact with or attack an entity, and pick up or drop an item without shortcuts. |
-| 9 | [ ] | Write `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md` and artifact summary under `driver-fabric/build/craftless-final-gameplay/artifacts/`. |
-| 10 | [ ] | Update checklist and phase index, commit, and push. |
+| Step | Status | Required Output | Next Command |
+| --- | --- | --- | --- |
+| 1 | [x] | CL-07 spec and implementation plan exist. | Already done: `docs/superpowers/specs/2026-06-28-187-final-public-gameplay-design.md`, `docs/superpowers/plans/2026-06-28-187-final-public-gameplay-plan.md`. |
+| 2 | [~] | Distribution guard proves the final probe uses generated public surfaces only and rejects scenario shortcuts. | `mise exec -- bun test playwright/src/distribution.test.ts` must fail red until the script and mise task exist, then pass green. |
+| 3 | [ ] | Real-client smoke provisioning can be disabled and is disabled for CL-07. | Add/verify `CRAFTLESS_DISABLE_SMOKE_PROVISIONING=1` and guard against default `CRAFTLESS_SMOKE_PROVISION_ITEM_ID`. |
+| 4 | [ ] | `scripts/final-public-gameplay-probe.sh` starts packaged Craftless, uses generated OpenAPI as authority, and writes artifacts. | Create script through `apply_patch`, then `chmod +x scripts/final-public-gameplay-probe.sh`. |
+| 5 | [ ] | `.mise.toml` has `tasks.final-public-gameplay-probe` that packages the CLI and runs the real Fabric smoke with provisioning disabled. | Add the task and keep it `mise`/Bun/Gradle only. |
+| 6 | [ ] | Guard tests pass for the distribution surface and provisioning boundary. | Run focused Bun/Gradle tests, then `git diff --check`. |
+| 7 | [ ] | Final gameplay probe runs through public generated API/CLI only. | `mise run final-public-gameplay-probe`. |
+| 8 | [ ] | Probe captures connected OpenAPI, actions/resources, SSE or JSON-RPC subscription, action log, state log, and server log. | Inspect `driver-fabric/build/craftless-final-gameplay/artifacts/`. |
+| 9 | [ ] | Gameplay proof covers chat, observation, resource collection, inventory change, craft/equip, block change, and entity interaction. | If it fails, record `missing-generic-primitive:<id>` and fix the generic discovery/projection/invocation system, not a scenario shortcut. |
+| 10 | [ ] | CL-07 evidence file summarizes commands, artifacts, and verified state transitions. | Write `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md`. |
+| 11 | [ ] | Checklist and phase index mark CL-07 closed only after evidence passes. | Update this file and `docs/superpowers/phase-index.md`. |
+| 12 | [ ] | CL-07 work is committed and pushed to `main`. | `git status --short --branch`, `git add ...`, `git commit ...`, `git push origin main`. |
 
 ### Exact Next Commands
 
-Start by writing the gameplay spec and plan:
+Verify the currently red CL-07 guard:
 
 ```sh
-docs/superpowers/specs/2026-06-28-187-final-public-gameplay-design.md
-docs/superpowers/plans/2026-06-28-187-final-public-gameplay-plan.md
+mise exec -- bun test playwright/src/distribution.test.ts
 ```
 
-Then use packaged public surfaces only:
+Implement and verify the probe surface:
 
 ```sh
 mise run package-cli
-build/docker/craftless/bin/craftless server start --port 0 --workspace driver-fabric/build/craftless-final-gameplay/workspace
+mise exec -- bun test playwright/src/distribution.test.ts
+git diff --check
 ```
 
 CL-07 final verification:
 
 ```sh
+mise run final-public-gameplay-probe
 git diff --check
 ```
+
+### CL-07 Failure Rules
+
+- If a required primitive is not discovered from live per-client OpenAPI, write
+  `missing-generic-primitive:<id>` and fix generic discovery/projection or
+  invocation.
+- If inventory does not change after a world action, improve public state,
+  pickup/drop perception, or invocation evidence. Do not preload inventory.
+- If movement or targeting is unreliable, improve generated navigation,
+  raycast, query handles, or adapter behavior. Do not script a fixed survival
+  route.
+- If a Minecraft version or lane diverges, isolate the diverging adapter or
+  provider behind the version lane. Do not create version-specific public API,
+  CLI command trees, or copied gameplay catalogs.
+- If the probe only proves accepted invocation status without observed public
+  state changes, CL-07 remains open.
 
 ## Gate Acceptance Contracts
 
@@ -134,14 +153,24 @@ Required proof:
 - Subscribe to SSE or JSON-RPC subscription stream.
 - Write chat.
 - Observe player/world/entity and inventory state.
-- Collect a resource.
-- Craft and equip an item.
-- Mine or place a block.
-- Interact with or attack an entity.
-- Pick up or drop an item.
+- Collect a resource and prove the result through public state.
+- Craft and equip an item and prove inventory/selected-slot state changed.
+- Mine or place a block and prove world state changed.
+- Interact with or attack an entity and prove public entity/action state.
+- Pick up or drop an item and prove inventory or item-entity state changed.
 - Record server log.
 - Write final artifacts under
   `driver-fabric/build/craftless-final-gameplay/artifacts/`.
+
+Required negative proof:
+
+- No `/give`, creative inventory, preloaded inventory, direct driver calls,
+  human movement, server provisioning, `task.*`, `task.survival`, `kill.cow`,
+  `find.tree`, `craft.sword`, or other scenario shortcut can appear in the
+  final probe path.
+- `/clients/{id}/actions` and `/clients/{id}/resources` are projection
+  artifacts only. The authority for gameplay selection is
+  `GET /clients/{id}/openapi.json`.
 
 ### CL-08: Publish Completed State
 
@@ -171,8 +200,9 @@ and staged Fabric gameplay evidence.
 CL-03 is closed for latest/current Minecraft `26.2`. CL-04 is closed for
 representative older Minecraft `1.20.6`. CL-05 is closed for external-user
 and agent usability. CL-06 is closed for local release-quality gates. CL-07 is
-the active blocker: perform final honest survival gameplay through public
-generated API/CLI only.
+the active blocker: implement and run a rerunnable final honest survival
+gameplay probe through public generated API/CLI only, with server provisioning
+disabled.
 
 ## Closed Evidence Index
 
