@@ -32,7 +32,7 @@
   Run:
 
   ```sh
-  rg -n "server-provisioned|Iron Sword|Robin confirmation|required Robin|task\\.survival|Craftwright|craftwright|\\.dev" README.md
+  rg -n "server-provisioned|Iron Sword|Robin confirmation|required Robin|task\\.survival|\\.dev" README.md
   ```
 
   Expected: no stale product-surface matches. Any remaining match must be an
