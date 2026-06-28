@@ -890,9 +890,10 @@ Verification:
   README quickstart surfaces.
 - [x] Release workflow builds the CLI distribution with mise/Gradle, uploads
   GitHub Release artifacts and checksums, and pushes a GHCR runtime image.
-  Current published release evidence is being refreshed by Phase 104 for
-  `v0.1.1`, the first release that includes installed CLI driver-mod
-  distribution.
+  Current published release evidence: `v0.1.1` is the latest GitHub Release,
+  workflow run `28316490956` completed successfully for
+  `bc9e630c1c4d250584b1b5999d717b3dd17d25d3`, and release assets include
+  `craftless-0.1.1.tar`, `craftless-0.1.1.zip`, and `SHA256SUMS`.
 - [x] Docker image copies an already-built Craftless CLI distribution and does
   not build the project inside Docker.
   Refreshed 2026-06-28 evidence: `mise run package-cli` built
@@ -903,9 +904,11 @@ Verification:
   returned an `ok=true` supervisor URL.
 - [x] Install script installs `craftless` from GitHub Releases without
   requiring users to clone this repository.
-  Refreshed 2026-06-28 evidence is being updated by Phase 104 for `v0.1.1`,
-  including an installed archive check for
-  `mods/craftless-driver-fabric.jar`.
+  Refreshed 2026-06-28 evidence: `CRAFTLESS_VERSION=v0.1.1
+  CRAFTLESS_INSTALL_DIR=... CRAFTLESS_HOME=... ./install.sh` installed
+  `craftless 0.1.1`, the installed CLI returned `ok=true` from
+  `server start --once --port 0`, and the published tar contains
+  `craftless-0.1.1/mods/craftless-driver-fabric.jar`.
 - [x] Reusable GitHub Action installs Craftless and can optionally start the
   local daemon for downstream workflows.
 - [x] README documents install script, Docker, and GitHub Actions usage with no
@@ -3295,8 +3298,9 @@ Verification:
   `docs/superpowers/plans/2026-06-28-104-v011-release-install-evidence-plan.md`.
 - [x] README install and reusable GitHub Action examples target `v0.1.1`.
 - [x] Distribution tests guard the `v0.1.1` README examples.
-- [~] `v0.1.1` release publication, release assets, install-script smoke, and
-  installed archive driver-mod evidence are pending GitHub release completion.
+- [x] `v0.1.1` release publication, release assets, install-script smoke, and
+  installed archive driver-mod evidence are recorded in
+  `docs/superpowers/evidence/2026-06-28-v011-release-install-evidence.md`.
 - [x] This phase adds no public gameplay action, generated route family, CLI
   gameplay catalog, Fabric execution binding, scenario shortcut, compile-time
   daemon dependency on `driver-fabric`, public version-specific API, or new
@@ -3307,13 +3311,13 @@ Verification:
 - Focused docs guard:
   `mise exec -- bun test playwright/src/distribution.test.ts`
 - Release workflow:
-  `gh run view 28316359212 --json status,conclusion,headSha,headBranch,url,displayTitle`
+  `gh run view 28316490956 --json status,conclusion,headSha,url`
 - Release assets:
-  `gh release view v0.1.1 --json tagName,isLatest,assets,url`
+  `gh release view v0.1.1 --json tagName,url,assets,targetCommitish,publishedAt`
 - Install smoke:
   `CRAFTLESS_VERSION=v0.1.1 CRAFTLESS_INSTALL_DIR=... CRAFTLESS_HOME=... ./install.sh`
-- Final local verification will be recorded in
-  `docs/superpowers/evidence/2026-06-28-v011-release-install-evidence.md`.
+- Install evidence:
+  `docs/superpowers/evidence/2026-06-28-v011-release-install-evidence.md`
 
 ## Phase 105: Active Unsupported Lane Fixture Cleanup
 
@@ -3387,11 +3391,10 @@ Verification:
   98 driver attach proxy, Phase 99 launch attach environment, and Phase 100
   Fabric driver self-attach, Phase 101 packaged driver runtime dependencies,
   Phase 102 packaged live attach and cold-cache usability, and Phase 103
-  installed CLI driver mod distribution. Phase 104 v0.1.1 release install
-  evidence is currently being refreshed. Phase 105 active unsupported lane
-  fixture cleanup is complete and does not satisfy the runnable latest/older
-  support requirement by itself. Phase 106 explicit unused/dead-code gates are
-  complete.
+  installed CLI driver mod distribution, Phase 104 v0.1.1 release install
+  evidence, Phase 105 active unsupported lane fixture cleanup, and Phase 106
+  explicit unused/dead-code gates. Phase 105 does not satisfy the runnable
+  latest/older support requirement by itself.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

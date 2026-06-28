@@ -56,29 +56,30 @@
 - Create: `docs/superpowers/evidence/2026-06-28-v011-release-install-evidence.md`
 - Modify: `docs/project-completion-checklist.md`
 
-- [ ] **Step 1: Check release workflow**
+- [x] **Step 1: Check release workflow**
 
   Run:
 
   ```sh
-  gh run view 28316359212 --json status,conclusion,headSha,headBranch,url,displayTitle
+  gh run view 28316490956 --json status,conclusion,headSha,url
   ```
 
   Expected: `status` is `completed`, `conclusion` is `success`, `headSha` is
-  `1a9cee2c8bd4ff94b4cb597c141423313f9c2d01`.
+  `bc9e630c1c4d250584b1b5999d717b3dd17d25d3`.
 
-- [ ] **Step 2: Check release assets**
+- [x] **Step 2: Check release assets**
 
   Run:
 
   ```sh
-  gh release view v0.1.1 --json tagName,isLatest,assets,url
+  gh release list --limit 5
+  gh release view v0.1.1 --json tagName,url,assets,targetCommitish,publishedAt
   ```
 
   Expected: assets include `craftless-0.1.1.tar`,
   `craftless-0.1.1.zip`, and `SHA256SUMS`.
 
-- [ ] **Step 3: Run install-script smoke**
+- [x] **Step 3: Run install-script smoke**
 
   Run:
 
@@ -86,13 +87,14 @@
   tmp="$(mktemp -d /tmp/craftless-v011-install-smoke.XXXXXX)" &&
     CRAFTLESS_VERSION=v0.1.1 CRAFTLESS_INSTALL_DIR="$tmp/bin" CRAFTLESS_HOME="$tmp/home" ./install.sh &&
     "$tmp/bin/craftless" server start --once --port 0 --workspace "$tmp/workspace" &&
-    tar -tf "$tmp/home/v0.1.1/craftless-0.1.1.tar" | grep -q '/mods/craftless-driver-fabric.jar$'
+    curl -fsSL https://github.com/minekube/craftless/releases/download/v0.1.1/craftless-0.1.1.tar -o "$tmp/craftless-0.1.1.tar" &&
+    tar -tf "$tmp/craftless-0.1.1.tar" | grep -q '^craftless-0.1.1/mods/craftless-driver-fabric.jar$'
   ```
 
   Expected: installed binary prints `{"ok":true,...}` and tar inspection
   finds `mods/craftless-driver-fabric.jar`.
 
-- [ ] **Step 4: Record checklist and evidence**
+- [x] **Step 4: Record checklist and evidence**
 
   Update Phase 25 and final completion gate install/release bullets to cite
   `v0.1.1`, the release workflow run, install smoke, and packaged driver mod.
@@ -107,7 +109,7 @@
   mise run ci
   ```
 
-- [ ] **Step 2: Commit and push**
+- [x] **Step 2: Commit and push**
 
   ```sh
   git add README.md playwright/src/distribution.test.ts docs/project-completion-checklist.md docs/superpowers/specs/2026-06-28-104-v011-release-install-evidence-design.md docs/superpowers/plans/2026-06-28-104-v011-release-install-evidence-plan.md docs/superpowers/evidence/2026-06-28-v011-release-install-evidence.md
