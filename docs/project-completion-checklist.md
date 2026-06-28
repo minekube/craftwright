@@ -386,9 +386,11 @@ Verification:
   API/CLI gameplay evidence plus CI, distribution, and compatibility probes.
 - [x] Current final gameplay evidence has been rerun under the Phase 65 gate
   and accepted without requiring `final-gameplay-confirmation.json`.
-- [~] Issues found during final gameplay are fixed and reverified. Final
-  completion still requires refreshing the full Codex evidence gate after the
-  latest changes.
+- [x] Issues found during final gameplay have current Codex evidence after the
+  latest changes. Phase 75 refreshed the full public gameplay gate. The
+  remaining project-completion blocker is the generated-discovery/binding exit
+  tracked in Phase 76, not a Robin chat confirmation or an unresolved gameplay
+  run failure.
 - [x] Latest and representative older-version compatibility probes have current
   passing or explicitly unsupported evidence.
 
@@ -430,18 +432,18 @@ Verification:
   composition through generated recipe actions: logs were collected, a crafting
   table was crafted/opened, a `Wooden Sword` was crafted, public navigation
   found a Cow, generated `entity.attack` killed it, and final inventory
-  contained `Raw Beef` and `Leather`. The remaining final gates are Robin's
-  held multiplayer observation, any fixes found there, and Robin's explicit
-  Minecraft chat confirmation; those are tracked in Phase 7 and the final
-  completion gate.
+  contained `Raw Beef` and `Leather`. Current no-confirmation completion
+  evidence is tracked by Phase 75; human co-play remains optional diagnostic
+  evidence only.
 - [x] The final survival proof is reproduced by an external public-agent runner
   over generated OpenAPI/SSE/CLI/skills, not by hard-coding the scenario as a
   durable public `task.survival.*` API. The previous
   `missing-generic-primitive:world.block.query` blocker is resolved by Phase
   12; the latest public-agent evidence composes navigation, mining,
   inventory/crafting, combat, chat, and state/event verification through the
-  public API. Robin-confirmed multiplayer completion remains open in Phase 7
-  and the final completion gate.
+  public API. Current no-confirmation completion evidence is tracked by Phase
+  75; the remaining project-completion blocker is the generated-discovery and
+  transitional-binding exit tracked by Phase 76.
 
 ## Phase 9: Pathfinder-Backed Execution
 
@@ -2373,12 +2375,47 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 76: Completion Audit And Binding Exit
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-76-completion-audit-and-binding-exit-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-76-completion-audit-and-binding-exit-plan.md`.
+- [x] Evidence file exists:
+  `docs/superpowers/evidence/2026-06-28-completion-audit-and-binding-exit.md`.
+- [x] Active completion docs do not require Robin's Minecraft chat
+  confirmation; human co-play remains optional diagnostic evidence only.
+- [x] Current verified gates are recorded: CLI packaging and smoke, Docker
+  build and smoke, install script smoke, Ktor-only JVM HTTP/client/SSE
+  governance, mise/Bun-only repository workflow, JSON-RPC-style invocation,
+  SSE streaming, compatibility probes, and final honest public API/CLI
+  gameplay evidence.
+- [x] Current open gates are recorded: public gameplay breadth still depends on
+  the transitional hand-written Fabric action allowlist, latest `26.2` and
+  representative older `1.20.6` are explicit unsupported lanes rather than
+  supported runtime lanes, and adding more descriptor/binding pairs is not
+  completion progress.
+- [x] This phase changes governance and evidence docs only. It adds no public
+  gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `git diff --check`
+- `mise run architecture-check`
+- `mise run ci`
+- GitHub Actions CI for the pushed `main` commit
+
 ## Final Completion Gate
 
-- [~] All implementation phases above have current Phase 68 evidence; the
-  broader project goal remains active until every generic-discovery,
-  multi-version, transport, CLI, docs, and gameplay requirement is proven by a
-  completion audit.
+- [~] All implementation phases above have current Phase 75 evidence and a
+  Phase 76 completion audit. The broader project goal remains active until the
+  transitional hand-written Fabric action allowlist no longer owns public
+  gameplay breadth, latest and representative older runtime lanes have the
+  requested support or an explicitly accepted support boundary, and every
+  generic-discovery, multi-version, transport, CLI, docs, and gameplay
+  requirement is reverified after that exit work.
 - [x] `mise run lint` passes. Current 2026-06-28 evidence: `mise run ci`
   completed lint successfully before this checklist update.
 - [x] `mise run architecture-check` passes. Current 2026-06-28 evidence:

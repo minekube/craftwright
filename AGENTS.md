@@ -186,6 +186,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 73. asset object integrity resume.
 74. metadata binary checksums.
 75. post-cache-integrity evidence refresh.
+76. completion audit and binding exit.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -560,6 +561,15 @@ gameplay evidence from the current code. It must not add product behavior,
 public gameplay actions, generated route families, CLI gameplay catalogs,
 Fabric descriptor/binding pairs, scenario shortcuts, new compiled lanes,
 public version-specific APIs, or new Minecraft support claims.
+Phase 76 audits the current completion state after Phase 75 and keeps the
+remaining binding-exit work explicit. It may mark current distribution,
+transport, tooling, compatibility-evidence, and final public gameplay gates as
+verified, but it must keep the overall goal active while public gameplay
+breadth still depends on the transitional hand-written Fabric action allowlist
+or while latest/older lanes are only explicit unsupported evidence. It must not
+add product behavior, public gameplay actions, generated route families, CLI
+gameplay catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new
+compiled lanes, public version-specific APIs, or new Minecraft support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 
