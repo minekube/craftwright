@@ -220,6 +220,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-139-packaged-older-lane-selection-smoke-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-139-packaged-older-lane-selection-smoke-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-140-parameterized-fabric-smoke-client-command-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-140-parameterized-fabric-smoke-client-command-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -3900,6 +3904,34 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-packaged-older-lane-selection-smoke.md`.
 
+## Phase 140: Parameterized Fabric Smoke Client Command
+
+- [x] `AGENTS.md` records that older/future lane smoke evidence is invalid if
+  the inner client command silently launches the default current lane.
+- [x] The default `fabricClientSmoke` action command preserves the active
+  `craftless.fabric.*` lane properties when launching
+  `:driver-fabric:runClient`.
+- [x] The propagated properties cover Minecraft version, Yarn mappings, Fabric
+  Loader, Fabric API, Java major version, lane id, provider id, artifact key,
+  and mappings fingerprint.
+- [x] Explicit `CRAFTLESS_SMOKE_ACTION_COMMAND_JSON` overrides remain supported.
+- [x] This phase adds no public gameplay API, static gameplay catalog,
+  version-specific public route family, survival shortcut, real older process
+  launch proof, attach proof, generated OpenAPI proof, gameplay proof, or
+  older support completion claim.
+
+Verification:
+
+- Red test:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric client smoke runClient command preserves parameterized lane properties'`
+  failed after the corrected guard because the build script did not expose
+  `fabricSmokeLaneGradleProperties`.
+- Green focused tests:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric client smoke runClient command preserves parameterized lane properties' --tests '*FabricDriverModuleTest.fabric client smoke passes runtime lane evidence before launching client'`
+  passed.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-parameterized-fabric-smoke-client-command.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3943,14 +3975,15 @@ Verification:
   Phase 134 parameterized Fabric compiled lane build, Phase 135 reflective
   Fabric world-change callback, Phase 136 reflective movement input shim, Phase
   137 reflective recipe bridge, and Phase 138 packaged representative older
-  Fabric lane, and Phase 139 packaged older Fabric lane selection smoke.
+  Fabric lane, Phase 139 packaged older Fabric lane selection smoke, and Phase
+  140 parameterized Fabric smoke client command.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
   122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128,
   Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
-  135, Phase 136, Phase 137, Phase 138, and Phase 139 do not satisfy the runnable
-  latest/older support
+  135, Phase 136, Phase 137, Phase 138, Phase 139, and Phase 140 do not satisfy the
+  runnable latest/older support
   requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,

@@ -776,6 +776,23 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric client smoke runClient command preserves parameterized lane properties`() {
+        val buildScript = Files.readString(repositoryRoot().resolve("driver-fabric/build.gradle.kts"))
+
+        assertTrue(buildScript.contains("fabricSmokeLaneGradleProperties"))
+        assertTrue(buildScript.contains("\"-Pcraftless.fabric.minecraftVersion=\$fabricCompiledMinecraftVersion\""))
+        assertTrue(buildScript.contains("\"-Pcraftless.fabric.yarnMappings=\$fabricCompiledYarnMappings\""))
+        assertTrue(buildScript.contains("\"-Pcraftless.fabric.loaderVersion=\$fabricCompiledLoaderVersion\""))
+        assertTrue(buildScript.contains("\"-Pcraftless.fabric.apiVersion=\$fabricCompiledApiVersion\""))
+        assertTrue(buildScript.contains("\"-Pcraftless.fabric.javaMajorVersion=\$fabricCompiledJavaMajorVersion\""))
+        assertTrue(buildScript.contains("\"-Pcraftless.fabric.laneId=\$fabricCompiledLaneId\""))
+        assertTrue(buildScript.contains("\"-Pcraftless.fabric.providerId=\$fabricCompiledProviderId\""))
+        assertTrue(buildScript.contains("\"-Pcraftless.fabric.artifactKey=\$fabricCompiledArtifactKey\""))
+        assertTrue(buildScript.contains("\"-Pcraftless.fabric.mappingsFingerprint=\$fabricCompiledMappingsFingerprint\""))
+        assertTrue(buildScript.contains("fabricSmokeLaneGradleProperties() + listOf(\":driver-fabric:runClient\")"))
+    }
+
+    @Test
     fun `active smoke fixtures do not keep static latest unsupported lane ids`() {
         val smokeTest =
             Files.readString(

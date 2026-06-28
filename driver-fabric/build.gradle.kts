@@ -303,6 +303,21 @@ fun fabricSmokeRuntimeLaneJson(minecraftVersion: String): String {
     }
 }
 
+fun fabricSmokeLaneGradleProperties(): List<String> =
+    listOf(
+        "-Pcraftless.fabric.minecraftVersion=$fabricCompiledMinecraftVersion",
+        "-Pcraftless.fabric.yarnMappings=$fabricCompiledYarnMappings",
+        "-Pcraftless.fabric.loaderVersion=$fabricCompiledLoaderVersion",
+        "-Pcraftless.fabric.apiVersion=$fabricCompiledApiVersion",
+        "-Pcraftless.fabric.javaMajorVersion=$fabricCompiledJavaMajorVersion",
+        "-Pcraftless.fabric.laneId=$fabricCompiledLaneId",
+        "-Pcraftless.fabric.providerId=$fabricCompiledProviderId",
+        "-Pcraftless.fabric.artifactKey=$fabricCompiledArtifactKey",
+        "-Pcraftless.fabric.mappingsFingerprint=$fabricCompiledMappingsFingerprint",
+    )
+
+fun jsonStringArray(values: List<String>): String = values.joinToString(prefix = "[", postfix = "]") { value -> jsonString(value) }
+
 fun sha256(file: File): String =
     MessageDigest
         .getInstance("SHA-256")
@@ -404,11 +419,12 @@ tasks.register<JavaExec>("fabricClientSmoke") {
     if (fabricSmokeEnabled && System.getenv("CRAFTLESS_SMOKE_ACTION_COMMAND_JSON").isNullOrBlank()) {
         val rootProjectPath =
             rootProject.projectDir.absolutePath
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
+        val command =
+            listOf("mise", "-C", rootProjectPath, "exec", "--", "gradle", "-p", rootProjectPath) +
+                fabricSmokeLaneGradleProperties() + listOf(":driver-fabric:runClient")
         environment(
             "CRAFTLESS_SMOKE_ACTION_COMMAND_JSON",
-            """["mise","-C","$rootProjectPath","exec","--","gradle","-p","$rootProjectPath",":driver-fabric:runClient"]""",
+            jsonStringArray(command),
         )
     }
     if (

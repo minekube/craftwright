@@ -250,6 +250,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 137. reflective recipe bridge.
 138. packaged representative older Fabric lane.
 139. packaged older Fabric lane selection smoke.
+140. parameterized Fabric smoke client command.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -281,6 +282,13 @@ driver jar into the prepared launch plan. It is still a selection smoke, not
 runtime support completion: the older lane is not complete until a real older
 client launches, attaches, exposes generated OpenAPI, and passes public
 API/CLI gameplay smoke.
+
+Phase 140 makes the Fabric smoke harness preserve the selected compiled lane
+when it launches the inner `runClient` command. If a smoke is invoked with
+`craftless.fabric.*` Gradle properties for an older or future lane, the default
+action command must pass those same properties to `:driver-fabric:runClient`.
+Do not use a smoke that silently launches the default current lane as evidence
+for another Minecraft version.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final
