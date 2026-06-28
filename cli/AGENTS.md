@@ -1,49 +1,11 @@
 # CLI Module Instructions
 
-`cli/` owns the JVM `craftless` command-line interface.
+This file is intentionally short. Do not append CLI-specific rule lists here.
 
-## Scope
+Read root `AGENTS.md`, then read:
 
-- Static CLI core: daemon startup/discovery, config, auth/token selection,
-  output modes, error rendering, and generic dispatch.
-- Adaptive command/help dispatch from kernel and per-client OpenAPI/action
-  descriptors.
+- `docs/agent-operating-contract.md`
+- `docs/agent-module-contracts.md#cli`
 
-## Rules
-
-- Use Clikt for the JVM CLI and Mordant for terminal output.
-- Keep action commands adaptive. Do not generate Kotlin source or add static
-  commands for every Minecraft action.
-- Static commands should cover setup, daemon lifecycle, client creation/listing,
-  OpenAPI/action discovery, and generic action invocation:
-  `craftless clients <id> run <action> ...`.
-- Dynamic aliases such as `craftless clients <id> player move --forward` and their
-  `--help` output must come from `/clients/{id}/openapi.json` and
-  `/clients/{id}/actions`.
-- Preserve stdout for primary data, stderr for diagnostics/progress, stable
-  `--json`/`--jsonl` output, explicit exit codes, and non-interactive
-  `--no-input` behavior.
-- Use Ktor Client for daemon/API calls.
-- Keep version selection and compatibility visible as data from the supervisor
-  and live OpenAPI. Do not add separate static CLI command trees for Minecraft
-  versions, loaders, or Fabric lanes.
-- CLI UX may expose `--version`, `--loader`, and `--loader-version`, but support
-  breadth must come from supervisor resolution, packaged driver manifests, and
-  generated live OpenAPI. Do not add static commands or hidden fallbacks for a
-  specific Minecraft release.
-- Do not special-case latest/current, older, or named Minecraft versions in
-  CLI gameplay behavior. Version-specific differences should appear as
-  supervisor/client metadata, availability reasons, and generated action/help
-  output fetched from the live client.
-- CLI smoke evidence must prove the installed/packaged command talks to the
-  same generated OpenAPI/actions/resources that agents would use.
-- Do not encode survival scenarios, material recipes, combat flows, or
-  Minecraft-version workarounds as built-in CLI gameplay commands. If a user or
-  agent can do it, the CLI should discover the live operation/resource schema
-  and invoke generic `run`/JSON-RPC/SSE flows from the per-client OpenAPI.
-
-## Verification
-
-```sh
-mise exec -- gradle :cli:test
-```
+When CLI-specific instructions need to change, update
+`docs/agent-module-contracts.md#cli`, not this file.

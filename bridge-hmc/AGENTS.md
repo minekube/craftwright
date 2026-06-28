@@ -1,35 +1,12 @@
 # HMC Bridge Module Instructions
 
-`bridge-hmc/` is temporary evidence infrastructure for launching and controlling
-real clients before the Fabric driver is complete.
+This file is intentionally short. Do not append bridge-specific rule lists
+here.
 
-## Scope
+Read root `AGENTS.md`, then read:
 
-- HeadlessMC/HMC-Specifics launch and bridge experiments.
-- Internal command mapping.
-- Opt-in real-client smoke planning and evidence capture.
+- `docs/agent-operating-contract.md`
+- `docs/agent-module-contracts.md#bridge-hmc`
 
-## Rules
-
-- Never expose HeadlessMC or HMC-Specifics command strings as public API names,
-  JSON fields, CLI verbs, SDK methods, or docs contracts.
-- Label bridge behavior as bridge-only evidence. Do not describe it as robust
-  movement, perception, inventory, or final automation.
-- Do not use bridge behavior to justify product API shape, version support, or
-  gameplay completion. If a bridge smoke discovers a useful primitive, move the
-  product work into the Fabric runtime graph, generated OpenAPI, and generic
-  invocation path.
-- Do not add bridge-specific version compatibility fallbacks. Multi-version
-  support belongs in resolver/cache/driver-manifest/Fabric lane plumbing.
-- Do not use bridge success as a reason to keep or reintroduce static gameplay
-  methods anywhere else. Bridge observations can motivate generic Fabric graph
-  discovery or adapters, but they are not product API design.
-- Keep real-client smoke tests opt-in and guarded by environment variables.
-- Default tests must not download Minecraft/server artifacts or launch a real
-  client.
-
-## Verification
-
-```sh
-mise exec -- gradle :bridge-hmc:test
-```
+When bridge-specific instructions need to change, update
+`docs/agent-module-contracts.md#bridge-hmc`, not this file.

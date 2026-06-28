@@ -4,6 +4,9 @@ This file holds the durable implementation guardrails that are too detailed
 for root `AGENTS.md`. Keep root `AGENTS.md` short and stable; update this file
 when the durable project contract changes.
 
+Durable module-local guardrails live in `docs/agent-module-contracts.md`. Keep
+module `AGENTS.md` files as short pointers to that document.
+
 Do not put per-phase history, roadmap checkboxes, temporary tasks, or
 completion evidence here. Those belong in `docs/superpowers/phase-index.md`,
 `docs/project-completion-checklist.md`, specs, plans, and evidence files.
@@ -227,4 +230,3 @@ scenario-specific Kotlin actions.
 - Before claiming a code change is complete, run focused tests and then
   `mise run ci` when practical.
 - For docs-only edits, run at least `git diff --check`.
-

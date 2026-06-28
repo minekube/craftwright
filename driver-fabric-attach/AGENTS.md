@@ -1,43 +1,12 @@
 # Fabric Attach Module Instructions
 
-`driver-fabric-attach/` owns version-neutral Fabric self-attach and Ktor
-loopback transport shared by all Fabric driver lanes.
-It is the common attach boundary for current, older, latest/current, and future
-Fabric lanes; version differences must arrive as stable session data or be
-handled in the lane adapter before the session is passed here.
-This module should get more generic over time, not more lane-specific: new
-versions should normally add metadata, resolver data, or lane adapters outside
-this module while reusing the same attach contract.
+This file is intentionally short. Do not append fabric-attach-specific rule
+lists here.
 
-## Scope
+Read root `AGENTS.md`, then read:
 
-- Attach environment parsing.
-- In-client self-attach startup.
-- Ktor loopback routes for the stable `DriverSession` contract.
-- Daemon attach handoff payloads.
+- `docs/agent-operating-contract.md`
+- `docs/agent-module-contracts.md#driver-fabric-attach`
 
-## Rules
-
-- Keep this module free of Minecraft, Fabric API, Yarn, intermediary, and
-  official-mapping implementation calls.
-- Do not add gameplay bindings, action descriptors, runtime graph operation
-  catalogs, per-version route trees, scenario shortcuts, or CLI behavior here.
-- Use Ktor Client and Ktor Server only for HTTP transport.
-- Keep route shapes tied to the stable driver session contract:
-  snapshot, connect, actions, runtime metadata, runtime graph, generic invoke,
-  stop, and events.
-- If a Fabric lane needs version-specific behavior, keep that behavior in the
-  lane adapter and pass a stable `DriverSession` into this module.
-- Do not add a new attach server, route family, session implementation, or
-  transport DTO just because one Minecraft/Fabric version currently needs a
-  workaround. First model the difference as metadata, availability, or a narrow
-  lane adapter; this module should remain reusable by every lane.
-- If a lane cannot attach, fix the common attach contract or the narrow lane
-  adapter that feeds it. Do not fork loopback transport, invent per-version
-  attach endpoints, or add gameplay routes to prove a lane works.
-
-## Verification
-
-```sh
-mise exec -- gradle :driver-fabric-attach:test
-```
+When fabric-attach-specific instructions need to change, update
+`docs/agent-module-contracts.md#driver-fabric-attach`, not this file.

@@ -1,28 +1,12 @@
 # Playwright Helper Instructions
 
-`playwright/` contains external helper tests and fixtures.
+This file is intentionally short. Do not append Playwright-specific rule lists
+here.
 
-## Scope
+Read root `AGENTS.md`, then read:
 
-- Playwright/Vitest helper tests.
-- Thin protocol consumers for external integration checks.
+- `docs/agent-operating-contract.md`
+- `docs/agent-module-contracts.md#playwright`
 
-## Rules
-
-- Use Bun through mise: `mise exec -- bun ...`.
-- Do not use npm, npx, yarn, pnpm, or globally installed node.
-- Do not reintroduce a TypeScript SDK as an active product surface unless the
-  project direction changes explicitly.
-- Helpers should speak the daemon/OpenAPI/action API directly. Do not parse
-  human CLI output.
-- Helper tests must stay adaptive to live OpenAPI/actions. Do not add
-  TypeScript-side static gameplay catalogs, Minecraft-version command tables,
-  or scenario macros.
-- Browser/helper automation can be used as an external user-level verifier, but
-  it must not become a hidden SDK or duplicate product action catalog.
-
-## Verification
-
-```sh
-mise exec -- bun test playwright
-```
+When Playwright-specific instructions need to change, update
+`docs/agent-module-contracts.md#playwright`, not this file.
