@@ -23,28 +23,59 @@ blocked.
 
 ## Active Completion Board
 
-### Next Exact Work
+### Status At A Glance
 
-Work these packets in order. Each packet closes only with a spec, plan,
-evidence file, focused regression test, and local verification command.
+| Gate | Status | Meaning |
+| --- | --- | --- |
+| CL-01 | [x] | Public action-list authority is removed. |
+| CL-02 | [x] | Transitional static Fabric/bootstrap catalog design is guarded. |
+| CL-03 | [~] | Latest/current product lane is active; connected packaged-lane artifacts and public smoke remain. |
+| CL-04 | [ ] | Representative older lane still needs the same public gate set. |
+| CL-05 | [ ] | User-facing install, Docker, Action, README, CLI, and skill docs still need refresh and smoke. |
+| CL-06 | [ ] | Final local release-quality gates have not been run after CL-03 through CL-05. |
+| CL-07 | [ ] | Final honest gameplay must be replayed after compatibility/usability gates close. |
+| CL-08 | [ ] | Final publish/clean-tree gate remains open. |
 
-1. [x] Finish CL-02f guard coverage so static gameplay APIs cannot creep back
-   into Fabric, daemon routes, CLI help/commands, protocol descriptors, or
-   public-agent scenarios.
-2. [~] Finish CL-03 latest/current lane as a real packaged product lane.
-3. [ ] Finish CL-04 representative older lane through the same public gates.
-4. [ ] Finish CL-05 external-user usability: README, Docker runtime smoke,
+### Current Packet
+
+Work exactly this packet next unless a docs-only correction is needed to keep
+the board honest.
+
+- [ ] CL-03e.3: Capture connected official 26.x/latest-current artifacts from
+  the packaged/latest lane:
+  generated per-client OpenAPI, actions projection, resources projection, SSE
+  transcript, JSON-RPC query transcript, and JSON-RPC subscription transcript.
+- [ ] CL-03d: Prove the packaged CLI creates or attaches that latest/current
+  client through the supervisor API, not through a local manual mod drop.
+- [ ] CL-03a through CL-03c: Record the concrete `latest-release` version,
+  resolved Java/runtime, Fabric Loader/API artifacts, driver artifact, cache
+  paths, and runtime metadata used by the packaged lane.
+- [ ] CL-03f: Run one public API/CLI smoke on the latest/current lane using
+  only generated operations/resources and generic invocation.
+
+CL-03 closes only after all four bullets above have evidence in
+`docs/superpowers/evidence/2026-06-28-latest-current-product-lane.md` or a
+successor evidence file. Compile-only, probe-only, or unsupported-only output
+does not close CL-03.
+
+### Ordered Roadmap
+
+1. [~] Close CL-03 latest/current as a packaged product lane.
+2. [ ] Close CL-04 representative older lane through the same public gates.
+3. [ ] Close CL-05 external-user usability: README, Docker runtime smoke,
    install script smoke, reusable GitHub Action docs, and agent skill docs.
-5. [ ] Run CL-06 local release-quality gates.
-6. [ ] Run CL-07 final honest gameplay through public API/CLI only.
-7. [ ] Publish CL-08 with clean tree and pushed `main`.
+4. [ ] Close CL-06 local release-quality gates.
+5. [ ] Close CL-07 final honest gameplay through public API/CLI only.
+6. [ ] Close CL-08 with clean tree and pushed `main`.
 
 ### Completion Rules
 
 - Close items in order unless a later item is a pure documentation or guardrail
   cleanup that does not change runtime behavior.
-- Every open item needs a fresh spec, plan, evidence file, focused regression
-  test, and local verification command before it can move to `[x]`.
+- Every runtime or behavior item needs a fresh spec, plan, evidence file,
+  focused regression test, and local verification command before it can move
+  to `[x]`. Docs-only corrections need `git diff --check` and, when they
+  change active status, an updated phase-index note.
 - Public gameplay breadth must come from generated runtime graph/OpenAPI data.
   Static descriptor/binding pairs, static CLI gameplay commands, scenario
   shortcuts, and per-version public APIs do not close any item here.
@@ -53,8 +84,10 @@ evidence file, focused regression test, and local verification command.
   evidence, but not completion evidence.
 - If an item cannot be honestly closed, split it into smaller named sub-gates
   here instead of burying uncertainty in phase history.
+- Keep this board current. The phase history below is evidence archive, not
+  the work queue.
 
-### Open Work Queue
+### Gate Detail
 
 Work from the first unchecked sub-gate unless a later docs-only gate is needed
 to keep the repo honest. A CL item closes only when every sub-gate below it is
@@ -159,7 +192,11 @@ checked and the named evidence file exists.
        client-state operation from shared Fabric discovery instead of reporting
        zero actions. Evidence:
        `docs/superpowers/evidence/2026-06-28-official-client-state-world-time-operation.md`.
-     - [ ] CL-03e.2: A connected official 26.x client captures generated
+     - [x] CL-03e.2: The official 26.x lane can invoke the generated
+       `world.time.query` operation through an internal official client-thread
+       provider instead of returning unsupported. Evidence:
+       `docs/superpowers/evidence/2026-06-28-official-world-time-invocation.md`.
+     - [ ] CL-03e.3: A connected official 26.x client captures generated
        per-client OpenAPI, actions/resources, SSE, JSON-RPC query, and
        JSON-RPC subscription artifacts from the packaged/latest lane.
    - [ ] CL-03f: A public API/CLI gameplay smoke executes generated

@@ -21,13 +21,17 @@ import com.minekube.craftless.driver.fabric.discovery.toFabricRuntimeEventNode
 import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.driver.runtime.DriverBackendResult
+import com.minekube.craftless.protocol.RuntimeAvailabilityState
 import com.minekube.craftless.protocol.RuntimeSourceEvidence
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 internal class OfficialFabricDriverBackend(
     private val runtimeMetadataProvider: FabricRuntimeMetadataProvider = officialFabricRuntimeMetadataProvider(),
     private val clientStateProvider: OfficialFabricClientStateProvider = MinecraftOfficialFabricClientStateProvider(),
     private val eventSourceProvider: OfficialFabricEventSourceProvider = MinecraftOfficialFabricEventSources,
     private val clientConnector: OfficialFabricClientConnector = MinecraftOfficialFabricClientConnector(),
+    private val worldTimeProvider: OfficialFabricWorldTimeProvider = MinecraftOfficialFabricWorldTimeProvider(),
 ) : DriverBackend {
     override fun connect(
         clientId: String,
@@ -91,12 +95,47 @@ internal class OfficialFabricDriverBackend(
     override fun invoke(
         clientId: String,
         invocation: DriverActionInvocation,
-    ): DriverActionResult =
-        DriverActionResult(
+    ): DriverActionResult {
+        require(invocation.action.isNotBlank()) { "action is required" }
+        val operation = runtimeGraph(clientId).operations.firstOrNull { operation -> operation.id == invocation.action }
+        if (operation == null) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.UNSUPPORTED,
+                message = "official lane probe backend has no generated runtime operation for ${invocation.action}",
+            )
+        }
+        if (operation.availability.state == RuntimeAvailabilityState.UNAVAILABLE) {
+            return DriverActionResult(
+                action = invocation.action,
+                status = DriverActionStatus.UNSUPPORTED,
+                message = operation.availability.reason ?: "unavailable official lane operation ${invocation.action}",
+            )
+        }
+        return when (operation.adapter) {
+            WORLD_TIME_QUERY_ADAPTER_KEY -> invokeWorldTimeQuery(invocation)
+            else ->
+                DriverActionResult(
+                    action = invocation.action,
+                    status = DriverActionStatus.UNSUPPORTED,
+                    message = "official lane probe backend has no adapter ${operation.adapter}",
+                )
+        }
+    }
+
+    private fun invokeWorldTimeQuery(invocation: DriverActionInvocation): DriverActionResult {
+        val worldTime = worldTimeProvider.query()
+        return DriverActionResult(
             action = invocation.action,
-            status = DriverActionStatus.UNSUPPORTED,
-            message = "official lane probe backend has no generated runtime operation for ${invocation.action}",
+            status = DriverActionStatus.ACCEPTED,
+            message = "official lane action ${invocation.action} queried",
+            data =
+                buildJsonObject {
+                    put("time", worldTime.time)
+                    put("time-of-day", worldTime.timeOfDay)
+                },
         )
+    }
 
     override fun stop(clientId: String): DriverBackendResult =
         DriverBackendResult(

@@ -62,6 +62,7 @@ not grow with every completed phase.
 - Phase 177: client-state operation discovery.
 - Phase 178: static gameplay guard closure.
 - Phase 179: official client-state world time operation.
+- Phase 180: official world time invocation.
 
 ## Current Direction
 
@@ -121,6 +122,11 @@ no longer reports zero runtime operations when a world is observed. This is
 CL-03e progress only; official invocation, packaged latest-lane create/attach,
 fresh connected OpenAPI/action/resource/SSE/JSON-RPC artifacts, and public
 gameplay smoke remain open.
+The official lane now also invokes generated `world.time.query` through an
+internal 26.x world-time provider and private adapter-key dispatch. This is
+still CL-03e progress only; connected OpenAPI/action/resource/SSE/JSON-RPC
+artifacts, packaged latest-lane create/attach, and public gameplay smoke
+remain open.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the

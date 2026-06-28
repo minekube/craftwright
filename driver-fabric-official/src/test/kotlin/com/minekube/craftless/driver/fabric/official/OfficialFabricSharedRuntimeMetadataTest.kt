@@ -2,6 +2,8 @@ package com.minekube.craftless.driver.fabric.official
 
 import com.minekube.craftless.driver.api.ConnectionTarget
 import com.minekube.craftless.driver.api.DriverActionAvailability
+import com.minekube.craftless.driver.api.DriverActionInvocation
+import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.fabric.discovery.FabricClientStateGraphSnapshot
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataSnapshot
@@ -14,6 +16,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 
 class OfficialFabricSharedRuntimeMetadataTest {
     @Test
@@ -280,5 +284,33 @@ class OfficialFabricSharedRuntimeMetadataTest {
         assertEquals(RuntimeAvailability.available(), handles.getValue("world.block.handle").availability)
         assertEquals(RuntimeAvailability.available(), handles.getValue("entity.handle").availability)
         assertEquals(RuntimeAvailability.unavailable("recipe-discovery-unavailable"), handles.getValue("recipe.handle").availability)
+    }
+
+    @Test
+    fun `official backend invokes generated world time query through lane provider`() {
+        val backend =
+            OfficialFabricDriverBackend(
+                clientStateProvider =
+                    OfficialFabricClientStateProvider {
+                        FabricClientStateGraphSnapshot(
+                            connected = true,
+                            player = true,
+                            inventory = false,
+                            camera = false,
+                            interactionManager = false,
+                            world = true,
+                        )
+                    },
+                worldTimeProvider =
+                    OfficialFabricWorldTimeProvider {
+                        OfficialFabricWorldTime(time = 1234, timeOfDay = 5678)
+                    },
+            )
+
+        val result = backend.invoke("official-probe", DriverActionInvocation("world.time.query"))
+
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        assertEquals(1234, result.data["time"]?.jsonPrimitive?.long)
+        assertEquals(5678, result.data["time-of-day"]?.jsonPrimitive?.long)
     }
 }
