@@ -5,6 +5,10 @@ material.
 
 ## Rules
 
+- Keep root `AGENTS.md` short and stable. Durable detailed guardrails belong in
+  `docs/agent-operating-contract.md`; active status belongs in
+  `docs/project-completion-checklist.md`; phase history belongs in
+  `docs/superpowers/phase-index.md`.
 - Keep README and docs aligned with current architecture.
 - Make clear what is implemented now versus roadmap.
 - Do not document removed TypeScript SDK or other inactive legacy surfaces as
