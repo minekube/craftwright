@@ -42,7 +42,7 @@ craftless server start --port 8080 --workspace .craftless
 Install a specific release:
 
 ```sh
-CRAFTLESS_VERSION=v0.1.0 \
+CRAFTLESS_VERSION=v0.1.1 \
 CRAFTLESS_INSTALL_DIR="$HOME/.local/bin" \
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/minekube/craftless/main/install.sh)"
 ```

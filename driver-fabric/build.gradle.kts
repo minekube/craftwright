@@ -172,6 +172,10 @@ tasks.named("compileTestKotlin") {
     dependsOn(generateFabricCompiledLaneMetadata)
 }
 
+tasks.matching { it.name == "runKtlintCheckOverMainSourceSet" }.configureEach {
+    dependsOn(generateFabricCompiledLaneMetadata)
+}
+
 fun envLong(name: String): Long? = System.getenv(name)?.toLongOrNull()
 
 fun finalGameplayFabricActionTimeout(): String =

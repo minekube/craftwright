@@ -31,6 +31,7 @@ daemon dependency on `driver-fabric`, or Minecraft version support claim.
 - `mise exec -- gradle :protocol:test --tests '*NamespacePolicyTest.package cli stages craftless fabric driver mod for docker runtime*' :cli:test --tests '*CraftlessCliTest.server start uses packaged fabric driver mod when env is absent*'`
 - `mise exec -- gradle :protocol:ktlintCheck :protocol:detekt :cli:ktlintCheck :cli:detekt`
 - `mise run package-cli`
+- `mise run ci`
 
 All commands above passed locally on 2026-06-28.
 
