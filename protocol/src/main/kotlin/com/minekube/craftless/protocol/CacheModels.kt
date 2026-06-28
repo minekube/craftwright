@@ -260,8 +260,15 @@ data class CachePreparedArtifact(
     val kind: CachePreparedArtifactKind,
     val handle: String,
     val source: String? = null,
+    val sha1: String? = null,
     val status: CachePreparedArtifactStatus,
-)
+) {
+    init {
+        sha1?.let { digest ->
+            require(Regex("[a-fA-F0-9]{40}").matches(digest)) { "cache artifact sha1 must be a SHA-1 hex string" }
+        }
+    }
+}
 
 @Serializable
 data class CacheLaunchPlan(

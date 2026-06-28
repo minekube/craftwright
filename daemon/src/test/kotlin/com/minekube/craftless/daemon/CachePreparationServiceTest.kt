@@ -202,7 +202,8 @@ class CachePreparationServiceTest {
             val minecraftLibraryUrl = "https://libraries.minecraft.net/com/mojang/authlib/6.0.54/authlib-6.0.54.jar"
             val nativeLibraryUrl = "https://libraries.minecraft.net/org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3-natives.jar"
             val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
-            val assetObjectUrl = "https://resources.download.minecraft.net/ab/abcdef0123456789abcdef0123456789abcdef01"
+            val assetHash = "a4b45e57b3934836f20ccf8529c18bcd1e120129"
+            val assetObjectUrl = "https://resources.download.minecraft.net/a4/$assetHash"
             val loggingConfigUrl = "https://piston-data.test/client-1.21.2.xml"
             val javaRuntimeManifestUrl = "https://metadata.test/runtime/java-runtime-gamma/manifest.json"
             val javaExecutableUrl = "https://metadata.test/runtime/java-runtime-gamma/bin/java"
@@ -343,7 +344,7 @@ class CachePreparationServiceTest {
                                     {
                                       "objects": {
                                         "minecraft/sounds/random/test.ogg": {
-                                          "hash": "abcdef0123456789abcdef0123456789abcdef01",
+                                          "hash": "$assetHash",
                                           "size": 10
                                         }
                                       }
@@ -442,7 +443,7 @@ class CachePreparationServiceTest {
             val assetObject = result.artifacts.single { it.kind == CachePreparedArtifactKind.MINECRAFT_ASSET_OBJECT }
             assertEquals(assetObjectUrl, assetObject.source)
             assertEquals(
-                "cache/assets/objects/ab/abcdef0123456789abcdef0123456789abcdef01",
+                "cache/assets/objects/a4/$assetHash",
                 assetObject.handle,
             )
             assertEquals("CACHED", assetObject.status.name)
@@ -801,13 +802,15 @@ class CachePreparationServiceTest {
         }
 
     @Test
-    fun `cache preparation resumes after per-file artifact fetch failure`() =
+    fun `cache preparation refetches corrupt existing asset objects`() =
         runBlocking {
-            val workspace = Files.createTempDirectory("craftless-cache-retry")
+            val workspace = Files.createTempDirectory("craftless-cache-corrupt-asset-resume")
             val versionUrl = "https://metadata.test/1.21.6.json"
             val clientJarUrl = "https://metadata.test/client.jar"
             val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
-            val assetObjectUrl = "https://resources.download.minecraft.net/ab/abcdef0123456789abcdef0123456789abcdef01"
+            val assetHash = "e2b4694e41e508d3cba98550e509c7fc82aaca8a"
+            val assetObjectUrl = "https://resources.download.minecraft.net/e2/$assetHash"
+            val assetObject = workspace.resolve("cache/assets/objects/e2/$assetHash")
             val fetcher =
                 CountingCacheMetadataFetcher(
                     responses =
@@ -839,7 +842,75 @@ class CachePreparationServiceTest {
                                 {
                                   "objects": {
                                     "minecraft/sounds/random/test.ogg": {
-                                      "hash": "abcdef0123456789abcdef0123456789abcdef01",
+                                      "hash": "$assetHash",
+                                      "size": 16
+                                    }
+                                  }
+                                }
+                                """.trimIndent(),
+                        ),
+                    binaryResponses =
+                        mapOf(
+                            clientJarUrl to "downloaded-client".encodeToByteArray(),
+                            assetObjectUrl to "downloaded-asset".encodeToByteArray(),
+                        ),
+                )
+            Files.createDirectories(assetObject.parent)
+            Files.writeString(assetObject, "corrupt-asset")
+            val service = CachePreparationService(workspaceRoot = workspace, metadataFetcher = fetcher)
+
+            service.prepare(CachePrepareRequest("1.21.6", Loader.VANILLA))
+
+            assertEquals("downloaded-asset", Files.readString(assetObject))
+            assertEquals(1, fetcher.binaryFetchCount(assetObjectUrl))
+
+            service.prepare(CachePrepareRequest("1.21.6", Loader.VANILLA))
+
+            assertEquals("downloaded-asset", Files.readString(assetObject))
+            assertEquals(1, fetcher.binaryFetchCount(assetObjectUrl))
+        }
+
+    @Test
+    fun `cache preparation resumes after per-file artifact fetch failure`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-retry")
+            val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+            val assetHash = "a4b45e57b3934836f20ccf8529c18bcd1e120129"
+            val assetObjectUrl = "https://resources.download.minecraft.net/a4/$assetHash"
+            val fetcher =
+                CountingCacheMetadataFetcher(
+                    responses =
+                        mapOf(
+                            MINECRAFT_VERSION_INDEX_URL to
+                                """
+                                { "versions": [{ "id": "1.21.6", "url": "$versionUrl" }] }
+                                """.trimIndent(),
+                            versionUrl to
+                                """
+                                {
+                                  "id": "1.21.6",
+                                  "assetIndex": {
+                                    "id": "1.21.6",
+                                    "url": "$assetIndexUrl"
+                                  },
+                                  "mainClass": "test.minecraft.Main",
+                                  "arguments": {
+                                    "jvm": [],
+                                    "game": ["--gameDir", "${'$'}{game_directory}"]
+                                  },
+                                  "downloads": {
+                                    "client": { "url": "$clientJarUrl" }
+                                  }
+                                }
+                                """.trimIndent(),
+                            assetIndexUrl to
+                                """
+                                {
+                                  "objects": {
+                                    "minecraft/sounds/random/test.ogg": {
+                                      "hash": "$assetHash",
                                       "size": 10
                                     }
                                   }

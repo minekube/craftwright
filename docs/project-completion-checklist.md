@@ -2258,6 +2258,31 @@ Verification:
 - `mise run architecture-check`
 - `mise run ci`
 
+## Phase 73: Asset Object Integrity Resume
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-73-asset-object-integrity-resume-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-73-asset-object-integrity-resume-plan.md`.
+- [x] Minecraft asset objects carry expected SHA-1 metadata from the asset
+  index into cache artifact metadata.
+- [x] Cache preparation reuses a cached asset object only when its local SHA-1
+  matches the expected object hash.
+- [x] Cache preparation re-fetches and replaces corrupt existing asset-object
+  files.
+- [x] This phase changes cache resumability only. It adds no public gameplay
+  action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :daemon:test --tests '*CachePreparationServiceTest.cache preparation refetches corrupt existing asset objects'`
+- `mise exec -- gradle :daemon:test --tests '*CachePreparationServiceTest*'`
+- `git diff --check`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 68 evidence; the

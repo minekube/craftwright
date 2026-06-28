@@ -389,10 +389,19 @@ class CachePreparationService(
         source: String,
     ): Path {
         val target = resolveHandle(artifact.handle)
+        val expectedSha1 = artifact.sha1?.lowercase()
         if (Files.isRegularFile(target)) {
-            return target
+            if (expectedSha1 == null || Files.readAllBytes(target).sha1Hex() == expectedSha1) {
+                return target
+            }
         }
-        return writeBytesArtifact(artifact, metadataFetcher.fetchBytes(source))
+        val bytes = metadataFetcher.fetchBytes(source)
+        expectedSha1?.let { expected ->
+            require(bytes.sha1Hex() == expected) {
+                "downloaded artifact checksum mismatch for ${artifact.handle}"
+            }
+        }
+        return writeBytesArtifact(artifact, bytes)
     }
 
     private fun writeTextArtifact(
@@ -986,6 +995,7 @@ private data class MinecraftAssetObject(
             kind = CachePreparedArtifactKind.MINECRAFT_ASSET_OBJECT,
             handle = "cache/assets/objects/${hash.take(2)}/$hash",
             source = source,
+            sha1 = hash.lowercase(),
             status = CachePreparedArtifactStatus.CACHED,
         )
 }
@@ -1108,6 +1118,12 @@ private fun String.sha256Hex(): String =
     MessageDigest
         .getInstance("SHA-256")
         .digest(encodeToByteArray())
+        .joinToString("") { byte -> "%02x".format(byte) }
+
+private fun ByteArray.sha1Hex(): String =
+    MessageDigest
+        .getInstance("SHA-1")
+        .digest(this)
         .joinToString("") { byte -> "%02x".format(byte) }
 
 private fun String.mavenPath(): String {

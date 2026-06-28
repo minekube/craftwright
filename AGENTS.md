@@ -183,6 +183,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 70. public-agent operational workflow guidance.
 71. system Java PATH discovery.
 72. generated actions help.
+73. asset object integrity resume.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -536,6 +537,12 @@ live per-client OpenAPI document. It must preserve JSON output for
 `clients <id> actions`, must not add static gameplay command catalogs, and must
 not add public gameplay actions, generated route families, Fabric
 descriptor/binding pairs, scenario shortcuts, new compiled lanes, public
+version-specific APIs, or new Minecraft support claims.
+Phase 73 improves latest-version cache resumability by carrying Minecraft
+asset-object SHA-1 evidence into cache artifacts and re-fetching corrupt cached
+asset objects instead of blindly reusing any existing file. It must not add
+public gameplay actions, generated route families, CLI gameplay catalogs,
+Fabric descriptor/binding pairs, scenario shortcuts, new compiled lanes, public
 version-specific APIs, or new Minecraft support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
