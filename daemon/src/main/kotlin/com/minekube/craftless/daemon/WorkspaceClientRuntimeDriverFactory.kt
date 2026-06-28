@@ -51,6 +51,7 @@ class WorkspaceClientRuntimeDriverFactory(
                     CachePrepareRequest(
                         minecraftVersion = request.version,
                         loader = request.loader,
+                        loaderVersion = request.loaderVersion,
                     ),
                 ).withConfiguredDriverMod()
         val files = request.instanceFiles()

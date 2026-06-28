@@ -746,6 +746,8 @@ class OpenApiGenerationTest {
         assertEquals("string", createSchema.properties["id"]?.type)
         assertEquals("string", createSchema.properties["version"]?.type)
         assertEquals("string", createSchema.properties["loader"]?.type)
+        assertEquals("string", createSchema.properties["loaderVersion"]?.type)
+        assertEquals(true, createSchema.properties["loaderVersion"]?.nullable)
         val profileSchema = createSchema.properties["profile"]
         assertNotNull(profileSchema)
         assertEquals("object", profileSchema.type)

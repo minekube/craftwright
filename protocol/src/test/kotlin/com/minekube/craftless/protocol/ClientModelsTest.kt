@@ -48,4 +48,28 @@ class ClientModelsTest {
             }
         }
     }
+
+    @Test
+    fun `create client request accepts and validates loader version lane`() {
+        val request =
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.6",
+                loader = Loader.FABRIC,
+                loaderVersion = "0.19.3",
+                profile = Profile.offline("Alice"),
+            )
+
+        assertEquals("0.19.3", request.loaderVersion)
+
+        assertFailsWith<IllegalArgumentException> {
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.6",
+                loader = Loader.FABRIC,
+                loaderVersion = "0.19/3",
+                profile = Profile.offline("Alice"),
+            )
+        }
+    }
 }

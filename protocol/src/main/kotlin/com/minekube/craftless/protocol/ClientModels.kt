@@ -105,9 +105,11 @@ data class CreateClientRequest(
     val version: String,
     val loader: Loader,
     val profile: Profile,
+    val loaderVersion: String? = null,
 ) {
     init {
         require(id.isCraftlessClientId()) { "client id must be a route-safe segment" }
+        loaderVersion?.let { requireFileSafeCacheSegment(it, "loader version") }
     }
 }
 

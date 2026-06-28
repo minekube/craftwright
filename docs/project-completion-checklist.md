@@ -3786,6 +3786,35 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-removed-survival-namespace-wording.md`.
 
+## Phase 123: Create Client Loader Version
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-123-create-client-loader-version-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-123-create-client-loader-version-plan.md`.
+- [x] `CreateClientRequest` exposes optional `loaderVersion` and validates it
+  as a cache-safe segment.
+- [x] The stable supervisor OpenAPI create-client request schema exposes
+  nullable `loaderVersion`.
+- [x] Client runtime preparation passes requested `loaderVersion` into cache
+  preparation, so the resolved driver-mod provider lane can include the
+  selected loader version.
+- [x] Alias requests still ask the driver-mod provider for the prepared
+  concrete Minecraft version and resolved loader version.
+- [x] This phase adds no compiled Fabric lane, public gameplay action,
+  generated route family, CLI gameplay catalog, Fabric gameplay binding,
+  scenario shortcut, public version-specific API, runnable latest/older lane,
+  runtime behavior support claim, or new Minecraft support claim.
+
+Verification:
+
+- Red/green protocol DTO and OpenAPI schema tests:
+  `mise exec -- gradle :protocol:test --tests '*ClientModelsTest.*' --tests '*OpenApiGenerationTest.*'`
+- Red/green daemon runtime-lane pass-through test:
+  `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.*loader version*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-create-client-loader-version.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3818,10 +3847,11 @@ Verification:
   Phase 117 live event action fallback removal, and Phase 118 action result
   event type removal, Phase 119 driver event type gameplay removal, and Phase
   120 invoke fallback naming removal, and Phase 121 metadata fallback naming
-  removal, and Phase 122 removed survival namespace wording. Phase 105, Phase
-  107, Phase 108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase
-  114, Phase 115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase
-  121, and Phase 122 do not satisfy the runnable latest/older support
+  removal, Phase 122 removed survival namespace wording, and Phase 123
+  create-client loader version. Phase 105, Phase 107, Phase 108, Phase 109,
+  Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase 115, Phase 116,
+  Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase 122, and Phase
+  123 do not satisfy the runnable latest/older support
   requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,

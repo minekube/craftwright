@@ -1024,6 +1024,7 @@ private fun createClientRequestBody(): OpenApiRequestBody =
                             "id" to OpenApiSchema(type = "string"),
                             "version" to OpenApiSchema(type = "string"),
                             "loader" to OpenApiSchema(type = "string"),
+                            "loaderVersion" to OpenApiSchema(type = "string", nullable = true),
                             "profile" to profileSchema(),
                         ),
                     required = listOf("id", "version", "loader", "profile"),
