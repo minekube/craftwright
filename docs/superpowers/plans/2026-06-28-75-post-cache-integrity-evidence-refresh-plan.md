@@ -196,7 +196,7 @@
 
   Expected: all commands exit `0`.
 
-- [ ] **Step 4: Commit and push**
+- [x] **Step 4: Commit and push**
 
   Run:
 
@@ -206,7 +206,7 @@
   git push origin main
   ```
 
-- [ ] **Step 5: Verify remote CI**
+- [x] **Step 5: Verify remote CI**
 
   Run:
 
@@ -216,6 +216,9 @@
   ```
 
   Expected: pushed commit's GitHub Actions CI exits successfully.
+
+  Evidence: `53c4864` pushed to `main`; GitHub Actions run
+  `28308176606` completed successfully for `mise run ci`.
 
 ### Guardrails
 

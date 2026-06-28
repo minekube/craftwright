@@ -242,7 +242,19 @@ Result: all commands exited `0`. `architecture-check` ran protocol, daemon,
 CLI, driver-fabric, and Bun Playwright checks. `ci` ran Gradle lint, Gradle
 test, and Bun Playwright tests.
 
-## Remaining Verification
+## Remote Verification
 
-Phase 75 still requires commit, push, and GitHub Actions CI before it can be
-marked fully verified.
+Commit:
+
+```text
+53c4864 docs: refresh evidence after cache integrity
+```
+
+GitHub Actions:
+
+```text
+run=28308176606
+headSha=53c4864aadf209500abc34c749f8f92487b26d0c
+workflow=ci
+conclusion=success
+```

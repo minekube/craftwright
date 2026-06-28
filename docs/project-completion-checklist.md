@@ -2351,7 +2351,7 @@ Verification:
   inventory, manual Craftless movement, or scenario shortcuts.
 - [x] Local `git diff --check`, `mise run architecture-check`, and `mise run
   ci` pass after recording the evidence.
-- [ ] Changes are committed and pushed to `main`, and GitHub Actions CI passes
+- [x] Changes are committed and pushed to `main`, and GitHub Actions CI passes
   for the pushed commit.
 - [x] This phase records evidence and docs only. It adds no public gameplay
   action, generated route family, CLI gameplay catalog, Fabric
