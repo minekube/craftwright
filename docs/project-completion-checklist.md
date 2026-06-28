@@ -69,10 +69,11 @@ checked and the named evidence file exists.
      rejects new `resource = "..."`
      gameplay catalog entries in bootstrap definitions. Evidence:
      `docs/superpowers/evidence/2026-06-28-bootstrap-resource-derivation.md`.
-   - [ ] CL-02d: Bootstrap operation ids and adapter keys are separated from
+   - [x] CL-02d: Bootstrap operation ids and adapter keys are separated from
      public descriptor shape. Execution adapters may keep private adapter ids;
      public ids/schemas must come from graph nodes or discovery-owned
-     projection fragments, not descriptor/binding pairs.
+     projection fragments, not descriptor/binding pairs. Evidence:
+     `docs/superpowers/evidence/2026-06-28-bootstrap-adapter-key-separation.md`.
    - [ ] CL-02e: At least one real Fabric discovery path proves an operation
      node from runtime inputs rather than a hand-maintained bootstrap list.
      Acceptable inputs include registries, callbacks, screens, handlers,

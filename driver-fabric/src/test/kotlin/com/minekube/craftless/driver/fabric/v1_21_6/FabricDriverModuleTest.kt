@@ -873,6 +873,28 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `bootstrap operation definitions do not own private adapter key pairs`() {
+        val source =
+            Files.readString(
+                repositoryRoot().resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricBootstrapOperationDefinitions.kt",
+                ),
+            )
+        val forbidden =
+            listOf(
+                "val adapter: String",
+                "adapter = FabricBootstrapOperationAdapters",
+            )
+
+        assertEquals(
+            emptyList(),
+            forbidden.filter { token -> source.contains(token) },
+            "Bootstrap operation definitions should describe transitional graph shape only. " +
+                "Private execution adapter keys must live in a separate adapter-key mapping.",
+        )
+    }
+
+    @Test
     fun `fabric client state probe does not own bootstrap operation definitions`() {
         val root = repositoryRoot()
         val source =

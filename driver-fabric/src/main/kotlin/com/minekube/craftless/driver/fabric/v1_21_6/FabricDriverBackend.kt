@@ -67,8 +67,7 @@ class FabricDriverBackend private constructor(
 ) : DriverBackend {
     private val events = mutableListOf<String>()
     private val executionAdaptersByOperationId = executionAdapters.associateBy { it.operationId }
-    private val bootstrapAdapterKeysByOperationId =
-        fabricBootstrapOperationDefinitions().associate { definition -> definition.id to definition.adapter }
+    private val bootstrapAdapterKeysByOperationId = fabricBootstrapOperationAdapterKeysById()
 
     override fun connect(
         clientId: String,

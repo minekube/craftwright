@@ -58,6 +58,7 @@ not grow with every completed phase.
 - Phase 173: public-agent actions projection optional.
 - Phase 174: Fabric execution adapter naming.
 - Phase 175: bootstrap resource derivation.
+- Phase 176: bootstrap adapter key separation.
 
 ## Current Direction
 
@@ -99,6 +100,9 @@ Transitional Fabric bootstrap operation definitions no longer hand-maintain
 public resource ownership. Runtime operation resources are derived from
 operation ids, and Fabric client-state discovery now emits the derived
 `world.block` and `world.time` resources needed by graph validation.
+Private Fabric adapter keys are no longer stored inside bootstrap operation
+definitions. A separate private operation-id to adapter-key map now feeds both
+runtime graph projection and backend execution-adapter registration.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the
