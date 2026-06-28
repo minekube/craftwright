@@ -207,6 +207,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 94. Fabric API cache resolution.
 95. launch mod materialization.
 96. Craftless driver mod launch artifact.
+97. packaged driver mod distribution.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -747,6 +748,10 @@ stay independent from `driver-fabric`; distribution or local configuration may
 provide the concrete jar path. This phase wires launch artifacts only and must
 not add gameplay descriptors, version-specific APIs, static action catalogs, or
 new support claims.
+Phase 97 packages the Fabric driver mod for normal runtime distribution and
+threads driver-mod configuration from the CLI/Docker entrypoint into the daemon
+provider. It must not add compile-time dependencies from `daemon` or `cli` to
+`driver-fabric`; the driver jar is a runtime artifact only.
 
 ## Acceptance Scenarios Are Not Product APIs
 

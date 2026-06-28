@@ -27,6 +27,7 @@ RUN apt-get update \
 
 ENV CRAFTLESS_WORKSPACE=/var/lib/craftless
 ENV CRAFTLESS_PORT=8080
+ENV CRAFTLESS_FABRIC_DRIVER_MOD=/opt/craftless/mods/craftless-driver-fabric.jar
 
 COPY build/docker/craftless/ /opt/craftless/
 COPY docker/entrypoint.sh /usr/local/bin/craftless-entrypoint

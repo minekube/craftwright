@@ -177,6 +177,40 @@ class NamespacePolicyTest {
     }
 
     @Test
+    fun `package cli stages craftless fabric driver mod for docker runtime`() {
+        val root = repositoryRoot()
+        val mise = Files.readString(root.resolve(".mise.toml"))
+        val dockerfile = Files.readString(root.resolve("Dockerfile"))
+
+        assertTrue(
+            mise.contains(":driver-fabric:remapJar"),
+            "package-cli must build the remapped Fabric driver mod jar",
+        )
+        assertTrue(
+            mise.contains("build/docker/craftless/mods"),
+            "package-cli must create a runtime mods directory in the Docker context",
+        )
+        assertTrue(
+            mise.contains("craftless-driver-fabric.jar"),
+            "package-cli must stage the Fabric driver mod with a deterministic runtime filename",
+        )
+        assertTrue(
+            mise.contains("! -name 'driver-fabric-*_*'"),
+            "package-cli must not stage stale lane-named placeholder jars",
+        )
+        assertTrue(
+            mise.contains("grep -q '^fabric.mod.json$'"),
+            "package-cli must verify the staged Fabric driver mod contains Fabric metadata",
+        )
+        assertTrue(
+            dockerfile.contains(
+                "ENV CRAFTLESS_FABRIC_DRIVER_MOD=/opt/craftless/mods/craftless-driver-fabric.jar",
+            ),
+            "Docker runtime must point the daemon at the staged Fabric driver mod",
+        )
+    }
+
+    @Test
     fun `private fabric gameplay bindings are limited to bootstrap operation id references`() {
         val root = repositoryRoot()
         val allowlistPath = root.resolve("docs/architecture/transitional-fabric-action-allowlist.txt")

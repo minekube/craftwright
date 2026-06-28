@@ -6,6 +6,7 @@ import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.core.subcommands
 import com.minekube.craftless.daemon.CacheMetadataFetcher
 import com.minekube.craftless.daemon.CachePreparationService
+import com.minekube.craftless.daemon.ConfiguredClientRuntimeDriverModProvider
 import com.minekube.craftless.daemon.KtorCacheMetadataFetcher
 import com.minekube.craftless.daemon.LocalSessionApiServer
 import com.minekube.craftless.protocol.CacheCleanupRequest
@@ -124,7 +125,7 @@ object CraftlessCli {
             return 0
         }
         if (args.take(2) == listOf("server", "start")) {
-            return runServerStart(args.drop(2), stdout, stderr, afterStart)
+            return runServerStart(args.drop(2), stdout, stderr, afterStart, env, cacheMetadataFetcher)
         }
         if (args.take(2) == listOf("cache", "prepare")) {
             return prepareCache(args.drop(2), stdout, stderr, cacheMetadataFetcher)
@@ -874,6 +875,8 @@ object CraftlessCli {
         stdout: (String) -> Unit,
         stderr: (String) -> Unit,
         afterStart: (ApiServerMetadata) -> Unit,
+        env: Map<String, String>,
+        cacheMetadataFetcher: CacheMetadataFetcher,
     ): Int {
         val once = args.contains("--once")
         val host = args.optionValue("--host") ?: "127.0.0.1"
@@ -884,22 +887,29 @@ object CraftlessCli {
         }
         val workspaceRoot = args.optionValue("--workspace")?.let(Path::of)
 
-        LocalSessionApiServer.inMemory(host = host, port = port, workspaceRoot = workspaceRoot).use { server ->
-            server.start()
-            val metadata =
-                ApiServerMetadata(
-                    ok = true,
-                    url = server.url(""),
-                    openapi = "/openapi.json",
-                    events = "/events",
-                    workspace = workspaceRoot?.toString(),
-                )
-            stdout(json.encodeToString(metadata))
-            afterStart(metadata)
-            if (!once) {
-                CountDownLatch(1).await()
+        LocalSessionApiServer
+            .inMemory(
+                host = host,
+                port = port,
+                workspaceRoot = workspaceRoot,
+                cacheMetadataFetcher = cacheMetadataFetcher,
+                clientRuntimeDriverModProvider = ConfiguredClientRuntimeDriverModProvider(environment = env),
+            ).use { server ->
+                server.start()
+                val metadata =
+                    ApiServerMetadata(
+                        ok = true,
+                        url = server.url(""),
+                        openapi = "/openapi.json",
+                        events = "/events",
+                        workspace = workspaceRoot?.toString(),
+                    )
+                stdout(json.encodeToString(metadata))
+                afterStart(metadata)
+                if (!once) {
+                    CountDownLatch(1).await()
+                }
             }
-        }
         return 0
     }
 

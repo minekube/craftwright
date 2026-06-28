@@ -33,10 +33,14 @@ run = [
 description = "Build Craftless CLI release archives and Docker context"
 run = [
     "rm -f cli/build/distributions/craftless-*.zip cli/build/distributions/craftless-*.tar",
-    "mise exec -- gradle :cli:distZip :cli:distTar",
+    "mise exec -- gradle :cli:distZip :cli:distTar :driver-fabric:remapJar",
     "rm -rf build/docker/craftless",
     "mkdir -p build/docker/craftless",
     "tar -xf cli/build/distributions/craftless-*.tar -C build/docker/craftless --strip-components=1",
+    "mkdir -p build/docker/craftless/mods",
+    "find driver-fabric/build/libs -maxdepth 1 -type f -name 'driver-fabric-*.jar' ! -name '*-sources.jar' ! -name 'driver-fabric-*_*' -exec cp {} build/docker/craftless/mods/craftless-driver-fabric.jar \\; -quit",
+    "test -f build/docker/craftless/mods/craftless-driver-fabric.jar",
+    "jar tf build/docker/craftless/mods/craftless-driver-fabric.jar | grep -q '^fabric.mod.json$'",
 ]
 
 [tasks.ci]

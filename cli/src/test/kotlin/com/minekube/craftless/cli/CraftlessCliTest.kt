@@ -12,6 +12,7 @@ import com.minekube.craftless.protocol.CacheCleanupResult
 import com.minekube.craftless.protocol.CacheExportResult
 import com.minekube.craftless.protocol.CachePrepareResult
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
+import com.minekube.craftless.protocol.MINECRAFT_JAVA_RUNTIME_INDEX_URL
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
 import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
@@ -24,6 +25,7 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -219,6 +221,60 @@ class CraftlessCliTest {
 
         val json = Json.parseToJsonElement(output.toString().trim()).jsonObject
         assertTrue(json["url"]?.jsonPrimitive?.content?.startsWith("http://0.0.0.0:") == true)
+    }
+
+    @Test
+    fun `server start forwards configured fabric driver mod environment`() {
+        val output = StringBuilder()
+        val workspace = Files.createTempDirectory("craftless-cli-driver-mod")
+        val driverMod = Files.createTempFile("craftless-driver-fabric", ".jar")
+        Files.writeString(driverMod, "driver-mod")
+        var createStatus = 0
+        var createBody = ""
+
+        val exit =
+            CraftlessCli.run(
+                listOf("server", "start", "--once", "--workspace", workspace.toString()),
+                stdout = { output.appendLine(it) },
+                env =
+                    mapOf(
+                        "CRAFTLESS_FABRIC_DRIVER_MOD" to driverMod.toString(),
+                    ),
+                cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
+                afterStart = { metadata ->
+                    kotlinx.coroutines.runBlocking {
+                        HttpClient(CIO).use { http ->
+                            val response =
+                                http.post("${metadata.url}/clients") {
+                                    contentType(ContentType.Application.Json)
+                                    setBody(
+                                        """
+                                        {
+                                          "id": "alice",
+                                          "version": "1.21.6",
+                                          "loader": "FABRIC",
+                                          "profile": { "kind": "OFFLINE", "name": "Alice" }
+                                        }
+                                        """.trimIndent(),
+                                    )
+                                }
+                            createStatus = response.status.value
+                            createBody = response.bodyAsText()
+                        }
+                    }
+                },
+            )
+
+        assertEquals(0, exit)
+        assertEquals(201, createStatus, createBody)
+        val modCache = workspace.resolve("cache/mods/craftless")
+        assertTrue(Files.isDirectory(modCache))
+        Files.list(modCache).use { cachedMods ->
+            assertTrue(
+                cachedMods.anyMatch { cached -> Files.readString(cached) == "driver-mod" },
+                "configured driver mod was not copied into the Craftless mod cache",
+            )
+        }
     }
 
     @Test
@@ -2614,6 +2670,115 @@ private class StaticCacheMetadataFetcher(
             "missing test binary response for $url"
         }
 }
+
+private fun preparedRuntimeMetadataFetcher(): CacheMetadataFetcher {
+    val versionUrl = "https://metadata.test/1.21.6.json"
+    val clientJarUrl = "https://metadata.test/client.jar"
+    val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+    val javaRuntimeManifestUrl = "https://metadata.test/runtime/java-runtime-gamma/manifest.json"
+    val javaExecutableUrl = "https://metadata.test/runtime/java-runtime-gamma/bin/java"
+    val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
+    val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
+    val fabricLoaderJarUrl = "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.17.2/fabric-loader-0.17.2.jar"
+    return StaticCacheMetadataFetcher(
+        mapOf(
+            MINECRAFT_VERSION_INDEX_URL to
+                """
+                {
+                  "versions": [
+                    { "id": "1.21.6", "url": "$versionUrl" }
+                  ]
+                }
+                """.trimIndent(),
+            versionUrl to
+                """
+                {
+                  "id": "1.21.6",
+                  "assetIndex": { "id": "1.21.6", "url": "$assetIndexUrl" },
+                  "javaVersion": {
+                    "component": "java-runtime-gamma",
+                    "majorVersion": 21
+                  },
+                  "mainClass": "test.minecraft.Main",
+                  "arguments": {
+                    "jvm": ["-cp", "${'$'}{classpath}"],
+                    "game": ["--gameDir", "${'$'}{game_directory}"]
+                  },
+                  "downloads": {
+                    "client": { "url": "$clientJarUrl" }
+                  }
+                }
+                """.trimIndent(),
+            MINECRAFT_JAVA_RUNTIME_INDEX_URL to cliJavaRuntimeIndexJson(javaRuntimeManifestUrl),
+            javaRuntimeManifestUrl to
+                """
+                {
+                  "files": {
+                    "bin/java": {
+                      "type": "file",
+                      "downloads": {
+                        "raw": { "url": "$javaExecutableUrl" }
+                      }
+                    }
+                  }
+                }
+                """.trimIndent(),
+            assetIndexUrl to """{"objects":{}}""",
+            loaderVersionsUrl to """[{ "loader": { "version": "0.17.2", "stable": true } }]""",
+            loaderProfileUrl to
+                """
+                {
+                  "id": "fabric-loader-0.17.2-1.21.6",
+                  "mainClass": "test.fabric.Main",
+                  "libraries": [
+                    {
+                      "name": "net.fabricmc:fabric-loader:0.17.2",
+                      "url": "https://maven.fabricmc.net/"
+                    }
+                  ]
+                }
+                """.trimIndent(),
+        ),
+        binaryResponses =
+            mapOf(
+                clientJarUrl to "client-jar".encodeToByteArray(),
+                javaExecutableUrl to cliFakeJavaBytes("21.0.11"),
+                fabricLoaderJarUrl to "fabric-loader-jar".encodeToByteArray(),
+            ),
+    )
+}
+
+private fun cliJavaRuntimeIndexJson(manifestUrl: String): String =
+    """
+    {
+      "linux": {
+        "java-runtime-gamma": [
+          { "manifest": { "url": "$manifestUrl" } }
+        ]
+      },
+      "mac-os": {
+        "java-runtime-gamma": [
+          { "manifest": { "url": "$manifestUrl" } }
+        ]
+      },
+      "mac-os-arm64": {
+        "java-runtime-gamma": [
+          { "manifest": { "url": "$manifestUrl" } }
+        ]
+      },
+      "windows-x64": {
+        "java-runtime-gamma": [
+          { "manifest": { "url": "$manifestUrl" } }
+        ]
+      }
+    }
+    """.trimIndent()
+
+private fun cliFakeJavaBytes(version: String): ByteArray =
+    """
+    #!/usr/bin/env sh
+    echo 'openjdk version "$version" 2026-04-21 LTS' >&2
+    """.trimIndent().encodeToByteArray()
 
 private fun writeFakeJava(
     path: java.nio.file.Path,

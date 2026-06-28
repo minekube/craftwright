@@ -3082,6 +3082,34 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-craftless-driver-mod-launch-artifact.md`.
 
+## Phase 97: Packaged Driver Mod Distribution
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-97-packaged-driver-mod-distribution-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-97-packaged-driver-mod-distribution-plan.md`.
+- [x] CLI `server start` forwards `CRAFTLESS_FABRIC_DRIVER_MOD` from its env
+  map into the daemon provider.
+- [x] `mise run package-cli` builds `:driver-fabric:remapJar` and stages
+  `build/docker/craftless/mods/craftless-driver-fabric.jar`.
+- [x] Docker runtime configuration sets `CRAFTLESS_FABRIC_DRIVER_MOD` to the
+  staged driver mod path.
+- [~] Actual live in-client attach and generated API execution remain open
+  until the launched driver connects back to the supervisor and public API/CLI
+  gameplay verification uses that path.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
+  lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red guard:
+  `mise exec -- gradle :cli:test --tests '*CraftlessCliTest.server start forwards configured fabric driver mod environment*'`
+- Red guard:
+  `mise exec -- gradle :protocol:test --tests '*NamespacePolicyTest.package cli stages craftless fabric driver mod for docker runtime*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-packaged-driver-mod-distribution.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3097,8 +3125,8 @@ Verification:
   smoke bootstrap action id source ownership, and Phase 91 version support
   completion gate, and Phase 92 build-generated compiled lane metadata, and
   Phase 93 static unsupported version lane removal, and Phase 94 Fabric API
-  cache resolution, Phase 95 launch mod materialization, and Phase 96
-  Craftless driver mod launch artifact.
+  cache resolution, Phase 95 launch mod materialization, Phase 96 Craftless
+  driver mod launch artifact, and Phase 97 packaged driver mod distribution.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support
