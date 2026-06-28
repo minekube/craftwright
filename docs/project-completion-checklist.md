@@ -51,7 +51,10 @@ blocked.
    `mise run architecture-check`.
    Current evidence: Phase 171 closed daemon OpenAPI authority with
    `docs/superpowers/evidence/2026-06-28-daemon-openapi-graph-only-authority.md`;
-   continue with attach/HTTP/CLI remnants.
+   Phase 172 removed the remote `HttpDriverSession.actions()` fetch from the
+   attach HTTP path with
+   `docs/superpowers/evidence/2026-06-28-remote-driver-action-graph-authority.md`;
+   continue with the remaining backend/CLI/projection scans.
 2. [ ] CL-02: Finish transitional Fabric binding exit.
    Done means: new gameplay breadth is discovered/projected from Fabric
    runtime inputs such as reflection, mappings, registries, callbacks, screens,
@@ -5118,7 +5121,9 @@ Verification:
   detailed in the phase sections above. Historical phases establish direction
   and guardrails, but they do not by themselves close the product goal.
 - [ ] Completion remains blocked until CL-01 through CL-08 in the Active
-  Completion Board are checked with fresh evidence.
+  Completion Board are checked with fresh evidence, including runnable support
+  evidence for latest/current and representative older version lanes under the
+  same public API/CLI gates.
 - [x] `mise run lint` passes. Current 2026-06-28 evidence: `mise run ci`
   completed lint successfully during the latest local verification sweep.
 - [x] `mise run architecture-check` passes. Current 2026-06-28 evidence:

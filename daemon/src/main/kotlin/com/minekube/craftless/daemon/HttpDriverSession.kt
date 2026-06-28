@@ -1,7 +1,6 @@
 package com.minekube.craftless.daemon
 
 import com.minekube.craftless.driver.api.ConnectionTarget
-import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverClientSnapshot
@@ -37,8 +36,6 @@ class HttpDriverSession(
     override fun snapshot(): DriverClientSnapshot = get("snapshot")
 
     override fun connect(target: ConnectionTarget): DriverClientSnapshot = post("connect", target)
-
-    override fun actions(): List<DriverActionDescriptor> = get("actions")
 
     override fun runtimeMetadata(): DriverRuntimeMetadata = get("runtime-metadata")
 
