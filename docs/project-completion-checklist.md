@@ -3907,14 +3907,15 @@ Verification:
   transitional Fabric action allowlist deletion, and Phase 132 strict Fabric
   API artifact resolution, Phase 133 driver mod manifest runtime identity, and
   Phase 134 parameterized Fabric compiled lane build, Phase 135 reflective
-  Fabric world-change callback, Phase 136 reflective movement input shim, and
-  Phase 137 reflective recipe bridge.
+  Fabric world-change callback, Phase 136 reflective movement input shim, Phase
+  137 reflective recipe bridge, and Phase 138 packaged representative older
+  Fabric lane.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
   122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128,
   Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
-  135, Phase 136, and Phase 137 do not satisfy the runnable
+  135, Phase 136, Phase 137, and Phase 138 do not satisfy the runnable
   latest/older support
   requirement by themselves.
   The broader project goal remains active until
@@ -3953,7 +3954,8 @@ Verification:
 - [x] Latest and representative older-version compatibility probes have current
   historical evidence. Latest `26.2` and older `1.20.6` probe records remain
   diagnostics. Phase 137 makes the representative older Fabric source lane
-  compile; runnable older-client support still requires runtime launch,
-  attach, API, and gameplay evidence.
+  compile, and Phase 138 packages that lane as a selectable artifact. Runnable
+  older-client support still requires runtime launch, attach, API, and gameplay
+  evidence.
 - [x] Changes are committed and pushed to `main`. This entry is current only
   after the checklist update that changes it is also pushed.

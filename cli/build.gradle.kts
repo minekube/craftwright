@@ -28,6 +28,10 @@ application {
 
 val fabricDriverProject = project(":driver-fabric")
 val fabricDriverArtifactStagingDir = layout.buildDirectory.dir("generated/driver-lane-artifacts")
+val extraFabricDriverLaneRoot =
+    providers.gradleProperty("craftless.extraFabricDriverLaneRoot").map { path ->
+        rootProject.layout.projectDirectory.dir(path)
+    }
 
 fun catalogEntries(catalog: Map<*, *>): List<Map<*, *>> {
     val entries = catalog["entries"] as? List<*> ?: error("Fabric driver lane catalog entries must be a list")
@@ -62,9 +66,30 @@ fun validatedDistributionPath(distributionPath: String): String {
     return distributionPath
 }
 
-fun renderDriverModManifest(catalog: Map<*, *>): String {
-    val entries =
-        catalogEntries(catalog).map { entry ->
+fun extraFabricDriverLaneCatalogFiles(root: File?): List<File> =
+    root
+        ?.takeIf { candidate -> candidate.isDirectory }
+        ?.walkTopDown()
+        ?.filter { file -> file.isFile && file.name == "fabric-driver-lanes.json" }
+        ?.sortedBy { file -> file.relativeTo(root).invariantSeparatorsPath }
+        ?.toList()
+        .orEmpty()
+
+fun mergedCatalogEntries(
+    primaryCatalog: File,
+    extraRoot: File?,
+): List<Map<*, *>> {
+    val primary = JsonSlurper().parse(primaryCatalog) as Map<*, *>
+    val extras =
+        extraFabricDriverLaneCatalogFiles(extraRoot).flatMap { catalogFile ->
+            catalogEntries(JsonSlurper().parse(catalogFile) as Map<*, *>)
+        }
+    return catalogEntries(primary) + extras
+}
+
+fun renderDriverModManifest(entries: List<Map<*, *>>): String {
+    val manifestEntries =
+        entries.map { entry ->
             linkedMapOf(
                 "loader" to requiredCatalogString(entry, "loader"),
                 "minecraftVersion" to requiredCatalogString(entry, "minecraftVersion"),
@@ -75,26 +100,39 @@ fun renderDriverModManifest(catalog: Map<*, *>): String {
                 "path" to validatedDistributionPath(requiredCatalogString(entry, "distributionPath")),
             )
         }
-    return JsonOutput.prettyPrint(JsonOutput.toJson(linkedMapOf("entries" to entries))) + "\n"
+    return JsonOutput.prettyPrint(JsonOutput.toJson(linkedMapOf("entries" to manifestEntries))) + "\n"
 }
+
+fun stagedExtraLaneArtifact(
+    extraRoot: File?,
+    distributionPath: String,
+): File? =
+    extraRoot
+        ?.toPath()
+        ?.resolve(distributionPath)
+        ?.normalize()
+        ?.toFile()
+        ?.takeIf { file -> file.isFile }
 
 gradle.projectsEvaluated {
     val fabricDriverRemapJar = fabricDriverProject.tasks.named("remapJar")
     val fabricDriverLaneCatalogTask = fabricDriverProject.tasks.named("writeFabricDriverLaneCatalog")
     val fabricDriverLaneCatalog =
         fabricDriverProject.layout.buildDirectory.file("generated/driver-lanes/fabric-driver-lanes.json")
+    val configuredExtraFabricDriverLaneRoot = extraFabricDriverLaneRoot.orNull?.asFile
     val driverModManifest =
         tasks.register("writeDriverModManifest") {
             val outputFile = layout.buildDirectory.file("generated/driver-mods/driver-mods.json")
             dependsOn(fabricDriverLaneCatalogTask)
             inputs.file(fabricDriverLaneCatalog)
+            configuredExtraFabricDriverLaneRoot?.let { root -> inputs.dir(root).optional() }
             outputs.file(outputFile)
 
             doLast {
                 val output = outputFile.get().asFile
-                val catalog = JsonSlurper().parse(fabricDriverLaneCatalog.get().asFile) as Map<*, *>
+                val entries = mergedCatalogEntries(fabricDriverLaneCatalog.get().asFile, configuredExtraFabricDriverLaneRoot)
                 output.parentFile.mkdirs()
-                output.writeText(renderDriverModManifest(catalog))
+                output.writeText(renderDriverModManifest(entries))
             }
         }
     val stageFabricDriverLaneArtifacts =
@@ -103,13 +141,14 @@ gradle.projectsEvaluated {
             dependsOn(fabricDriverRemapJar)
             inputs.file(fabricDriverLaneCatalog)
             inputs.files(fabricDriverRemapJar)
+            configuredExtraFabricDriverLaneRoot?.let { root -> inputs.dir(root).optional() }
             outputs.dir(fabricDriverArtifactStagingDir)
 
             doLast {
                 val outputRoot = fabricDriverArtifactStagingDir.get().asFile
                 outputRoot.deleteRecursively()
-                val catalog = JsonSlurper().parse(fabricDriverLaneCatalog.get().asFile) as Map<*, *>
-                catalogEntries(catalog).forEach { entry ->
+                val entries = mergedCatalogEntries(fabricDriverLaneCatalog.get().asFile, configuredExtraFabricDriverLaneRoot)
+                entries.forEach { entry ->
                     val artifactKey = requiredCatalogString(entry, "artifactKey")
                     val distributionPath = validatedDistributionPath(requiredCatalogString(entry, "distributionPath"))
                     val source =
@@ -121,7 +160,9 @@ gradle.projectsEvaluated {
                                     .files
                                     .singleFile
 
-                            else -> error("Unsupported Fabric driver lane artifactKey: $artifactKey")
+                            else ->
+                                stagedExtraLaneArtifact(configuredExtraFabricDriverLaneRoot, distributionPath)
+                                    ?: error("Unsupported Fabric driver lane artifactKey: $artifactKey")
                         }
                     val target = outputRoot.toPath().resolve(distributionPath).toFile()
                     target.parentFile.mkdirs()

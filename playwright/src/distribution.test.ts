@@ -49,6 +49,22 @@ describe("distribution surface", () => {
     expect(mise).toContain("! unzip -p cli/build/distributions/craftless-*.zip '*/driver-mods.json' | grep -q 'distributionPath'");
   });
 
+  test("CLI distribution packages representative older fabric lane", () => {
+    const cliBuild = read("cli/build.gradle.kts");
+    const fabricBuild = read("driver-fabric/build.gradle.kts");
+    const mise = read(".mise.toml");
+
+    expect(fabricBuild).toContain("craftless.fabric.distributionPath");
+    expect(cliBuild).toContain("craftless.extraFabricDriverLaneRoot");
+    expect(cliBuild).toContain("extraFabricDriverLaneRoot");
+    expect(mise).toContain("-Pcraftless.fabric.artifactKey=fabric-1-20-6-remap-jar");
+    expect(mise).toContain("-Pcraftless.fabric.distributionPath=mods/fabric-1.20.6/craftless-driver-fabric.jar");
+    expect(mise).toContain("-Pcraftless.extraFabricDriverLaneRoot=build/driver-lanes/older");
+    expect(mise).toContain("mods/fabric-1.20.6/craftless-driver-fabric.jar");
+    expect(mise).toContain("minecraftVersion");
+    expect(mise).toContain("1.20.6");
+  });
+
   test("Dockerfile copies a built CLI distribution instead of building Craftless", () => {
     const dockerfile = read("Dockerfile");
 

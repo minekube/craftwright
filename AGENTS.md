@@ -248,6 +248,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 135. reflective Fabric world-change callback.
 136. reflective movement input shim.
 137. reflective recipe bridge.
+138. packaged representative older Fabric lane.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -265,6 +266,13 @@ reflect over the running client's recipe book, recipe handles, and screen
 handler when present. It must not reintroduce typed recipe display imports,
 typed recipe-book accessor mixins, static recipe catalogs, or claims that older
 runtime gameplay is complete.
+
+Phase 138 packages the representative older Fabric lane as a real selectable
+driver-mod artifact in the CLI distribution after the source lane compiles. It
+may build the older lane through repository tooling and merge its private lane
+catalog into the packaged driver-mod manifest, but it must not claim runtime
+support until that older packaged lane is launched, attached, queried through
+generated OpenAPI, and smoke tested.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

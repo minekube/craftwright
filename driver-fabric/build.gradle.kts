@@ -24,6 +24,8 @@ val fabricCompiledJavaMajorVersion = fabricLaneIntProperty("craftless.fabric.jav
 val fabricCompiledLaneId = fabricLaneProperty("craftless.fabric.laneId", "fabric-current-lane")
 val fabricCompiledProviderId = fabricLaneProperty("craftless.fabric.providerId", "fabric-current-lane")
 val fabricCompiledArtifactKey = fabricLaneProperty("craftless.fabric.artifactKey", "fabric-current-remap-jar")
+val fabricCompiledDistributionPath =
+    fabricLaneProperty("craftless.fabric.distributionPath", "mods/craftless-driver-fabric.jar")
 val fabricCompiledMappingsFingerprint =
     fabricLaneProperty("craftless.fabric.mappingsFingerprint", "craftless-fabric-bindings")
 val generatedFabricLaneMetadataDir =
@@ -148,6 +150,7 @@ val writeFabricDriverLaneCatalog =
 
         inputs.property("fabricCompiledProviderId", fabricCompiledProviderId)
         inputs.property("fabricCompiledArtifactKey", fabricCompiledArtifactKey)
+        inputs.property("fabricCompiledDistributionPath", fabricCompiledDistributionPath)
         inputs.property("fabricCompiledMinecraftVersion", fabricCompiledMinecraftVersion)
         inputs.property("fabricCompiledLoaderVersion", fabricCompiledLoaderVersion)
         inputs.property("fabricCompiledApiVersion", fabricCompiledApiVersion)
@@ -166,13 +169,13 @@ val writeFabricDriverLaneCatalog =
                       "loader": "FABRIC",
                       "minecraftVersion": ${jsonString(fabricCompiledMinecraftVersion)},
                       "loaderVersion": ${jsonString(fabricCompiledLoaderVersion)},
-                      "path": "mods/craftless-driver-fabric.jar",
+                      "path": ${jsonString(fabricCompiledDistributionPath)},
                       "providerId": ${jsonString(fabricCompiledProviderId)},
                       "artifactKey": ${jsonString(fabricCompiledArtifactKey)},
                       "fabricApiVersion": ${jsonString(fabricCompiledApiVersion)},
                       "javaMajorVersion": $fabricCompiledJavaMajorVersion,
                       "mappingsFingerprint": ${jsonString(fabricCompiledMappingsFingerprint)},
-                      "distributionPath": "mods/craftless-driver-fabric.jar"
+                      "distributionPath": ${jsonString(fabricCompiledDistributionPath)}
                     }
                   ]
                 }
