@@ -120,6 +120,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-69-readme-roadmap-evidence-alignment-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-69-readme-roadmap-evidence-alignment-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-70-public-agent-operational-workflow-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-70-public-agent-operational-workflow-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -2176,6 +2180,34 @@ Verification:
 
 Verification:
 
+- `git diff --check`
+- `mise run architecture-check`
+- `mise run ci`
+
+## Phase 70: Public Agent Operational Workflow
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-70-public-agent-operational-workflow-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-70-public-agent-operational-workflow-plan.md`.
+- [x] The public gameplay agent skill now includes adaptive CLI discovery with
+  `craftless clients <id> actions`, generic CLI invocation with
+  `craftless clients <id> run <action>`, generated invocation through
+  `POST /clients/{id}:run`, POST JSON-RPC-style control/query, and
+  `GET /clients/{id}/events:stream` as the observation path.
+- [x] The same skill keeps missing generic primitives explicit through
+  `missing-generic-primitive:<action-or-resource>` and records required final
+  gameplay artifacts including `public-agent-state.jsonl`.
+- [x] A protocol policy test now prevents the skill from losing the generated
+  API/CLI/SSE/JSON-RPC workflow guidance.
+- [x] This phase changes agent guidance and policy tests only. It adds no
+  public gameplay action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise exec -- gradle :protocol:test --tests '*NamespacePolicyTest.public gameplay agent skill keeps generated workflow guidance' --rerun-tasks`
 - `git diff --check`
 - `mise run architecture-check`
 - `mise run ci`

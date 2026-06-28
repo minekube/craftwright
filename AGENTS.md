@@ -180,6 +180,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 67. final gameplay Codex evidence default.
 68. full Codex evidence gate refresh.
 69. README and roadmap evidence alignment.
+70. public-agent operational workflow guidance.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -514,6 +515,12 @@ provisioned-item diagnostics as product proof, and must not add product
 behavior, public gameplay actions, generated route families, CLI gameplay
 catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new compiled
 lanes, public version-specific APIs, or new Minecraft support claims.
+Phase 70 strengthens the repo-local public gameplay agent skill with
+operational generated API, adaptive CLI, POST JSON-RPC-style control, SSE, and
+artifact guidance. It must not add product behavior, public gameplay actions,
+generated route families, CLI gameplay catalogs, Fabric descriptor/binding
+pairs, scenario shortcuts, new compiled lanes, public version-specific APIs,
+or new Minecraft support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

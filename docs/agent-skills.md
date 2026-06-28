@@ -10,7 +10,9 @@ should not be installed unless the repository starts using those technologies.
   agents should control Craftless clients through generated per-client
   OpenAPI, adaptive CLI, and SSE/JSON-RPC streams without static scenario
   shortcuts. It also records live co-play rules for navigation schemas,
-  stop-command parsing, and Minecraft-chat coordination.
+  stop-command parsing, Minecraft-chat coordination, generic
+  `craftless clients <id> run <action>` invocation, POST JSON-RPC-style
+  control/query, SSE observation, and required final gameplay artifacts.
 - `.agents/skills/kotlin-jvm-modern-practices` captures Craftless's modern
   Kotlin/JVM defaults: Gradle Kotlin DSL, Ktor Server/Client, structured
   concurrency, JVM tests, Fabric client-thread boundaries, and no old Java HTTP

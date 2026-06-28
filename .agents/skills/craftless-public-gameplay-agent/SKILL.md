@@ -32,6 +32,29 @@ Forbidden as final gameplay proof:
    fingerprint.
 7. Subscribe to `GET /clients/{id}/events:stream` before acting.
 
+## Adaptive CLI Sequence
+
+The CLI is an adaptive consumer of the same live metadata. Use it when shelling
+out is easier than writing HTTP calls, but do not treat CLI aliases as a static
+catalog.
+
+Discover live actions and resources:
+
+```sh
+craftless clients <id> actions --api "$CRAFTLESS"
+craftless clients <id> resources --api "$CRAFTLESS"
+```
+
+Invoke through the generic generated-action path:
+
+```sh
+craftless clients <id> run <action> --api "$CRAFTLESS" --arg key=value
+```
+
+Generated alias help may be used only after fetching the live OpenAPI. If a
+CLI alias is unavailable, fall back to `craftless clients <id> run <action>`
+rather than inventing a new static command.
+
 ## Invocation Sequence
 
 Invoke actions through `POST /clients/{id}:run` using the action ids, argument
@@ -53,6 +76,17 @@ If a needed primitive is missing, report
 `missing-generic-primitive:<action-or-resource>` and stop adding scenario
 shortcuts. The fix belongs in runtime graph discovery, projection, invocation
 adapters, event streaming, CLI, or docs.
+
+## JSON-RPC And SSE
+
+Use POST JSON-RPC-style control/query requests when the supervisor or client
+API exposes them. Treat the POST response as an acknowledgement or query
+result; use `GET /clients/{id}/events:stream` as the durable observation path
+for correlated lifecycle, action, perception, and error events.
+
+Subscribe before state-changing actions when possible. Keep enough SSE bytes or
+decoded JSONL evidence to prove which generated action produced which observed
+state change.
 
 ## Navigation Shape
 
@@ -110,7 +144,7 @@ Write artifacts for final gameplay:
 - connected OpenAPI and action/resource projections;
 - SSE stream capture;
 - public-agent action log;
-- public-agent state log;
+- `public-agent-state.jsonl`;
 - final inventory/world/entity evidence.
 
 Completion does not require a human Minecraft chat confirmation. Treat human

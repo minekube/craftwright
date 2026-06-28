@@ -130,6 +130,34 @@ class NamespacePolicyTest {
     }
 
     @Test
+    fun `public gameplay agent skill keeps generated workflow guidance`() {
+        val skill =
+            Files.readString(
+                repositoryRoot().resolve(".agents/skills/craftless-public-gameplay-agent/SKILL.md"),
+            )
+        val required =
+            listOf(
+                "GET /openapi.json",
+                "GET /clients/{id}/openapi.json",
+                "craftless clients <id> actions",
+                "craftless clients <id> run <action>",
+                "POST /clients/{id}:run",
+                "POST JSON-RPC-style",
+                "GET /clients/{id}/events:stream",
+                "missing-generic-primitive",
+                "public-agent-state.jsonl",
+                "without server-provisioned inventory",
+            )
+
+        val missing = required.filterNot(skill::contains)
+
+        assertTrue(
+            missing.isEmpty(),
+            "Public gameplay agent skill is missing generated workflow guidance:\n${missing.joinToString("\n")}",
+        )
+    }
+
+    @Test
     fun `mise exposes an architecture check for live openapi action contracts`() {
         val mise = Files.readString(repositoryRoot().resolve(".mise.toml"))
 
