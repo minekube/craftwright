@@ -208,6 +208,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-93-static-unsupported-version-lane-removal-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-93-static-unsupported-version-lane-removal-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-94-fabric-api-cache-resolution-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-94-fabric-api-cache-resolution-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -2992,6 +2996,33 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-static-unsupported-version-lane-removal.md`.
 
+## Phase 94: Fabric API Cache Resolution
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-94-fabric-api-cache-resolution-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-94-fabric-api-cache-resolution-plan.md`.
+- [x] Fabric cache preparation can resolve a matching Fabric API Maven artifact
+  for the requested Minecraft version from Fabric Maven metadata.
+- [x] Fabric API is cached as a `FABRIC_MOD` artifact, not as a generic
+  classpath library.
+- [x] `CacheLaunchPlan.mods` exposes Fabric mod handles for launchers.
+- [~] Actual latest/current and representative older Fabric client runtime
+  support remains open until runnable lane support and generated API/CLI
+  gameplay verification land.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
+  lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red guard:
+  `mise exec -- gradle :daemon:test --tests '*CachePreparationServiceTest.fabric cache preparation resolves fabric api mod artifact from maven metadata*'`
+- Green focused test:
+  `mise exec -- gradle :daemon:test --tests '*CachePreparationServiceTest.fabric cache preparation resolves fabric api mod artifact from maven metadata*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-fabric-api-cache-resolution.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3006,7 +3037,8 @@ Verification:
   removal, Phase 89 navigation operation id source ownership, and Phase 90
   smoke bootstrap action id source ownership, and Phase 91 version support
   completion gate, and Phase 92 build-generated compiled lane metadata, and
-  Phase 93 static unsupported version lane removal.
+  Phase 93 static unsupported version lane removal, and Phase 94 Fabric API
+  cache resolution.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

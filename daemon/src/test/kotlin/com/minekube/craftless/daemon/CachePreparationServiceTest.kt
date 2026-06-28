@@ -25,6 +25,88 @@ import kotlin.test.assertTrue
 
 class CachePreparationServiceTest {
     @Test
+    fun `fabric cache preparation resolves fabric api mod artifact from maven metadata`() =
+        runBlocking {
+            val workspace = Files.createTempDirectory("craftless-cache-fabric-api")
+            val versionUrl = "https://metadata.test/1.21.6.json"
+            val clientJarUrl = "https://metadata.test/client.jar"
+            val assetIndexUrl = "https://metadata.test/assets/1.21.6.json"
+            val loaderVersionsUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6"
+            val loaderProfileUrl = "$FABRIC_META_BASE_URL/versions/loader/1.21.6/0.17.2/profile/json"
+            val fabricLoaderJarUrl = "https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.17.2/fabric-loader-0.17.2.jar"
+            val fabricApiMetadataUrl = "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml"
+            val fabricApiJarUrl =
+                "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/0.129.0+1.21.6/fabric-api-0.129.0+1.21.6.jar"
+            val service =
+                CachePreparationService(
+                    workspaceRoot = workspace,
+                    metadataFetcher =
+                        StaticCacheMetadataFetcher(
+                            mapOf(
+                                MINECRAFT_VERSION_INDEX_URL to
+                                    """
+                                    { "versions": [{ "id": "1.21.6", "url": "$versionUrl" }] }
+                                    """.trimIndent(),
+                                versionUrl to
+                                    """
+                                    {
+                                      "id": "1.21.6",
+                                      "assetIndex": {
+                                        "id": "26",
+                                        "url": "$assetIndexUrl"
+                                      },
+                                      "downloads": {
+                                        "client": { "url": "$clientJarUrl" }
+                                      }
+                                    }
+                                    """.trimIndent(),
+                                assetIndexUrl to """{"objects":{}}""",
+                                loaderVersionsUrl to """[{ "loader": { "version": "0.17.2", "stable": true } }]""",
+                                loaderProfileUrl to
+                                    """
+                                    {
+                                      "id": "fabric-loader-0.17.2-1.21.6",
+                                      "libraries": [
+                                        {
+                                          "name": "net.fabricmc:fabric-loader:0.17.2",
+                                          "url": "https://maven.fabricmc.net/"
+                                        }
+                                      ]
+                                    }
+                                    """.trimIndent(),
+                                fabricApiMetadataUrl to
+                                    """
+                                    <metadata>
+                                      <groupId>net.fabricmc.fabric-api</groupId>
+                                      <artifactId>fabric-api</artifactId>
+                                      <versioning>
+                                        <versions>
+                                          <version>0.127.0+1.21.5</version>
+                                          <version>0.128.2+1.21.6</version>
+                                          <version>0.129.0+1.21.6</version>
+                                        </versions>
+                                      </versioning>
+                                    </metadata>
+                                    """.trimIndent(),
+                            ),
+                            binaryResponses =
+                                mapOf(
+                                    clientJarUrl to "client-jar".encodeToByteArray(),
+                                    fabricLoaderJarUrl to "fabric-loader-jar".encodeToByteArray(),
+                                    fabricApiJarUrl to "fabric-api-jar".encodeToByteArray(),
+                                ),
+                        ),
+                )
+
+            val result = service.prepare(CachePrepareRequest("1.21.6", Loader.FABRIC))
+
+            val fabricApi = result.artifacts.single { it.kind == CachePreparedArtifactKind.FABRIC_MOD }
+            assertEquals(fabricApiJarUrl, fabricApi.source)
+            assertTrue(result.launch.mods.contains(fabricApi.handle))
+            assertEquals("fabric-api-jar", Files.readString(workspace.resolve(fabricApi.handle)))
+        }
+
+    @Test
     fun `fabric cache preparation lets fabric libraries replace duplicate minecraft libraries`() =
         runBlocking {
             val workspace = Files.createTempDirectory("craftless-cache-fabric-library-dedupe")

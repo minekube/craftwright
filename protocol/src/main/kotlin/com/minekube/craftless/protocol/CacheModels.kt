@@ -274,6 +274,7 @@ data class CachePreparedArtifact(
 data class CacheLaunchPlan(
     val classpath: List<String>,
     val nativePath: List<String> = emptyList(),
+    val mods: List<String> = emptyList(),
     val javaExecutable: String? = null,
     val arguments: String? = null,
 ) {
@@ -298,6 +299,11 @@ data class CacheLaunchPlan(
                     artifacts
                         .filter { artifact ->
                             artifact.kind == CachePreparedArtifactKind.MINECRAFT_NATIVE_DIRECTORY
+                        }.map { it.handle },
+                mods =
+                    artifacts
+                        .filter { artifact ->
+                            artifact.kind == CachePreparedArtifactKind.FABRIC_MOD
                         }.map { it.handle },
                 javaExecutable =
                     artifacts
@@ -332,6 +338,7 @@ enum class CachePreparedArtifactKind {
     FABRIC_LOADER_VERSIONS,
     FABRIC_LOADER_PROFILE,
     FABRIC_LIBRARY,
+    FABRIC_MOD,
 }
 
 @Serializable

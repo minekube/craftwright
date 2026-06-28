@@ -65,6 +65,7 @@ class CachePreparationService(
         val javaRuntime = resolveJavaRuntime(versionManifest)
         val fabricMetadata = resolveFabricMetadata(request)
         val fabricLibraries = fabricMetadata?.profile?.fabricLibraries().orEmpty()
+        val fabricMods = listOfNotNull(fabricMetadata?.fabricApi)
         val effectiveMinecraftLibraries = minecraftLibraries.withoutLibrariesReplacedBy(fabricLibraries)
         val baseResult = CachePrepareResult.forRequest(request, fabricMetadata?.loaderVersion)
         val launchArgumentsArtifact =
@@ -106,7 +107,8 @@ class CachePreparationService(
                 minecraftNativeLibraries.flatMap { native -> listOf(native.libraryArtifact, native.directoryArtifact) } +
                 loaderMetadataArtifacts +
                 assetObjects.map { it.artifact } +
-                fabricLibraries.map { it.artifact }
+                fabricLibraries.map { it.artifact } +
+                fabricMods.map { it.artifact }
         val result =
             baseResult.copy(
                 artifacts = artifacts,
@@ -170,6 +172,9 @@ class CachePreparationService(
         }
         fabricLibraries.forEach { library ->
             writeFetchedBytesArtifact(library.artifact, library.source)
+        }
+        fabricMods.forEach { mod ->
+            writeFetchedBytesArtifact(mod.artifact, mod.source)
         }
         launchArgumentsArtifact?.let { artifact ->
             writeTextArtifact(
@@ -247,11 +252,18 @@ class CachePreparationService(
         val loaderVersions = metadataFetcher.fetchText(loaderVersionsUrl)
         val loaderVersion = loaderVersions.compatibleFabricLoaderVersion(request.loaderVersion)
         val profileUrl = fabricLoaderProfileUrl(request.minecraftVersion, loaderVersion)
+        val fabricApi =
+            runCatching {
+                metadataFetcher
+                    .fetchText(FABRIC_API_MAVEN_METADATA_URL)
+                    .fabricApiModArtifact(request.minecraftVersion)
+            }.getOrNull()
         return FabricCacheMetadata(
             loaderVersion = loaderVersion,
             loaderVersions = loaderVersions,
             profileUrl = profileUrl,
             profile = metadataFetcher.fetchText(profileUrl),
+            fabricApi = fabricApi,
         )
     }
 
@@ -442,6 +454,7 @@ private data class FabricCacheMetadata(
     val loaderVersions: String,
     val profileUrl: String,
     val profile: String,
+    val fabricApi: FabricModArtifact?,
 )
 
 private data class JavaRuntimeCacheMetadata(
@@ -834,6 +847,24 @@ private fun fabricLoaderProfileUrl(
     loaderVersion: String,
 ): String = "$FABRIC_META_BASE_URL/versions/loader/$minecraftVersion/$loaderVersion/profile/json"
 
+private const val FABRIC_API_MAVEN_METADATA_URL =
+    "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml"
+
+private fun String.fabricApiModArtifact(minecraftVersion: String): FabricModArtifact? {
+    requireFileSafeCacheSegment(minecraftVersion, "Minecraft version")
+    val selectedVersion =
+        Regex("<version>([^<]+)</version>")
+            .findAll(this)
+            .map { match -> match.groupValues[1].trim() }
+            .filter { version -> version.endsWith("+$minecraftVersion") }
+            .lastOrNull()
+            ?: return null
+    val source =
+        "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/" +
+            "$selectedVersion/fabric-api-$selectedVersion.jar"
+    return FabricModArtifact(source)
+}
+
 private fun String.fabricLibraries(): List<FabricLibraryArtifact> =
     Json
         .parseToJsonElement(this)
@@ -1134,6 +1165,24 @@ private data class FabricLibraryArtifact(
             handle = handle,
             source = source,
             sha1 = sha1,
+            status = CachePreparedArtifactStatus.CACHED,
+        )
+}
+
+private data class FabricModArtifact(
+    val source: String,
+) {
+    init {
+        require(source.isNotBlank()) { "Fabric mod source is required" }
+    }
+
+    private val handle: String = "cache/mods/fabric/${source.sha256Hex()}.jar"
+
+    val artifact: CachePreparedArtifact =
+        CachePreparedArtifact(
+            kind = CachePreparedArtifactKind.FABRIC_MOD,
+            handle = handle,
+            source = source,
             status = CachePreparedArtifactStatus.CACHED,
         )
 }

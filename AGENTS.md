@@ -204,6 +204,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 91. version support completion gate.
 92. build-generated compiled lane metadata.
 93. static unsupported version lane removal.
+94. Fabric API cache resolution.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -727,6 +728,12 @@ runtime code. Historical evidence may still mention `latest-release-26-2`,
 not present those ids as a maintained product matrix. Until real provider-backed
 support lands, non-provider-backed versions resolve through generic unsupported
 fallbacks.
+Phase 94 resolves Fabric API mod artifacts during cache preparation from Fabric
+Maven metadata. Fabric API must be represented as a Fabric mod artifact and
+launch mod handle, not as a static compiled-lane constant or generic classpath
+library. This phase is still foundation work and must not claim latest/current
+or older-version support until runnable provider-backed lanes and generated
+API/CLI gameplay verification land.
 
 ## Acceptance Scenarios Are Not Product APIs
 
