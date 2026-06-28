@@ -98,15 +98,16 @@ Optional diagnostic artifacts:
 
 When the client has joined, the public-agent sequence has finished, and the
 session enters the bounded hold window, the harness writes
-`final-gameplay-ready.json`. On macOS, the opt-in `fabricFinalGameplay` task
-also configures a default `say` prompt and repeats it during the hold window
-when `CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS` is positive:
+`final-gameplay-ready.json`. The `fabricFinalGameplay` task does not configure
+a ready prompt or reminder by default. To add a local notification, set
+`CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON`; to repeat that notification during
+the hold window, also set `CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS` to a
+positive millisecond value. Example macOS prompt command:
 
 ```text
-Craftless final gameplay is ready. Join localhost port <server-port> if you want to observe.
+["/bin/sh","-c","say \"Craftless final gameplay is ready. Join localhost port $CRAFTLESS_FABRIC_SMOKE_READY_SERVER_PORT if you want to observe.\""]
 ```
 
-Override the prompt command with `CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON`.
 The command receives:
 
 - `CRAFTLESS_FABRIC_SMOKE_READY_BASE_URL`

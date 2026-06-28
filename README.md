@@ -242,43 +242,53 @@ per-client OpenAPI, not in static driver methods.
 
 ## Current Status
 
-Implemented and verified now:
+Verified now:
 
-- Kotlin/JVM Gradle project using `com.minekube.craftless`.
-- Tooling pinned through `mise`; Bun is used for JavaScript helper tests.
-- Ktor supervisor API and Ktor Client based CLI/runtime helpers.
+- Kotlin/JVM project under `com.minekube.craftless`, with all repository
+  tooling pinned through `mise`.
+- Ktor supervisor API, Ktor Client based CLI/runtime helpers, and no
+  product-side OkHttp, Java `HttpClient`, `com.sun.net.httpserver`, npm, yarn,
+  pnpm, or Node workflows.
 - Released `craftless` CLI, install script, Docker runtime image, and reusable
   GitHub Action.
 - Stable supervisor OpenAPI at `GET /openapi.json`.
 - Generated per-client OpenAPI at `GET /clients/{id}/openapi.json`.
-- Graph-projected action, resource, handle, schema, availability, fingerprint,
-  and event metadata.
+- Runtime-graph-projected actions, resources, handles, schemas,
+  availability, fingerprints, and event metadata.
 - Generic action invocation through `POST /clients/{id}:run`.
-- SSE event streams and JSON-RPC-style control/query support.
-- Adaptive CLI discovery, generated help, generated aliases, action invocation,
-  event watching, tool export, and OpenAPI cache revalidation.
+- SSE event streams plus JSON-RPC-style HTTP control/query calls.
+- Adaptive CLI discovery, generated help, generated aliases, action
+  invocation, event watching, tool export, and OpenAPI cache revalidation.
 - Cache preparation for Minecraft/Fabric metadata, libraries, assets, natives,
   Java runtime files, launch arguments, classpaths, and instance file layout.
-- Version-aware Fabric driver boundary with compatibility evidence for the
-  current compiled lane and latest release lane checks tracked under
-  `docs/superpowers/evidence/`.
-- Public-agent gameplay evidence that composes generated OpenAPI actions and
-  SSE evidence to collect materials, craft/equip a weapon, attack a target, and
-  collect drops without server-provisioned inventory or static survival macros.
+- Version-aware runtime metadata and compatibility probes. The current
+  compiled Fabric client lane is verified; latest `26.2` and representative
+  older `1.20.6` lanes are resolved from live Mojang metadata and currently
+  reported as explicit unsupported Fabric client lanes with machine-readable
+  reasons, not as supported client breadth.
+- Current final gameplay evidence uses generated public APIs only: the
+  external public-agent path fetched generated OpenAPI/actions/resources,
+  consumed SSE evidence, collected materials, crafted and equipped a
+  `Wooden Sword`, found Cows through `entity.query`, killed a Cow through
+  `entity.attack`, and observed `Raw Beef`, `Leather`, and the Cow with
+  `alive:false`. The run completed without server-provisioned inventory or
+  static survival macro evidence.
 
-Still open:
+Still open before the broader project can be called complete:
 
-- broader Fabric discovery/projection across more Minecraft versions, mods,
-  registries, screens, world/entity/inventory resources, and permissions;
-- stronger pathfinding and movement evidence beyond the current generated
-  navigation/action path;
-- more complete generated client libraries above the OpenAPI/action contract;
-- final honest survival gameplay evidence accepted by Codex verification,
-  driven through the public API/CLI only.
+- Broaden Fabric discovery/projection across more Minecraft versions, mods,
+  registries, screens, world/entity/inventory resources, permissions, and
+  installed runtime affordances.
+- Turn more gameplay breadth into generic discovery/projection instead of
+  relying on transitional bootstrap bindings.
+- Strengthen navigation/pathfinding and building evidence through the same
+  generated public API path.
+- Finish the completion audit across CI, release, Docker, installer,
+  compatibility, docs, and public API/CLI gameplay gates.
 
-Craftless is not considered complete until CI, distribution smoke checks,
-multi-version compatibility probes, and final public API/CLI gameplay evidence
-all pass without server-provisioned inventory or hard-coded survival shortcuts.
+Craftless is not considered complete until the active checklist proves every
+remaining generic-discovery, multi-version, transport, CLI, docs, and gameplay
+gate with current Codex-verifiable evidence.
 
 ## Comparison
 
@@ -305,15 +315,20 @@ The active roadmap is tracked in:
 - [docs/project-completion-checklist.md](docs/project-completion-checklist.md)
 - [docs/final-gameplay-runbook.md](docs/final-gameplay-runbook.md)
 
-Near-term work focuses on:
+Next work focuses on:
 
-- keeping gameplay breadth generated from runtime graph discovery;
-- expanding Fabric runtime probes without leaking implementation names;
-- improving multi-version and Java runtime compatibility;
-- strengthening navigation/pathfinding and server-side movement evidence;
-- making CLI, Docker, GitHub Actions, and agent skill workflows easy for
-  external users;
-- completing the final real gameplay gate from public API/CLI evidence.
+- making the runtime capability graph more complete so new public gameplay
+  breadth comes from discovery/projection, not descriptor/binding catalog
+  growth;
+- landing real additional Fabric client lanes only when cache preparation,
+  Java/runtime selection, loader/API resolution, launch metadata, and smoke
+  evidence prove them;
+- strengthening navigation/pathfinding, block placement/building, and
+  longer-running gameplay through public OpenAPI/CLI/SSE only;
+- keeping install, Docker, GitHub Actions, release checks, and agent skill docs
+  easy for external users;
+- running the final completion audit and keeping the active checklist as the
+  source of truth.
 
 ## Development
 

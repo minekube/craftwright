@@ -112,6 +112,14 @@ Legend:
   `docs/superpowers/specs/2026-06-28-67-final-gameplay-codex-evidence-default-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-67-final-gameplay-codex-evidence-default-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-68-full-codex-evidence-gate-refresh-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-68-full-codex-evidence-gate-refresh-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-69-readme-roadmap-evidence-alignment-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-69-readme-roadmap-evidence-alignment-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -294,10 +302,9 @@ Verification:
   imports server evidence while the server is still running, watches
   `server-evidence.jsonl` for the configured Robin confirmation phrase during
   the hold window, writes `final-gameplay-confirmation.json` when the chat
-  confirmation is observed, and the opt-in final task repeats the ready
-  notification every two minutes by default during the confirmation hold. The
-  reminder interval is configurable with
-  `CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS` and can be disabled with `0`. A
+  confirmation is observed, and the diagnostic final task repeats the ready
+  notification only when `CRAFTLESS_FABRIC_SMOKE_READY_COMMAND_JSON` and a
+  positive `CRAFTLESS_FABRIC_SMOKE_READY_REMINDER_MS` are configured. A
   later 2026-06-27 held run reached the ready window but the process-external
   public agent blocked with
   `insufficient-public-evidence:inventory.query.recipe-material` because stale
@@ -2109,24 +2116,87 @@ Verification:
 
 - `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric final gameplay plan gates completion on graph streams and Codex evidence*' --tests '*FabricDriverModuleTest.fabric final gameplay defaults to Codex evidence gate without chat confirmation phrase*' --tests '*FabricDriverModuleTest.fabric smoke controller can hold the final gameplay session open*'`
 
+## Phase 68: Full Codex Evidence Gate Refresh
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-68-full-codex-evidence-gate-refresh-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-68-full-codex-evidence-gate-refresh-plan.md`.
+- [x] Full evidence file exists:
+  `docs/superpowers/evidence/2026-06-28-full-codex-evidence-gate-refresh.md`.
+- [x] Distribution evidence is refreshed: `mise run package-cli`, packaged CLI
+  smoke, Docker build, Docker smoke, and install script smoke all succeeded.
+- [x] Compatibility evidence is refreshed: live Mojang metadata still reports
+  latest release `26.2` requiring Java 25, representative older release
+  `1.20.6` requiring Java 21, matrix/probe tests pass, and
+  `fabricClientSmoke` records `26.2` as `UNSUPPORTED/runtime-lane-missing`.
+- [x] Final gameplay evidence is refreshed under the Phase 67 default with no
+  confirmation phrase. The public agent fetched generated OpenAPI,
+  actions/resources, and SSE; crafted and equipped a `Wooden Sword`; found
+  Cows through `entity.query`; killed a Cow through `entity.attack`; and
+  observed `Raw Beef`, `Leather`, and the Cow with `alive:false`.
+- [x] This phase records evidence and docs only. It adds no public gameplay
+  action, generated route family, CLI gameplay catalog, Fabric
+  descriptor/binding pair, scenario shortcut, new compiled lane, public
+  version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- `mise run package-cli`
+- `build/docker/craftless/bin/craftless server start --once --port 0 --workspace /tmp/craftless-cli-smoke-1782603968`
+- `docker build -t craftless:local .`
+- `docker run --rm craftless:local /opt/craftless/bin/craftless server start --once --port 0 --workspace /tmp/craftless`
+- `tmp="$(mktemp -d /tmp/craftless-install-smoke.XXXXXX)" && CRAFTLESS_VERSION=v0.1.0 CRAFTLESS_INSTALL_DIR="$tmp/bin" CRAFTLESS_HOME="$tmp/home" ./install.sh && "$tmp/bin/craftless" server start --once --port 0 --workspace "$tmp/workspace"`
+- `mise exec -- gradle :driver-fabric:test --tests '*FabricCompatibilityMatrixTest*' --tests '*FabricCapabilityProbeTest.runtime metadata probe emits sanitized compatibility lane evidence*' :testkit:test --tests '*LocalMinecraftServerSmokeTest.local server smoke records unsupported runtime lane without provisioning server*'`
+- `CRAFTLESS_FABRIC_CLIENT_SMOKE=1 CRAFTLESS_SMOKE_MINECRAFT_VERSION=26.2 CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT=/tmp/craftless-fabric-smoke-26-lane-refresh CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricClientSmoke`
+- `CRAFTLESS_FINAL_GAMEPLAY=1 CRAFTLESS_FABRIC_SMOKE_CONNECT_TIMEOUT_MS=90000 CRAFTLESS_FABRIC_SMOKE_ACTION_TIMEOUT_MS=120000 CRAFTLESS_FABRIC_SMOKE_HOLD_AFTER_ACTIONS_MS=0 mise exec -- gradle :driver-fabric:fabricFinalGameplay`
+
+## Phase 69: README And Roadmap Evidence Alignment
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-69-readme-roadmap-evidence-alignment-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-69-readme-roadmap-evidence-alignment-plan.md`.
+- [x] README current status now states that Phase 68 final gameplay evidence
+  passed through generated OpenAPI/actions/resources, SSE, public-agent
+  composition, `Wooden Sword` crafting/equip, Cow attack, and Raw Beef/Leather
+  observation without server-provisioned inventory or static survival macros.
+- [x] README still keeps the broader project incomplete until the active
+  checklist proves the remaining generic-discovery, multi-version, transport,
+  CLI, docs, and gameplay gates with current evidence.
+- [x] Roadmap current baseline no longer presents provisioned iron-sword smoke
+  as product proof.
+- [x] Roadmap describes latest `26.2` and representative older `1.20.6` as
+  explicit unsupported Fabric client lanes with live metadata/probe evidence,
+  not as supported client breadth.
+- [x] This phase changes docs only. It adds no public gameplay action,
+  generated route family, CLI gameplay catalog, Fabric descriptor/binding pair,
+  scenario shortcut, new compiled lane, public version-specific API, or new
+  Minecraft support claim.
+
+Verification:
+
+- `git diff --check`
+- `mise run architecture-check`
+- `mise run ci`
+
 ## Final Completion Gate
 
-- [~] All implementation phases above are checked with current evidence; final
-  completion remains open on refreshing the full Codex evidence gate after the
-  latest changes, not on human Minecraft chat confirmation.
-- [x] `mise run lint` passes. Current local evidence: `mise run lint` completed
-  successfully as part of `mise run ci` after Phase 60 final gameplay join
-  handoff.
-- [x] `mise run architecture-check` passes. Current local evidence:
-  `mise run architecture-check` completed successfully, including Gradle
-  architecture tests and Bun Playwright helper tests after Phase 60 final
-  gameplay join handoff.
-- [x] `mise run ci` passes. Current local evidence: `mise run ci` completed
-  successfully after Phase 60 final gameplay join handoff.
+- [~] All implementation phases above have current Phase 68 evidence; the
+  broader project goal remains active until every generic-discovery,
+  multi-version, transport, CLI, docs, and gameplay requirement is proven by a
+  completion audit.
+- [x] `mise run lint` passes. Current 2026-06-28 evidence: `mise run ci`
+  completed lint successfully before this checklist update.
+- [x] `mise run architecture-check` passes. Current 2026-06-28 evidence:
+  `mise run architecture-check` completed successfully before this checklist
+  update.
+- [x] `mise run ci` passes. Current 2026-06-28 evidence: `mise run ci`
+  completed successfully before this checklist update.
 - [x] CLI packaging succeeds. Current 2026-06-28 local evidence:
   `mise run package-cli` built `:cli:distZip`, `:cli:distTar`, refreshed
-  `build/docker/craftless`, and the packaged binary returned `ok=true` for
-  `server start --once --port 0`.
+  `build/docker/craftless`, and the packaged binary returned
+  `{"ok":true,...}` for `server start --once --port 0`.
 - [x] Docker runtime smoke passes. Current 2026-06-28 local evidence:
   `docker build -t craftless:local .` succeeded, and
   `docker run --rm craftless:local /opt/craftless/bin/craftless server start --once --port 0 --workspace /tmp/craftless`
@@ -2135,20 +2205,17 @@ Verification:
   `install.sh` installed published `craftless 0.1.0` into a temp directory and
   that installed binary returned `ok=true` for `server start --once --port 0`.
 - [x] Final real gameplay evidence is captured without server-provisioned
-  inventory or manual movement for Craftless. Current 2026-06-28 held run
+  inventory or manual movement for Craftless. Current 2026-06-28 no-hold run
   evidence under `driver-fabric/build/craftless-final-gameplay/artifacts/`
-  reached `final-gameplay-ready.json` for server `127.0.0.1:50182`, fetched
-  generated per-client OpenAPI/actions/resources, subscribed to SSE, collected
-  `Cherry Log`, crafted `Cherry Planks`, crafted and opened a `Crafting Table`,
-  crafted and equipped a `Wooden Sword`, killed a Sheep through generated
-  `entity.attack`, observed `Raw Mutton` and `White Wool` drops through
-  generated `entity.query`, and wrote `final-gameplay-confirmation-timeout.json`
-  as a diagnostic timeout artifact.
+  fetched generated per-client OpenAPI/actions/resources, subscribed to SSE,
+  collected materials, crafted and equipped a `Wooden Sword`, found Cows
+  through generated `entity.query`, killed a Cow through generated
+  `entity.attack`, and observed `Raw Beef`, `Leather`, and the Cow with
+  `alive:false` through generated `entity.query`.
 - [x] Phase 65 final gameplay evidence is accepted from public API/CLI
   artifacts without requiring human Minecraft chat confirmation.
-- [~] Latest and representative older-version compatibility probes have current
+- [x] Latest and representative older-version compatibility probes have current
   evidence. Latest `26.2` and older `1.20.6` currently resolve as explicit
-  unsupported lanes; final completion still requires the full gate refresh after
-  this checklist update is pushed.
+  unsupported lanes with current Mojang metadata and matrix/probe evidence.
 - [x] Changes are committed and pushed to `main`. This entry is current only
   after the checklist update that changes it is also pushed.

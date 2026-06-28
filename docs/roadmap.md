@@ -9,88 +9,63 @@ active product direction, not historical migration work.
 Craftless currently has:
 
 - a Kotlin/JVM Gradle project using `com.minekube.craftless`;
-- pinned tool execution through `mise`;
+- pinned tool execution through `mise`, with Bun used only through
+  `mise exec -- bun`;
 - a Ktor daemon with stable supervisor OpenAPI at `/openapi.json`;
+- a Ktor Client based adaptive JVM `craftless` CLI;
 - generated per-client OpenAPI at `/clients/{id}/openapi.json`;
-- descriptor-driven actions exposed through `/clients/{id}/actions`,
+- graph-projected actions and resources exposed through
+  `/clients/{id}/actions`, `/clients/{id}/resources`,
   `POST /clients/{id}:run`, and generated aliases;
-- live resource projections exposed through `/clients/{id}/resources` and
-  `x-craftless-resources`, derived from discovered action descriptors;
-- graph-projected handle metadata exposed through `x-craftless-handles` in
-  per-client OpenAPI, currently covering inventory slot and entity handle
-  families from the Fabric runtime graph;
-- a Craftless-owned instance file layout in client responses, covering instance
-  root, game root, mods, config, saves, resource packs, and shader packs;
-- cache preparation that resolves Minecraft metadata, the selected client jar,
-  Minecraft version libraries, Java runtime files, native classifier libraries,
-  Fabric loader profile libraries, and Minecraft asset objects into
-  Craftless-owned workspace handles with launch classpath, native-path,
-  Java-executable, and launch-argument handles;
-- manifest-driven cache export and cleanup through the supervisor API and
-  `craftless` CLI;
-- an adaptive JVM `craftless` CLI using Ktor Client;
+- graph-projected handle, schema, availability, provenance, event, and
+  fingerprint metadata in per-client OpenAPI extensions;
+- per-client runtime fingerprints in OpenAPI extensions, response headers, and
+  `ETag` validators so adaptive consumers can revalidate live specs by client
+  capability fingerprint;
+- JSON-RPC-style HTTP control/query calls and SSE event streaming for
+  lifecycle, runtime, and gameplay observations;
+- a Craftless-owned instance file layout in client responses, covering
+  instance root, game root, mods, config, saves, resource packs, shader packs,
+  logs, caches, and runtime artifacts;
+- cache preparation that resolves Minecraft metadata, selected client/server
+  jars, Minecraft version libraries, Java runtime files, native classifier and
+  rule-selected native libraries, Fabric loader profile libraries, launch
+  argument placeholders, logging config, asset indexes, and standard asset
+  object paths into Craftless-owned workspace handles;
+- manifest-driven cache export and cleanup through the supervisor API and CLI;
 - a stable `DriverSession` contract with lifecycle primitives plus generic
-  action discovery and invocation;
-- driver and OpenAPI action descriptors now include provenance and availability
-  metadata, including machine-readable reasons for unavailable probe-discovered
-  operations;
-- daemon generic and generated-alias action routes reject unavailable action
-  descriptors before invoking the driver;
-- generated action aliases are emitted from the same live action snapshot as
-  the per-client OpenAPI action metadata, and OpenAPI generation rejects alias
-  routes without matching action descriptors;
-- adaptive CLI generic and generated-alias action dispatch uses the live
-  `/clients/{id}/openapi.json` action descriptors for action existence,
-  argument schemas, and generated help, while `/clients/{id}/actions` remains
-  a descriptor projection;
-- per-client OpenAPI responses expose the live runtime/action fingerprint in
-  `x-craftless-runtime-fingerprint`, `X-Craftless-Runtime-Fingerprint`, and
-  HTTP `ETag` metadata so adaptive consumers can revalidate cached specs by
-  the running client's capability fingerprint; action and resource projection
-  endpoints use the same revalidation metadata;
-- protocol policy tests reject public action descriptors and route metadata
-  that leak Fabric, Yarn, intermediary, raw Minecraft, bridge, or launcher
-  namespace tokens;
-- Fabric discovery rejects advertised available actions unless they have an
-  execution binding, and allows unbound actions only as unavailable runtime
-  probes with machine-readable reasons;
-- Fabric/Loom driver scaffolding with current action evidence;
-- Fabric-generated action descriptors for current chat/movement telemetry, player
-  query/look, raycast, inventory query/equip, block break/interact, and
-  world time query bindings.
-  Broader gameplay actions must come from real bindings or runtime discovery
-  probes, not static placeholders;
-- a minimal internal Fabric discovery projection that lists binding-backed
-  actions and can represent runtime-probe unavailable actions without an
-  execution binding;
+  action discovery and invocation, not one driver method per Minecraft action;
+- protocol and architecture checks rejecting public Fabric, Yarn, intermediary,
+  raw Minecraft, bridge, launcher, scenario-shortcut, and static gameplay
+  catalog leaks;
+- Fabric discovery/projection that represents current executable bootstrap
+  affordances as runtime graph nodes and rejects advertised available actions
+  without execution bindings;
+- current Fabric-generated evidence for generic actions such as chat, movement,
+  player query/look/raycast, inventory query/equip, block break/interact,
+  entity query/attack, recipe query/craft, screen query, world time query,
+  navigation plan/follow/stop, and event streaming;
 - bridge code treated as evidence infrastructure only;
-- a testkit local server layout that can launch a supplied Minecraft server jar
-  with accepted EULA, collect short-lived process output, and import recognized
-  server log lines into JSONL evidence artifacts for join, chat, movement, and
-  disconnect assertions;
-- a Ktor Client based testkit provisioner that resolves the Mojang launcher
-  version manifest and downloads a requested Minecraft server jar into the
-  fixture artifacts directory;
-- an opt-in `:testkit:localMinecraftServerSmoke` task that provisions and starts
-  a local Minecraft server, waits for startup, can keep it running around a
-  caller-supplied smoke action or configured command, sends `stop`, and records
-  server log/evidence artifacts without running during default tests;
-- an opt-in `:driver-fabric:fabricClientSmoke` entrypoint and smoke plan behind
-  `CRAFTLESS_FABRIC_CLIENT_SMOKE`; when enabled it runs the testkit server
-  lifecycle and a bounded client command, defaulting to
-  `mise -C <repo> exec -- gradle :driver-fabric:runClient`, whose in-client Fabric smoke
-  controller starts a local daemon API backed by the Fabric driver, fetches
-  per-client OpenAPI/action metadata and resource projections, connects to the
-  smoke server, invokes generated `player.chat`, `player.move`,
-  `screen.query`, `player.query`, `player.look`, `inventory.query`,
-  `inventory.equip`, `world.time.query`, `world.block.break`, and
-  `world.block.interact` through `POST /clients/{id}:run` after connection,
-  provisions `minecraft:iron_sword` through the server fixture as setup,
-  waits until live `inventory.query` observes `Iron Sword`, equips the
-  discovered slot, writes client artifacts next to server artifacts, and
-  verifies server-side join/item-provision/chat/disconnect evidence plus
-  driver-side movement telemetry and gameplay result artifacts;
-- repo-local Kotlin/JVM agent skills scoped to this codebase.
+- release workflow, install script, Docker runtime image, reusable GitHub
+  Action, and packaged CLI distribution;
+- repo-local agent skill guidance for using generated OpenAPI, actions,
+  resources, SSE, and public-state verification;
+- local server, Fabric client, compatibility, distribution, Docker, installer,
+  and final public gameplay evidence under `docs/superpowers/evidence/`.
+
+The current final gameplay evidence is no longer the old provisioned-item
+diagnostic smoke. Phase 68 records a no-confirmation run where an external
+public-agent path fetched generated OpenAPI/actions/resources, consumed SSE,
+collected materials, crafted and equipped a `Wooden Sword`, found Cows through
+`entity.query`, killed a Cow through `entity.attack`, and observed `Raw Beef`,
+`Leather`, and the Cow with `alive:false`, without server-provisioned
+inventory or static survival shortcuts.
+
+Multi-version work is foundation-level today. Live Mojang metadata and
+compatibility probes cover the current compiled Fabric lane plus latest `26.2`
+and representative older `1.20.6`; the latter two are explicit unsupported
+Fabric client lanes with machine-readable `runtime-lane-missing` reasons, not
+supported client breadth.
 
 ## Completion Definition
 
@@ -144,21 +119,17 @@ Follow these specs and plans in order:
 
 ## Phase 1: Real-Client Proof
 
-Goal: prove that Craftless can automate a real Minecraft Java client through
-the durable Fabric direction.
+Goal: keep proving that Craftless automates a real Minecraft Java client
+through generated public contracts, not fixture shortcuts.
 
-- Keep the opt-in Fabric smoke green: the 2026-06-26 run launched
-  `:driver-fabric:runClient`, joined the provisioned Minecraft `1.21.6`
-  server, fetched generated OpenAPI/actions/resources through the in-client
-  daemon API, invoked generated `player.chat`, `player.move`, `screen.query`,
-  `world.time.query`, `player.query`, `player.look`, `inventory.query`,
-  `inventory.equip`, `world.block.break`, and `world.block.interact` through
-  `POST /clients/{id}:run`, captured server-side
-  item-provision/join/chat/disconnect evidence, observed and equipped
-  `Iron Sword` through live inventory metadata, and recorded driver-side
-  movement before-position telemetry plus gameplay result artifacts.
-- Strengthen generated `player.move` proof further with measured server-side
-  position deltas.
+- Keep the opt-in Fabric client smoke green as a diagnostic launch/API check.
+- Keep final gameplay evidence based on generated OpenAPI/actions/resources,
+  SSE, public inventory/entity/world state, and generic invocation through
+  `POST /clients/{id}:run`.
+- Keep server-side provisioning out of final completion evidence. Diagnostic
+  server setup may exist for targeted tests, but it is not product acceptance.
+- Strengthen generated movement and pathfinding proof with measured public
+  state and server-side evidence.
 - Keep bridge evidence tests separate from Fabric smoke tests so the bridge
   cannot accidentally become the product path.
 
@@ -270,7 +241,11 @@ Goal: make the Fabric driver robust across real client states.
   permission, unsupported action, and server-feature mismatch states.
 - Add event streams for lifecycle, chat, movement, interactions, inventory,
   perception, and driver errors.
-- Expand version support only after the `1.21.6` path has smoke evidence.
+- Expand real Fabric client version support only after the target lane has
+  cache preparation, Java runtime selection, Fabric Loader/API resolution,
+  launch metadata, compatibility matrix, and smoke evidence. Unsupported lanes
+  such as current latest `26.2` and representative older `1.20.6` must remain
+  explicit unsupported evidence until then.
 
 Verification gate:
 
