@@ -79,3 +79,11 @@ transitional public descriptor source with generic runtime-discovered graph
 nodes and keeps execution behind private adapters. Completion should require a
 rerun of the distribution, compatibility, CI, and final public gameplay gates
 after that exit work lands.
+
+## Verification Evidence
+
+- `git diff --check`: passed locally.
+- `mise run architecture-check`: passed locally.
+- `mise run ci`: passed locally.
+- Implementation commit `348672e` passed GitHub Actions `ci` run
+  `28308547679`.

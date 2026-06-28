@@ -96,7 +96,7 @@
 
   Expected: all commands exit `0`.
 
-- [ ] **Step 2: Commit and push**
+- [x] **Step 2: Commit and push**
 
   Run:
 
@@ -106,7 +106,7 @@
   git push origin main
   ```
 
-- [ ] **Step 3: Verify remote CI**
+- [x] **Step 3: Verify remote CI**
 
   Run:
 
@@ -116,3 +116,6 @@
   ```
 
   Expected: pushed commit's GitHub Actions CI exits successfully.
+
+  Evidence: implementation commit `348672e` passed GitHub Actions `ci` run
+  `28308547679`.
