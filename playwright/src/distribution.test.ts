@@ -29,18 +29,24 @@ describe("distribution surface", () => {
     expect(cliBuild).toContain("driver-mods.json");
     expect(cliBuild).toContain("fabric-driver-lanes.json");
     expect(cliBuild).toContain("writeFabricDriverLaneCatalog");
+    expect(cliBuild).toContain("renderDriverModManifest");
     expect(cliBuild).toContain("JsonSlurper");
     expect(cliBuild).toContain("stageFabricDriverLaneArtifacts");
     expect(cliBuild).toContain("fabric-current-remap-jar");
     expect(cliBuild).toContain("driver-lane-artifacts");
     expect(cliBuild).toContain("distributionPath");
     expect(fabricBuild).toContain("mods/craftless-driver-fabric.jar");
+    expect(cliBuild).not.toContain("catalog.readText().trimEnd()");
     expect(cliBuild).not.toContain('extensions.extraProperties["fabricCompiledMinecraftVersion"]');
     expect(cliBuild).not.toContain('extensions.extraProperties["fabricCompiledLoaderVersion"]');
     expect(cliBuild).not.toContain('into("mods")');
     expect(mise).toContain("driver-mods.json");
     expect(mise).toContain("tar -tf cli/build/distributions/craftless-*.tar | grep -q '/driver-mods.json$'");
+    expect(mise).toContain("! tar -xOf cli/build/distributions/craftless-*.tar '*/driver-mods.json' | grep -q 'artifactKey'");
+    expect(mise).toContain("! tar -xOf cli/build/distributions/craftless-*.tar '*/driver-mods.json' | grep -q 'distributionPath'");
     expect(mise).toContain("jar tf cli/build/distributions/craftless-*.zip | grep -q '/driver-mods.json$'");
+    expect(mise).toContain("! unzip -p cli/build/distributions/craftless-*.zip '*/driver-mods.json' | grep -q 'artifactKey'");
+    expect(mise).toContain("! unzip -p cli/build/distributions/craftless-*.zip '*/driver-mods.json' | grep -q 'distributionPath'");
   });
 
   test("Dockerfile copies a built CLI distribution instead of building Craftless", () => {

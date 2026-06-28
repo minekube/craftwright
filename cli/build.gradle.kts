@@ -1,3 +1,4 @@
+import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import java.nio.file.Path
 
@@ -28,6 +29,43 @@ application {
 val fabricDriverProject = project(":driver-fabric")
 val fabricDriverArtifactStagingDir = layout.buildDirectory.dir("generated/driver-lane-artifacts")
 
+fun catalogEntries(catalog: Map<*, *>): List<Map<*, *>> {
+    val entries = catalog["entries"] as? List<*> ?: error("Fabric driver lane catalog entries must be a list")
+    return entries.map { rawEntry ->
+        rawEntry as? Map<*, *> ?: error("Fabric driver lane catalog entry must be an object")
+    }
+}
+
+fun requiredCatalogString(
+    entry: Map<*, *>,
+    field: String,
+): String =
+    entry[field]
+        ?.toString()
+        ?.takeIf { value -> value.isNotBlank() }
+        ?: error("Fabric driver lane entry requires $field")
+
+fun validatedDistributionPath(distributionPath: String): String {
+    val relativePath = Path.of(distributionPath)
+    require(!relativePath.isAbsolute && relativePath.normalize() == relativePath) {
+        "Fabric driver lane distributionPath must be a relative normalized path: $distributionPath"
+    }
+    return distributionPath
+}
+
+fun renderDriverModManifest(catalog: Map<*, *>): String {
+    val entries =
+        catalogEntries(catalog).map { entry ->
+            linkedMapOf(
+                "loader" to requiredCatalogString(entry, "loader"),
+                "minecraftVersion" to requiredCatalogString(entry, "minecraftVersion"),
+                "loaderVersion" to requiredCatalogString(entry, "loaderVersion"),
+                "path" to validatedDistributionPath(requiredCatalogString(entry, "distributionPath")),
+            )
+        }
+    return JsonOutput.prettyPrint(JsonOutput.toJson(linkedMapOf("entries" to entries))) + "\n"
+}
+
 gradle.projectsEvaluated {
     val fabricDriverRemapJar = fabricDriverProject.tasks.named("remapJar")
     val fabricDriverLaneCatalogTask = fabricDriverProject.tasks.named("writeFabricDriverLaneCatalog")
@@ -42,9 +80,9 @@ gradle.projectsEvaluated {
 
             doLast {
                 val output = outputFile.get().asFile
-                val catalog = fabricDriverLaneCatalog.get().asFile
+                val catalog = JsonSlurper().parse(fabricDriverLaneCatalog.get().asFile) as Map<*, *>
                 output.parentFile.mkdirs()
-                output.writeText(catalog.readText().trimEnd() + "\n")
+                output.writeText(renderDriverModManifest(catalog))
             }
         }
     val stageFabricDriverLaneArtifacts =
@@ -59,17 +97,9 @@ gradle.projectsEvaluated {
                 val outputRoot = fabricDriverArtifactStagingDir.get().asFile
                 outputRoot.deleteRecursively()
                 val catalog = JsonSlurper().parse(fabricDriverLaneCatalog.get().asFile) as Map<*, *>
-                val entries = catalog["entries"] as? List<*> ?: error("Fabric driver lane catalog entries must be a list")
-                entries.forEach { rawEntry ->
-                    val entry = rawEntry as? Map<*, *> ?: error("Fabric driver lane catalog entry must be an object")
-                    val artifactKey = entry["artifactKey"]?.toString() ?: error("Fabric driver lane entry requires artifactKey")
-                    val distributionPath =
-                        entry["distributionPath"]?.toString()
-                            ?: error("Fabric driver lane entry requires distributionPath")
-                    val relativePath = Path.of(distributionPath)
-                    require(!relativePath.isAbsolute && relativePath.normalize() == relativePath) {
-                        "Fabric driver lane distributionPath must be a relative normalized path: $distributionPath"
-                    }
+                catalogEntries(catalog).forEach { entry ->
+                    val artifactKey = requiredCatalogString(entry, "artifactKey")
+                    val distributionPath = validatedDistributionPath(requiredCatalogString(entry, "distributionPath"))
                     val source =
                         when (artifactKey) {
                             "fabric-current-remap-jar" ->
@@ -81,7 +111,7 @@ gradle.projectsEvaluated {
 
                             else -> error("Unsupported Fabric driver lane artifactKey: $artifactKey")
                         }
-                    val target = outputRoot.toPath().resolve(relativePath).toFile()
+                    val target = outputRoot.toPath().resolve(distributionPath).toFile()
                     target.parentFile.mkdirs()
                     source.copyTo(target, overwrite = true)
                 }
