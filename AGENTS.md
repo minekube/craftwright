@@ -203,6 +203,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 90. smoke bootstrap action id source ownership.
 91. version support completion gate.
 92. build-generated compiled lane metadata.
+93. static unsupported version lane removal.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -719,6 +720,13 @@ configure Loom dependencies, Fabric resource expansion, and smoke lane JSON.
 It must delete the hand-written source copy, keep latest/older support lanes
 explicitly open until runnable support lands, and must not claim new version
 support by metadata-generation alone.
+Phase 93 removes static unsupported latest/older version lanes from product
+runtime code. Historical evidence may still mention `latest-release-26-2`,
+`older-release-1-20-6`, `no-compatible-client-lane`, and
+`runtime-lane-missing`, but active runtime code and current-facing docs must
+not present those ids as a maintained product matrix. Until real provider-backed
+support lands, non-provider-backed versions resolve through generic unsupported
+fallbacks.
 
 ## Acceptance Scenarios Are Not Product APIs
 

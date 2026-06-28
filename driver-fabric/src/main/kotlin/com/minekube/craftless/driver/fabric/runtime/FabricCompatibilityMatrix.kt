@@ -111,28 +111,6 @@ internal fun defaultFabricCompatibilityMatrix(): FabricCompatibilityMatrix =
                     mappingsFingerprint = FabricCompiledLaneMetadata.MAPPINGS_FINGERPRINT,
                     providerId = FabricCompiledLaneMetadata.PROVIDER_ID,
                 ),
-                FabricCompatibilityLane(
-                    id = "latest-release-26-2",
-                    status = FabricCompatibilityStatus.UNSUPPORTED,
-                    gameVersion = "26.2",
-                    loaderVersion = "unverified",
-                    fabricApiVersion = "unverified",
-                    javaMajorVersion = 25,
-                    mappingsFingerprint = "unverified",
-                    providerId = "no-compatible-client-lane",
-                    unsupportedReason = "runtime-lane-missing",
-                ),
-                FabricCompatibilityLane(
-                    id = "older-release-1-20-6",
-                    status = FabricCompatibilityStatus.UNSUPPORTED,
-                    gameVersion = "1.20.6",
-                    loaderVersion = "unverified",
-                    fabricApiVersion = "unverified",
-                    javaMajorVersion = 21,
-                    mappingsFingerprint = "unverified",
-                    providerId = "no-compatible-client-lane",
-                    unsupportedReason = "runtime-lane-missing",
-                ),
             ),
     )
 

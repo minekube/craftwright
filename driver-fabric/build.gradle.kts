@@ -188,22 +188,13 @@ fun fabricSmokeRuntimeLaneJson(minecraftVersion: String): String {
                     "javaMajorVersion" to fabricCompiledJavaMajorVersion,
                     "providerId" to fabricCompiledProviderId,
                 )
-            "26.2" ->
-                mapOf(
-                    "id" to "latest-release-26-2",
-                    "status" to "UNSUPPORTED",
-                    "minecraftVersion" to version,
-                    "javaMajorVersion" to 25,
-                    "providerId" to "no-compatible-client-lane",
-                    "unsupportedReason" to "runtime-lane-missing",
-                )
             else ->
                 mapOf(
                     "id" to "fabric-unsupported-${laneSuffix(version)}",
                     "status" to "UNSUPPORTED",
                     "minecraftVersion" to version,
                     "javaMajorVersion" to if (version.startsWith("26.")) 25 else fabricCompiledJavaMajorVersion,
-                    "providerId" to "fabric-unsupported-provider",
+                    "providerId" to "fabric-unsupported",
                     "unsupportedReason" to "unsupported-version",
                 )
         }

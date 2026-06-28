@@ -26,7 +26,7 @@ gameplay SDK.
 | Gameplay surface | Runtime capability graph projection, not a static catalog |
 | Events | SSE streams plus JSON-RPC-style HTTP control/query calls |
 | Current Fabric lane | Verified for the compiled lane |
-| Latest and older lanes | Latest `26.2` and older `1.20.6` are explicit unsupported lanes with machine-readable reasons |
+| Latest and older lanes | Historical probes exist; active runtime code uses provider-backed lanes plus generic unsupported fallback until runnable support lands |
 | Final gameplay evidence | Public API/CLI path completed survival evidence without server-provisioned inventory |
 | Completion | Still active; see `docs/project-completion-checklist.md` |
 

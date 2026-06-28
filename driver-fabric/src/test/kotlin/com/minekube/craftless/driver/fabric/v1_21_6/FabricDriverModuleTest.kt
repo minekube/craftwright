@@ -669,8 +669,10 @@ class FabricDriverModuleTest {
 
         assertTrue(buildScript.contains("fabricSmokeRuntimeLaneJson"))
         assertTrue(buildScript.contains("\"CRAFTLESS_SMOKE_RUNTIME_LANE_JSON\""))
-        assertTrue(buildScript.contains("\"runtime-lane-missing\""))
         assertTrue(buildScript.contains("\"unsupported-version\""))
+        assertFalse(buildScript.contains("latest-release-26-2"))
+        assertFalse(buildScript.contains("older-release-1-20-6"))
+        assertFalse(buildScript.contains("\"26.2\" ->"))
     }
 
     @Test

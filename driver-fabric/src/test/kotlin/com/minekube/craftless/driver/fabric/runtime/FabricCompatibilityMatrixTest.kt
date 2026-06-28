@@ -23,29 +23,20 @@ class FabricCompatibilityMatrixTest {
     }
 
     @Test
-    fun `matrix includes latest release lane without claiming runtime support`() {
+    fun `matrix does not catalog static unsupported latest or older lanes`() {
         val matrix = defaultFabricCompatibilityMatrix()
 
-        val lane = matrix.resolve(currentLaneIdentity().copy(gameVersion = "26.2"))
+        val latest = matrix.resolve(currentLaneIdentity().copy(gameVersion = "26.2"))
+        val older = matrix.resolve(currentLaneIdentity().copy(gameVersion = "1.20.6"))
 
-        assertEquals("latest-release-26-2", lane.id)
-        assertEquals(FabricCompatibilityStatus.UNSUPPORTED, lane.status)
-        assertEquals(25, lane.javaMajorVersion)
-        assertEquals("runtime-lane-missing", lane.unsupportedReason)
-        assertEquals("no-compatible-client-lane", lane.providerId)
-    }
-
-    @Test
-    fun `matrix includes representative older release lane without claiming runtime support`() {
-        val matrix = defaultFabricCompatibilityMatrix()
-
-        val lane = matrix.resolve(currentLaneIdentity().copy(gameVersion = "1.20.6"))
-
-        assertEquals("older-release-1-20-6", lane.id)
-        assertEquals(FabricCompatibilityStatus.UNSUPPORTED, lane.status)
-        assertEquals(21, lane.javaMajorVersion)
-        assertEquals("runtime-lane-missing", lane.unsupportedReason)
-        assertEquals("no-compatible-client-lane", lane.providerId)
+        assertEquals("fabric-unsupported-26-2", latest.id)
+        assertEquals(FabricCompatibilityStatus.UNSUPPORTED, latest.status)
+        assertEquals("unsupported-version", latest.unsupportedReason)
+        assertEquals("fabric-unsupported", latest.providerId)
+        assertEquals("fabric-unsupported-1-20-6", older.id)
+        assertEquals(FabricCompatibilityStatus.UNSUPPORTED, older.status)
+        assertEquals("unsupported-version", older.unsupportedReason)
+        assertEquals("fabric-unsupported", older.providerId)
     }
 
     @Test
@@ -58,7 +49,7 @@ class FabricCompatibilityMatrixTest {
         assertTrue(currentEvidence.any { it.kind == "runtime-status" && it.fingerprint == "supported" })
         assertTrue(currentEvidence.none { it.kind == "runtime-support" })
         assertTrue(unsupportedEvidence.any { it.kind == "runtime-status" && it.fingerprint == "unsupported" })
-        assertTrue(unsupportedEvidence.any { it.kind == "runtime-support" && it.fingerprint == "runtime-lane-missing" })
+        assertTrue(unsupportedEvidence.any { it.kind == "runtime-support" && it.fingerprint == "unsupported-version" })
     }
 
     @Test

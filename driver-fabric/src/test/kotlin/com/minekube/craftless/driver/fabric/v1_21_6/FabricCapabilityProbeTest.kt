@@ -238,10 +238,10 @@ class FabricCapabilityProbeTest {
             ),
             evidence.map { it.kind }.toSet(),
         )
-        assertTrue(evidence.any { it.kind == "runtime-lane" && it.fingerprint == "latest-release-26-2" })
-        assertTrue(evidence.any { it.kind == "runtime-provider" && it.fingerprint == "no-compatible-client-lane" })
+        assertTrue(evidence.any { it.kind == "runtime-lane" && it.fingerprint == "unsupported-26-2" })
+        assertTrue(evidence.any { it.kind == "runtime-provider" && it.fingerprint == "unsupported" })
         assertTrue(evidence.any { it.kind == "runtime-status" && it.fingerprint == "unsupported" })
-        assertTrue(evidence.any { it.kind == "runtime-support" && it.fingerprint == "runtime-lane-missing" })
+        assertTrue(evidence.any { it.kind == "runtime-support" && it.fingerprint == "unsupported-version" })
         assertTrue(evidence.none { item -> "simulated" in item.fingerprint })
         assertTrue(
             evidence.none { item ->

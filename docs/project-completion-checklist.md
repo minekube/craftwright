@@ -204,6 +204,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-92-build-generated-compiled-lane-metadata-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-92-build-generated-compiled-lane-metadata-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-93-static-unsupported-version-lane-removal-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-93-static-unsupported-version-lane-removal-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -2957,6 +2961,37 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-build-generated-compiled-lane-metadata.md`.
 
+## Phase 93: Static Unsupported Version Lane Removal
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-93-static-unsupported-version-lane-removal-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-93-static-unsupported-version-lane-removal-plan.md`.
+- [x] `defaultFabricCompatibilityMatrix()` no longer catalogs static
+  latest/older unsupported lanes.
+- [x] `26.2`, `1.20.6`, and other non-provider-backed versions resolve through
+  generic unsupported-version fallback until runnable support lands.
+- [x] `driver-fabric/build.gradle.kts` no longer has a `26.2` smoke lane JSON
+  branch or hard-coded latest/older unsupported lane ids.
+- [~] Historical latest/older probe evidence remains in evidence files and
+  older phase records, but active runtime code and current-facing docs must not
+  present those ids as maintained product matrix entries.
+- [~] Actual latest/current and representative older Fabric client runtime
+  support remains open until runnable lane support and generated API/CLI
+  gameplay verification land.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
+  lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red guard:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricCompatibilityMatrixTest.matrix does not catalog static unsupported latest or older lanes*'`
+- Green focused test:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricCompatibilityMatrixTest*' --tests '*FabricDriverModuleTest*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-static-unsupported-version-lane-removal.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -2970,7 +3005,8 @@ Verification:
   operation id source ownership, and Phase 88 binding adapter key derivation
   removal, Phase 89 navigation operation id source ownership, and Phase 90
   smoke bootstrap action id source ownership, and Phase 91 version support
-  completion gate, and Phase 92 build-generated compiled lane metadata.
+  completion gate, and Phase 92 build-generated compiled lane metadata, and
+  Phase 93 static unsupported version lane removal.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support
@@ -3005,7 +3041,8 @@ Verification:
 - [x] Phase 65 final gameplay evidence is accepted from public API/CLI
   artifacts without requiring human Minecraft chat confirmation.
 - [x] Latest and representative older-version compatibility probes have current
-  evidence. Latest `26.2` and older `1.20.6` currently resolve as explicit
-  unsupported lanes with current Mojang metadata and matrix/probe evidence.
+  historical evidence. Latest `26.2` and older `1.20.6` probe records remain
+  diagnostics; active runtime code now uses provider-backed lanes plus generic
+  unsupported fallback until runnable support lands.
 - [x] Changes are committed and pushed to `main`. This entry is current only
   after the checklist update that changes it is also pushed.

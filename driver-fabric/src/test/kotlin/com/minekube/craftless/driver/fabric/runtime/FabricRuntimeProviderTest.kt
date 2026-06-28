@@ -75,7 +75,7 @@ class FabricRuntimeProviderTest {
                 selectFabricRuntimeProvider(unsupportedIdentity, listOf(provider))
             }
 
-        assertTrue(error.message?.contains("runtime-lane-missing") == true)
+        assertTrue(error.message?.contains("unsupported-version") == true)
     }
 
     @Test
@@ -93,7 +93,7 @@ class FabricRuntimeProviderTest {
                 selectFabricRuntimeProvider(unsupportedIdentity, listOf(provider))
             }
 
-        assertTrue(error.message?.contains("runtime-lane-missing") == true)
+        assertTrue(error.message?.contains("unsupported-version") == true)
     }
 
     @Test
