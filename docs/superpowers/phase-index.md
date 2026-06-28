@@ -47,12 +47,14 @@ not grow with every completed phase.
 - Phase 162: official Fabric connected SSE evidence.
 - Phase 163: official Fabric public projection endpoints.
 - Phase 164: official Fabric JSON-RPC query evidence.
+- Phase 165: official Fabric JSON-RPC subscription SSE evidence.
 
 ## Current Direction
 
 The latest/current official lane has launch, attach, connected client-state,
 connected server-feature, registry, event-source metadata, public SSE
-lifecycle, projection endpoint, and JSON-RPC query evidence.
+lifecycle, projection endpoint, JSON-RPC query, and JSON-RPC subscription
+filter evidence.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the

@@ -39,6 +39,7 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -111,6 +112,15 @@ private class OfficialFabricAttachProbe(
                         val rpcActionsText = queryJsonRpc(http, daemonUrl, "actions")
                         val rpcResourcesText = queryJsonRpc(http, daemonUrl, "resources")
                         val clientEventsStreamText = http.get("$daemonUrl/clients/${config.clientId}/events:stream").bodyAsText()
+                        val rpcSubscribeText = subscribeJsonRpc(http, daemonUrl, "client.connected")
+                        val rpcSubscriptionId = rpcSubscriptionId(rpcSubscribeText)
+                        val subscriptionEventsText =
+                            http
+                                .get("$daemonUrl/clients/${config.clientId}/events:stream?subscriptionId=$rpcSubscriptionId")
+                                .bodyAsText()
+                        val rpcSubscriptionsText = queryJsonRpc(http, daemonUrl, "subscriptions")
+                        val rpcUnsubscribeText = unsubscribeJsonRpc(http, daemonUrl, rpcSubscriptionId)
+                        val rpcSubscriptionsAfterUnsubscribeText = queryJsonRpc(http, daemonUrl, "subscriptions")
                         config.artifactsDir.resolve("daemon-events.json").writeText(eventsText + "\n")
                         config.artifactsDir.resolve("client-openapi.json").writeText(openApiText + "\n")
                         config.artifactsDir.resolve("client-actions.json").writeText(actionsText + "\n")
@@ -119,6 +129,13 @@ private class OfficialFabricAttachProbe(
                         config.artifactsDir.resolve("client-rpc-actions.json").writeText(rpcActionsText + "\n")
                         config.artifactsDir.resolve("client-rpc-resources.json").writeText(rpcResourcesText + "\n")
                         config.artifactsDir.resolve("client-events-stream.sse").writeText(clientEventsStreamText + "\n")
+                        config.artifactsDir.resolve("client-rpc-subscribe.json").writeText(rpcSubscribeText + "\n")
+                        config.artifactsDir.resolve("client-events-subscription-stream.sse").writeText(subscriptionEventsText + "\n")
+                        config.artifactsDir.resolve("client-rpc-subscriptions.json").writeText(rpcSubscriptionsText + "\n")
+                        config.artifactsDir.resolve("client-rpc-unsubscribe.json").writeText(rpcUnsubscribeText + "\n")
+                        config.artifactsDir
+                            .resolve("client-rpc-subscriptions-after-unsubscribe.json")
+                            .writeText(rpcSubscriptionsAfterUnsubscribeText + "\n")
                         if (connected) {
                             config.artifactsDir.resolve("client-openapi-connected.json").writeText(openApiText + "\n")
                         }
@@ -139,6 +156,10 @@ private class OfficialFabricAttachProbe(
                             rpcQueryTargets = listOf("openapi", "actions", "resources"),
                             rpcActionCount = rpcResultArraySize(rpcActionsText),
                             rpcResourceIds = rpcResourceIds(rpcResourcesText),
+                            rpcSubscriptionId = rpcSubscriptionId,
+                            rpcSubscriptionEventTypes = sseEventTypes(subscriptionEventsText),
+                            rpcSubscriptionCount = rpcResultArraySize(rpcSubscriptionsText),
+                            rpcSubscriptionCountAfterUnsubscribe = rpcResultArraySize(rpcSubscriptionsAfterUnsubscribeText),
                             message =
                                 if (connected) {
                                     "official Fabric probe observed connected client state for ${config.clientId}"
@@ -264,18 +285,65 @@ private class OfficialFabricAttachProbe(
         daemonUrl: String,
         target: String,
     ): String =
+        sendJsonRpc(
+            http = http,
+            daemonUrl = daemonUrl,
+            id = "rpc:official_probe:$target",
+            method = JsonRpcMethod.QUERY,
+            params =
+                buildJsonObject {
+                    put("target", target)
+                },
+        )
+
+    private suspend fun subscribeJsonRpc(
+        http: HttpClient,
+        daemonUrl: String,
+        type: String,
+    ): String =
+        sendJsonRpc(
+            http = http,
+            daemonUrl = daemonUrl,
+            id = "rpc:official_probe:subscribe",
+            method = JsonRpcMethod.SUBSCRIBE,
+            params =
+                buildJsonObject {
+                    put("type", type)
+                },
+        )
+
+    private suspend fun unsubscribeJsonRpc(
+        http: HttpClient,
+        daemonUrl: String,
+        subscriptionId: String,
+    ): String =
+        sendJsonRpc(
+            http = http,
+            daemonUrl = daemonUrl,
+            id = "rpc:official_probe:unsubscribe",
+            method = JsonRpcMethod.UNSUBSCRIBE,
+            params =
+                buildJsonObject {
+                    put("subscriptionId", subscriptionId)
+                },
+        )
+
+    private suspend fun sendJsonRpc(
+        http: HttpClient,
+        daemonUrl: String,
+        id: String,
+        method: String,
+        params: JsonObject = buildJsonObject {},
+    ): String =
         http
             .post("$daemonUrl/clients/${config.clientId}:rpc") {
                 contentType(ContentType.Application.Json)
                 setBody(
                     probeJson.encodeToString(
                         JsonRpcRequest(
-                            id = "rpc:official_probe:$target",
-                            method = JsonRpcMethod.QUERY,
-                            params =
-                                buildJsonObject {
-                                    put("target", target)
-                                },
+                            id = id,
+                            method = method,
+                            params = params,
                         ),
                     ),
                 )
@@ -319,6 +387,13 @@ private class OfficialFabricAttachProbe(
         requireNotNull(probeJson.decodeFromString<JsonRpcResponse>(text).result)
             .jsonArray
             .mapNotNull { element -> element.jsonObject["id"]?.jsonPrimitive?.content }
+
+    private fun rpcSubscriptionId(text: String): String =
+        requireNotNull(probeJson.decodeFromString<JsonRpcResponse>(text).result)
+            .jsonObject
+            .getValue("subscriptionId")
+            .jsonPrimitive
+            .content
 
     private companion object {
         val CONNECTED_CLIENT_STATE_RESOURCES = setOf("client", "player", "inventory", "world")
@@ -373,6 +448,10 @@ private data class OfficialFabricAttachProbeResult(
     val rpcQueryTargets: List<String> = emptyList(),
     val rpcActionCount: Int = 0,
     val rpcResourceIds: List<String> = emptyList(),
+    val rpcSubscriptionId: String? = null,
+    val rpcSubscriptionEventTypes: List<String> = emptyList(),
+    val rpcSubscriptionCount: Int = 0,
+    val rpcSubscriptionCountAfterUnsubscribe: Int = 0,
 )
 
 @Serializable
