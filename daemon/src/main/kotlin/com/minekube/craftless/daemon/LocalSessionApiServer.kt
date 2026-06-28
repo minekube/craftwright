@@ -507,12 +507,14 @@ class LocalSessionApiServer private constructor(
             workspaceRoot: Path? = null,
             cacheMetadataFetcher: CacheMetadataFetcher = KtorCacheMetadataFetcher(),
             clientRuntimeLauncher: ClientRuntimeLauncher = ProcessClientRuntimeLauncher(),
+            clientRuntimeDriverModProvider: ClientRuntimeDriverModProvider = ConfiguredClientRuntimeDriverModProvider(),
         ): LocalSessionApiServer {
             val workspaceRuntimeFactory =
                 if (driverFactory == null && workspaceRoot != null) {
                     WorkspaceClientRuntimeDriverFactory(
                         workspaceRoot = workspaceRoot,
                         launcher = clientRuntimeLauncher,
+                        driverModProvider = clientRuntimeDriverModProvider,
                     )
                 } else {
                     null

@@ -14,9 +14,13 @@ import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.CacheLaunchPlan
 import com.minekube.craftless.protocol.CachePrepareRequest
 import com.minekube.craftless.protocol.CachePrepareResult
+import com.minekube.craftless.protocol.CachePreparedArtifact
+import com.minekube.craftless.protocol.CachePreparedArtifactKind
+import com.minekube.craftless.protocol.CachePreparedArtifactStatus
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.InstanceFiles
+import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -24,12 +28,14 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.security.MessageDigest
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 class WorkspaceClientRuntimeDriverFactory(
     private val workspaceRoot: Path,
     private val launcher: ClientRuntimeLauncher = ProcessClientRuntimeLauncher(),
+    private val driverModProvider: ClientRuntimeDriverModProvider = ConfiguredClientRuntimeDriverModProvider(),
 ) : DriverSessionFactory {
     private val root = workspaceRoot.toAbsolutePath().normalize()
     private val prepared = linkedMapOf<String, PreparedClientRuntime>()
@@ -39,12 +45,13 @@ class WorkspaceClientRuntimeDriverFactory(
         cachePreparationService: CachePreparationService,
     ): PreparedClientRuntime {
         val cache =
-            cachePreparationService.prepare(
-                CachePrepareRequest(
-                    minecraftVersion = request.version,
-                    loader = request.loader,
-                ),
-            )
+            cachePreparationService
+                .prepare(
+                    CachePrepareRequest(
+                        minecraftVersion = request.version,
+                        loader = request.loader,
+                    ),
+                ).withConfiguredDriverMod(request.loader)
         val files = request.instanceFiles()
         val launch = launcher.launch(request, cache, files, root)
         return PreparedClientRuntime(
@@ -57,9 +64,57 @@ class WorkspaceClientRuntimeDriverFactory(
         }
     }
 
+    private fun CachePrepareResult.withConfiguredDriverMod(loader: Loader): CachePrepareResult {
+        val source = driverModProvider.modFor(loader)?.toAbsolutePath()?.normalize() ?: return this
+        require(Files.isRegularFile(source)) { "configured Craftless driver mod does not exist: $source" }
+        val handle = "cache/mods/craftless/${source.sha256Hex()}.jar"
+        val target = root.resolveHandleOrPath(handle)
+        Files.createDirectories(target.parent)
+        if (source != target) {
+            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING)
+        }
+        val artifact =
+            CachePreparedArtifact(
+                kind = CachePreparedArtifactKind.FABRIC_MOD,
+                handle = handle,
+                source = source.toUri().toString(),
+                status = CachePreparedArtifactStatus.CACHED,
+            )
+        val augmentedArtifacts = artifacts + artifact
+        return copy(
+            artifacts = augmentedArtifacts,
+            launch =
+                launch.copy(
+                    mods = (launch.mods + handle).distinct(),
+                ),
+        )
+    }
+
     override fun create(request: CreateClientRequest): DriverSession {
         val runtime = prepared.remove(request.id) ?: error("client ${request.id} runtime was not prepared")
         return PreparedClientRuntimeDriverSession(clientId = request.id, runtime = runtime)
+    }
+}
+
+fun interface ClientRuntimeDriverModProvider {
+    fun modFor(loader: Loader): Path?
+}
+
+object NoClientRuntimeDriverModProvider : ClientRuntimeDriverModProvider {
+    override fun modFor(loader: Loader): Path? = null
+}
+
+class ConfiguredClientRuntimeDriverModProvider(
+    private val environment: Map<String, String> = System.getenv(),
+) : ClientRuntimeDriverModProvider {
+    override fun modFor(loader: Loader): Path? =
+        when (loader) {
+            Loader.FABRIC -> environment[CRAFTLESS_FABRIC_DRIVER_MOD]?.takeIf { it.isNotBlank() }?.let(Path::of)
+            else -> null
+        }
+
+    companion object {
+        const val CRAFTLESS_FABRIC_DRIVER_MOD: String = "CRAFTLESS_FABRIC_DRIVER_MOD"
     }
 }
 
@@ -236,6 +291,19 @@ private fun PreparedClientRuntime.stopProcess() {
 private fun Path.resolveHandleOrPath(value: String): Path {
     val path = Path.of(value)
     return if (path.isAbsolute) path.normalize() else resolve(path).normalize()
+}
+
+private fun Path.sha256Hex(): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+    Files.newInputStream(this).use { input ->
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        while (true) {
+            val read = input.read(buffer)
+            if (read == -1) break
+            digest.update(buffer, 0, read)
+        }
+    }
+    return digest.digest().joinToString("") { byte -> "%02x".format(byte) }
 }
 
 private fun CreateClientRequest.clientLaunchVariables(files: InstanceFiles): Map<String, String> =

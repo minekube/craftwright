@@ -206,6 +206,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 93. static unsupported version lane removal.
 94. Fabric API cache resolution.
 95. launch mod materialization.
+96. Craftless driver mod launch artifact.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -740,6 +741,12 @@ directory before process launch. Resolved Fabric API and future driver/mod
 artifacts must be copied through the generic launch plan, not hard-coded into
 the launcher or a version-specific command path. This phase still must not
 claim new Minecraft version support.
+Phase 96 lets the prepared-runtime launch path include a configured Craftless
+in-client driver mod as a generic `FABRIC_MOD` launch artifact. The daemon must
+stay independent from `driver-fabric`; distribution or local configuration may
+provide the concrete jar path. This phase wires launch artifacts only and must
+not add gameplay descriptors, version-specific APIs, static action catalogs, or
+new support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 
