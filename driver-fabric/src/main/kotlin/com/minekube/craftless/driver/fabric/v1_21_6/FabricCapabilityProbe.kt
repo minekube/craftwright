@@ -1,9 +1,5 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
-import com.minekube.craftless.driver.api.DriverActionArgument
-import com.minekube.craftless.driver.api.DriverActionDescriptor
-import com.minekube.craftless.driver.api.DriverActionResultDescriptor
-import com.minekube.craftless.driver.api.DriverActionResultProperty
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.fabric.runtime.FabricCompatibilityLane
 import com.minekube.craftless.protocol.RuntimeAvailability
@@ -29,7 +25,6 @@ internal data class FabricCapabilityProbeContext(
     val gateway: FabricClientGateway?,
     val runtimeMetadata: DriverRuntimeMetadata = DriverRuntimeMetadata.runtimeAdapter(),
     val compatibilityLane: FabricCompatibilityLane? = null,
-    val bindings: Map<String, FabricActionBinding> = emptyMap(),
 )
 
 internal data class FabricCapabilityGraphFragment(
@@ -307,48 +302,123 @@ private fun FabricCapabilityProbeContext.operation(
     adapter: String,
     availability: RuntimeAvailability,
 ): RuntimeOperationNode {
-    val descriptor = actionDescriptor(id)
+    val schema = fabricRuntimeOperationSchema(id)
     return RuntimeOperationNode(
         id = id,
         resource = resource,
         adapter = adapter,
-        arguments =
-            descriptor
-                ?.arguments
-                ?.mapValues { (_, argument) -> argument.toRuntimeSchema() }
-                .orEmpty(),
-        result = descriptor?.result?.toRuntimeSchema() ?: RuntimeSchema.objectSchema(),
+        arguments = schema.arguments,
+        result = schema.result,
         availability = availability,
     )
 }
 
-private fun FabricCapabilityProbeContext.actionDescriptor(id: String): DriverActionDescriptor? =
-    bindings[id]?.descriptor ?: fabricBootstrapDescriptor(id)
+private data class FabricRuntimeOperationSchema(
+    val arguments: Map<String, RuntimeSchema> = emptyMap(),
+    val result: RuntimeSchema = RuntimeSchema.objectSchema(),
+)
 
-private fun DriverActionArgument.toRuntimeSchema(): RuntimeSchema =
-    RuntimeSchema(
-        type = type,
-        required = required,
-        properties = properties.mapValues { (_, argument) -> argument.toRuntimeSchema() },
-        items = items?.toRuntimeSchema(),
+private fun fabricRuntimeOperationSchema(id: String): FabricRuntimeOperationSchema =
+    when (id) {
+        "player.query",
+        "inventory.query",
+        "world.time.query",
+        "screen.query",
+        ->
+            FabricRuntimeOperationSchema(
+                result = actionEnvelopeResultSchema(data = RuntimeSchema.objectSchema()),
+            )
+
+        "player.chat" ->
+            FabricRuntimeOperationSchema(
+                arguments =
+                    mapOf(
+                        "message" to RuntimeSchema("string", required = true),
+                    ),
+            )
+
+        "player.look" ->
+            FabricRuntimeOperationSchema(
+                arguments =
+                    mapOf(
+                        "yaw" to RuntimeSchema("number", required = true),
+                        "pitch" to RuntimeSchema("number", required = true),
+                    ),
+            )
+
+        "player.move" ->
+            FabricRuntimeOperationSchema(
+                arguments =
+                    mapOf(
+                        "forward" to RuntimeSchema("boolean"),
+                        "backward" to RuntimeSchema("boolean"),
+                        "left" to RuntimeSchema("boolean"),
+                        "right" to RuntimeSchema("boolean"),
+                        "jump" to RuntimeSchema("boolean"),
+                        "sneak" to RuntimeSchema("boolean"),
+                        "sprint" to RuntimeSchema("boolean"),
+                        "ticks" to RuntimeSchema("integer"),
+                    ),
+                result = actionEnvelopeResultSchema(data = RuntimeSchema.objectSchema()),
+            )
+
+        "player.raycast" ->
+            FabricRuntimeOperationSchema(
+                arguments = raycastArgumentsSchema(),
+                result = actionEnvelopeResultSchema(data = RuntimeSchema.objectSchema()),
+            )
+
+        "inventory.equip" ->
+            FabricRuntimeOperationSchema(
+                arguments =
+                    mapOf(
+                        "slot" to RuntimeSchema("integer", required = true),
+                    ),
+            )
+
+        "world.block.break" ->
+            FabricRuntimeOperationSchema(
+                arguments = blockTargetArgumentsSchema() + mapOf("ticks" to RuntimeSchema("integer")),
+                result = actionEnvelopeResultSchema(data = RuntimeSchema.objectSchema()),
+            )
+
+        "world.block.interact" ->
+            FabricRuntimeOperationSchema(
+                arguments = blockTargetArgumentsSchema() + mapOf("side" to RuntimeSchema("string")),
+                result = actionEnvelopeResultSchema(data = RuntimeSchema.objectSchema()),
+            )
+
+        "screen.close" -> FabricRuntimeOperationSchema()
+        else -> FabricRuntimeOperationSchema()
+    }
+
+private fun raycastArgumentsSchema(): Map<String, RuntimeSchema> =
+    mapOf(
+        "max-distance" to RuntimeSchema("number"),
+        "include-fluids" to RuntimeSchema("boolean"),
     )
 
-private fun DriverActionResultDescriptor.toRuntimeSchema(): RuntimeSchema =
-    RuntimeSchema(
+private fun blockTargetArgumentsSchema(): Map<String, RuntimeSchema> =
+    raycastArgumentsSchema() +
+        mapOf(
+            "target" to RuntimeSchema("object"),
+        )
+
+private fun actionEnvelopeResultSchema(data: RuntimeSchema? = null): RuntimeSchema {
+    val properties =
+        mutableMapOf(
+            "action" to RuntimeSchema("string", required = true),
+            "status" to RuntimeSchema("string", required = true),
+            "message" to RuntimeSchema("string"),
+        )
+    if (data != null) {
+        properties["data"] = data
+    }
+    return RuntimeSchema(
         type = "object",
-        properties =
-            properties.mapValues { (name, property) ->
-                property.toRuntimeSchema(required = name in required)
-            },
+        properties = properties,
     )
-
-private fun DriverActionResultProperty.toRuntimeSchema(required: Boolean = false): RuntimeSchema =
-    RuntimeSchema(
-        type = type,
-        required = required,
-        properties = properties.mapValues { (_, property) -> property.toRuntimeSchema() },
-        items = items?.toRuntimeSchema(),
-    )
+}
 
 private fun RuntimeOperationNode.toEventNode(): RuntimeEventNode =
     RuntimeEventNode(
@@ -473,21 +543,6 @@ private fun recipeCraftResultSchema(): RuntimeSchema =
                 "actual-output" to recipeItemSchema(),
             ),
     )
-
-private fun fabricBootstrapDescriptor(id: String) =
-    when (id) {
-        "player.query" -> fabricPlayerQueryDescriptor()
-        "player.look" -> fabricPlayerLookDescriptor()
-        "player.raycast" -> fabricRaycastDescriptor()
-        "inventory.query" -> fabricInventoryQueryDescriptor()
-        "inventory.equip" -> fabricInventoryEquipDescriptor()
-        "world.time.query" -> fabricWorldTimeQueryDescriptor()
-        "world.block.break" -> fabricWorldBlockBreakDescriptor()
-        "world.block.interact" -> fabricWorldBlockInteractDescriptor()
-        "screen.query" -> fabricScreenQueryDescriptor()
-        "screen.close" -> fabricScreenCloseDescriptor()
-        else -> null
-    }
 
 private fun FabricClientCapabilitySnapshot.connectedAvailability(): RuntimeAvailability =
     if (connected) RuntimeAvailability.available() else RuntimeAvailability.unavailable("client-not-connected")

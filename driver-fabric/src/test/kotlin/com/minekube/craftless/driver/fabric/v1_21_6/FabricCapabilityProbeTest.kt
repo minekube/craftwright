@@ -98,7 +98,48 @@ class FabricCapabilityProbeTest {
     }
 
     @Test
-    fun `fabric graph operations derive result schema from action descriptors`() {
+    fun `fabric capability probe context does not receive action bindings for graph schemas`() {
+        assertTrue(
+            FabricCapabilityProbeContext::class.java.declaredFields.none { field ->
+                field.name == "bindings" || field.type.name.contains("FabricActionBinding")
+            },
+        )
+        assertTrue(
+            FabricCapabilityProbeContext::class.java.constructors.none { constructor ->
+                constructor.parameterTypes.any { type -> type.name.contains("FabricActionBinding") }
+            },
+        )
+    }
+
+    @Test
+    fun `fabric graph schemas stay available without binding descriptor fallback`() {
+        val graph =
+            defaultFabricCapabilityDiscovery(probes = listOf(FabricClientStateCapabilityProbe))
+                .discover(
+                    FabricCapabilityProbeContext(
+                        clientId = "alice",
+                        modeId = "metadata-only",
+                        gateway = null,
+                    ),
+                )
+
+        val operations = graph.operations.associateBy { it.id }
+        val raycast = operations.getValue("player.raycast")
+
+        assertEquals("string", operations.getValue("player.chat").arguments["message"]?.type)
+        assertEquals(true, operations.getValue("player.chat").arguments["message"]?.required)
+        assertEquals("integer", operations.getValue("player.move").arguments["ticks"]?.type)
+        assertEquals("integer", operations.getValue("inventory.equip").arguments["slot"]?.type)
+        assertEquals(true, operations.getValue("inventory.equip").arguments["slot"]?.required)
+        assertEquals("number", raycast.arguments["max-distance"]?.type)
+        assertEquals("object", operations.getValue("world.block.break").arguments["target"]?.type)
+        assertEquals("object", operations.getValue("world.block.interact").arguments["target"]?.type)
+        assertEquals("object", raycast.result.type)
+        assertEquals("object", raycast.result.properties["data"]?.type)
+    }
+
+    @Test
+    fun `fabric graph operations expose graph-owned result schemas`() {
         val graph =
             defaultFabricCapabilityDiscovery()
                 .discover(

@@ -144,6 +144,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-75-post-cache-integrity-evidence-refresh-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-75-post-cache-integrity-evidence-refresh-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-78-graph-native-fabric-schemas-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-78-graph-native-fabric-schemas-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -2443,12 +2447,48 @@ Verification:
 - Final local and remote verification are recorded in
   `docs/superpowers/evidence/2026-06-28-graph-owned-fabric-actions.md`.
 
+## Phase 78: Graph-Native Fabric Schemas
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-78-graph-native-fabric-schemas-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-78-graph-native-fabric-schemas-plan.md`.
+- [x] `FabricCapabilityProbeContext` no longer receives
+  `FabricActionBinding` maps for graph schema construction.
+- [x] Current bootstrap operation argument/result schemas are represented as
+  graph-local `RuntimeSchema` definitions in `FabricCapabilityProbe.kt`.
+- [x] `player.chat`, `player.move`, `inventory.equip`, `player.raycast`,
+  `world.block.break`, and `world.block.interact` schemas remain available
+  without binding descriptor fallback.
+- [x] Transitional `FabricActionBinding` implementations remain private
+  execution adapters; this phase does not add new Fabric descriptor/binding
+  pairs or gameplay breadth.
+- [~] The broader binding-exit blocker remains active until future gameplay
+  breadth is generated from generic runtime discovery instead of
+  hand-maintained bootstrap operation definitions.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric descriptor/binding pair, scenario shortcut, new
+  compiled lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red test:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricCapabilityProbeTest.fabric capability probe context does not receive action bindings for graph schemas*'`
+- Green focused tests:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricCapabilityProbeTest.fabric capability probe context does not receive action bindings for graph schemas*'`
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricCapabilityProbeTest.fabric graph schemas stay available without binding descriptor fallback*'`
+- Full Fabric regression:
+  `mise exec -- gradle :driver-fabric:test`
+- Final local and remote verification are recorded in
+  `docs/superpowers/evidence/2026-06-28-graph-native-fabric-schemas.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
-  76 completion audit, and Phase 77 graph-owned public Fabric action
-  descriptors. The broader project goal remains active until transitional
-  binding/schema bootstrap code no longer owns future public gameplay breadth,
+  76 completion audit, Phase 77 graph-owned public Fabric action descriptors,
+  and Phase 78 graph-native bootstrap operation schemas. The broader project
+  goal remains active until transitional bootstrap code no longer owns future
+  public gameplay breadth,
   latest and representative older runtime lanes have the requested support or
   an explicitly accepted support boundary, and every generic-discovery,
   multi-version, transport, CLI, docs, and gameplay requirement is reverified

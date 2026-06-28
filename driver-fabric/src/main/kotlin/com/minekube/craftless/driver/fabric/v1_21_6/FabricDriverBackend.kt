@@ -112,7 +112,6 @@ class FabricDriverBackend private constructor(
                 gateway = gateway,
                 runtimeMetadata = metadata,
                 compatibilityLane = defaultFabricCompatibilityMatrix().resolve(identity),
-                bindings = actionBindingsById,
             ),
         )
     }

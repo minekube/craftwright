@@ -188,6 +188,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 75. post-cache-integrity evidence refresh.
 76. completion audit and binding exit.
 77. graph-owned Fabric actions.
+78. graph-native Fabric schemas.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -581,6 +582,17 @@ hand-maintained bootstrap code. It must not add public gameplay actions,
 generated route families, CLI gameplay catalogs, Fabric descriptor/binding
 pairs, scenario shortcuts, new compiled lanes, public version-specific APIs,
 or new Minecraft support claims.
+Phase 78 makes Fabric runtime graph operation schemas graph-native by removing
+`FabricActionBinding` maps from `FabricCapabilityProbeContext` and describing
+the current bootstrap operation arguments/results as `RuntimeSchema` in the
+graph discovery layer. Transitional Fabric bindings may remain as private
+execution adapters, but graph schema construction must not read binding
+descriptors or bootstrap public action descriptors. This phase still does not
+complete the broader binding exit while future gameplay breadth depends on
+hand-maintained bootstrap code instead of generic runtime discovery. It must
+not add public gameplay actions, generated route families, CLI gameplay
+catalogs, Fabric descriptor/binding pairs, scenario shortcuts, new compiled
+lanes, public version-specific APIs, or new Minecraft support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 
