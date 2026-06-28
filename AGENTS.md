@@ -227,6 +227,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 114. active docs latest alias.
 115. local server latest alias.
 116. local smoke default latest alias.
+117. live event action fallback removal.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -883,6 +884,12 @@ overrides remain valid. This is active verification default cleanup only; it
 must not add compiled lanes, gameplay descriptors, static route families,
 scenario shortcuts, public version-specific APIs, or latest/older runnable
 support claims.
+Phase 117 removes static live-event fallback mappings from generic event types
+such as `chat` or `movement` to concrete gameplay action ids such as
+`player.chat` or `player.move`. Action events must be typed by explicit
+operation ids or already-valid Craftless action ids. This is transport cleanup
+only; it must not add gameplay descriptors, static route families, CLI
+gameplay catalogs, Fabric bindings, scenario shortcuts, or support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

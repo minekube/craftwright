@@ -3631,6 +3631,30 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-local-smoke-default-latest-alias.md`.
 
+## Phase 117: Live Event Action Fallback Removal
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-117-live-event-action-fallback-removal-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-117-live-event-action-fallback-removal-plan.md`.
+- [x] Daemon live event normalization no longer maps raw `chat` or `movement`
+  session event types to concrete gameplay action ids.
+- [x] Action invocation events remain typed through explicit `operationId`.
+- [x] SSE and JSON-RPC action event regressions still pass.
+- [x] This phase adds no new public gameplay action, generated route family,
+  CLI gameplay catalog, Fabric gameplay binding, scenario shortcut, public
+  version-specific API, runnable latest/older lane, or new Minecraft support
+  claim.
+
+Verification:
+
+- Red/green source guard:
+  `mise exec -- gradle :protocol:test --tests '*NamespacePolicyTest.daemon live event normalization does not synthesize gameplay action ids*'`
+- SSE/JSON-RPC regression guard:
+  `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.server streams filtered live client events as sse*' --tests '*LocalSessionApiServerTest.server invokes actions through json rpc with correlation ids*' --tests '*LocalSessionApiServerTest.server persists json rpc subscriptions as sse filters*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-live-event-action-fallback-removal.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3659,10 +3683,11 @@ Verification:
   identity, and Phase 111 latest version alias resolution, and Phase 112
   resolved driver mod lane request, and Phase 113 shared version index
   resolution, and Phase 114 active docs latest alias, and Phase 115 local
-  server latest alias, and Phase 116 local smoke default latest alias. Phase
-  105, Phase 107, Phase 108, Phase 109, Phase 110, Phase 111, Phase 112,
-  Phase 113, Phase 114, Phase 115, and Phase 116 do not satisfy the runnable
-  latest/older support requirement by
+  server latest alias, and Phase 116 local smoke default latest alias, and
+  Phase 117 live event action fallback removal. Phase 105, Phase 107, Phase
+  108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
+  115, Phase 116, and Phase 117 do not satisfy the runnable latest/older
+  support requirement by
   themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,

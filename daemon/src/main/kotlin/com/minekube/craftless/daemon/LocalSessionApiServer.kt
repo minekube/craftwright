@@ -1001,9 +1001,8 @@ private fun SessionEvent.toLiveEvent(sequence: Int): LiveEvent {
 
 private fun SessionEvent.toLiveEventType(): String =
     when {
-        type == "chat" -> operationId ?: "player.chat"
-        type == "movement" -> operationId ?: "player.move"
-        type == "error" -> "system.error"
         type.isCraftlessActionId() -> type
+        type == "error" -> "system.error"
+        operationId != null -> operationId
         else -> "system.event"
     }

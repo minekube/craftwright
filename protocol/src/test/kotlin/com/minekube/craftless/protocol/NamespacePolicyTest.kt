@@ -361,6 +361,28 @@ class NamespacePolicyTest {
     }
 
     @Test
+    fun `daemon live event normalization does not synthesize gameplay action ids`() {
+        val root = repositoryRoot()
+        val daemon =
+            Files.readString(
+                root.resolve("daemon/src/main/kotlin/com/minekube/craftless/daemon/LocalSessionApiServer.kt"),
+            )
+        val forbidden =
+            listOf(
+                """operationId ?: "player.chat"""",
+                """operationId ?: "player.move"""",
+                """type == "chat" ->""",
+                """type == "movement" ->""",
+            ).filter(daemon::contains)
+
+        assertTrue(
+            forbidden.isEmpty(),
+            "Daemon live event normalization must not synthesize gameplay action ids:\n" +
+                forbidden.joinToString("\n"),
+        )
+    }
+
+    @Test
     fun `driver runtime public errors do not expose bridge internals`() {
         val forbiddenMessage = "bridge" + " returned"
         val root = repositoryRoot()
