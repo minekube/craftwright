@@ -20,6 +20,10 @@
 - Version compatibility fixtures should validate resolver, lane, metadata, and
   attach behavior through public contracts. Do not fake success by hard-coding
   gameplay catalogs or bypassing generated OpenAPI/action/resource discovery.
+- Multi-version fixtures must make version identity explicit as data:
+  Minecraft version, loader, loader version, Fabric API version, Java major,
+  mappings/lane fingerprint, and driver artifact. They must not encode one
+  version as the implicit happy path for all future tests.
 
 ## Verification
 

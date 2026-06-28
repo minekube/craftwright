@@ -257,6 +257,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 144. latest driver lane preflight.
 145. latest official-mapping lane probe.
 146. latest official Fabric lane boundary.
+147. shared Fabric attach boundary.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -348,6 +349,17 @@ Java 25 with the non-remap Fabric Loom plugin, but it must not be packaged as a
 supported driver lane, added to the public driver manifest, or used as final
 runtime evidence until it can launch, self-attach, expose generated
 OpenAPI/actions/resources, stream SSE, and pass public API/CLI gameplay checks.
+
+Phase 147 extracts the Fabric self-attach/loopback transport into shared
+Fabric attach infrastructure that both the verified Yarn/remap lane and the
+latest/current official lane can use. This is version-agnostic runtime
+plumbing: Ktor loopback routes, attach environment parsing, session handoff,
+and lifecycle/event transport should stay shared unless a real Minecraft,
+Fabric API, mappings, loader, or bytecode signature divergence proves an
+isolated adapter is necessary. It must not clone gameplay bindings into the
+official module, add public gameplay actions, create per-version route trees,
+or package a 26.x driver manifest entry before launch/attach/generated
+OpenAPI/SSE/gameplay evidence exists.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

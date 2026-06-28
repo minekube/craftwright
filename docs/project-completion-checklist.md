@@ -4147,6 +4147,30 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-latest-official-fabric-lane-boundary.md`.
 
+## Phase 147: Shared Fabric Attach Boundary
+
+- [x] Spec written:
+  `docs/superpowers/specs/2026-06-28-147-shared-fabric-attach-boundary-design.md`.
+- [x] Plan written:
+  `docs/superpowers/plans/2026-06-28-147-shared-fabric-attach-boundary-plan.md`.
+- [x] Root and nested module `AGENTS.md` files state the same
+  version-agnostic rule: shared Fabric attach/runtime/discovery/projection
+  infrastructure by default, per-version code only where Minecraft, Fabric
+  API, mappings, loader, or bytecode signatures actually diverge.
+- [ ] `settings.gradle.kts` includes a neutral shared Fabric attach module.
+- [ ] `driver-fabric` consumes shared attach/loopback infrastructure without
+  changing the verified Yarn/remap runtime behavior.
+- [ ] `driver-fabric-official` consumes shared attach/loopback infrastructure
+  without depending on the Yarn/remap `driver-fabric` module.
+- [ ] The latest/current official entrypoint starts the shared self-attach
+  path with a metadata-only runtime backend.
+- [ ] Existing self-attach tests cover the shared module.
+- [ ] `mise run fabric-lane-check-latest-official` still records
+  `status=compiled`.
+- [ ] This phase adds no packaged 26.x driver manifest entry, no public
+  gameplay API, no static gameplay catalog, no version-specific public route
+  family, no survival shortcut, and no final latest/current support claim.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -4195,14 +4219,15 @@ Verification:
   older Fabric real-client smoke, and Phase 142 installed packaged older
   Fabric live attach, Phase 143 installed latest-release alias compatibility
   probe, Phase 144 latest driver lane preflight, Phase 145 latest official
-  mapping lane probe, and Phase 146 latest official Fabric lane boundary.
+  mapping lane probe, Phase 146 latest official Fabric lane boundary, and
+  Phase 147 shared Fabric attach boundary.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
   122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128,
   Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
   135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141,
-  Phase 142, Phase 143, Phase 144, Phase 145, and Phase 146 do not
+  Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, and Phase 147 do not
   satisfy the full runnable latest/older support
   requirement by themselves.
   The broader project goal remains active until

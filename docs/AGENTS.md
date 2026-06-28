@@ -22,6 +22,10 @@ material.
   manifests, Java/runtime selection, Fabric Loader/API resolution, driver mod
   manifests, compatibility lanes, and runtime graph evidence. Per-version code
   is acceptable only for documented divergence behind lane boundaries.
+- When documenting latest/current or older-version progress, say whether the
+  evidence proves preflight, compile, launch, attach, generated OpenAPI,
+  generated actions/resources, SSE, packaged distribution, or gameplay. Do not
+  collapse those gates into a vague support claim.
 - Avoid stale public routes such as `/player/sendChat`; use
   `POST /clients/{id}:run` and generated aliases such as
   `POST /clients/{id}/player:chat` when discussing action invocation.

@@ -31,6 +31,10 @@
   breadth must come from supervisor resolution, packaged driver manifests, and
   generated live OpenAPI. Do not add static commands or hidden fallbacks for a
   specific Minecraft release.
+- Do not special-case latest/current, older, or named Minecraft versions in
+  CLI gameplay behavior. Version-specific differences should appear as
+  supervisor/client metadata, availability reasons, and generated action/help
+  output fetched from the live client.
 - CLI smoke evidence must prove the installed/packaged command talks to the
   same generated OpenAPI/actions/resources that agents would use.
 

@@ -15,6 +15,9 @@
   project direction changes explicitly.
 - Helpers should speak the daemon/OpenAPI/action API directly. Do not parse
   human CLI output.
+- Helper tests must stay adaptive to live OpenAPI/actions. Do not add
+  TypeScript-side static gameplay catalogs, Minecraft-version command tables,
+  or scenario macros.
 
 ## Verification
 

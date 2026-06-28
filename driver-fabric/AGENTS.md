@@ -39,6 +39,9 @@ reflection/compatibility shim is not practical.
   accessor, mixin, or provider behind a lane boundary. Keep action/resource
   naming, schemas, invocation dispatch, Ktor loopback, self-attach, and OpenAPI
   projection shared.
+- If latest/current official-mapping work needs code that is also useful for
+  this lane, extract it to a shared Fabric runtime/attach/discovery module
+  instead of adding a parallel copy under `driver-fabric-official/`.
 - Do not pin durable behavior to the currently packaged lane. Latest/current
   and older-version support should be advanced by shared compatibility shims,
   generated lane metadata, and real launch/attach evidence, not by cloning the

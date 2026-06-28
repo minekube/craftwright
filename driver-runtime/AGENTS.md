@@ -27,6 +27,10 @@
   forks just because one Fabric lane currently works. Keep the session contract
   shared and let version-specific driver code stay behind backend/lane
   boundaries only where the backend truly diverges.
+- Prefer one shared `BackendDriverSession` and one shared generic backend
+  contract across current, older, and latest/current Fabric lanes. A new
+  runtime type for a Minecraft version is a design smell unless the stable
+  session contract itself cannot represent the divergence.
 - Attached in-client drivers must replace prepared-runtime placeholders before
   their generated OpenAPI/actions/resources are used as evidence.
 

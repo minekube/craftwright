@@ -39,6 +39,11 @@ sessions.
   must not grow per-version route trees, session APIs, action catalogs, or
   client-management behavior. Version differences are data and artifact
   selection until a real runtime boundary requires an isolated adapter.
+- Keep latest/current, representative older, and future-version support flowing
+  through the same supervisor API, resolver services, packaged driver manifest
+  model, attach environment, and generated per-client OpenAPI contract. A new
+  Minecraft version should normally add metadata or a driver artifact, not a
+  daemon feature fork.
 - A launched client is not enough completion evidence. The daemon must surface
   whether the prepared runtime session was replaced by an attached in-client
   driver before generated gameplay OpenAPI/actions/resources are claimed as
