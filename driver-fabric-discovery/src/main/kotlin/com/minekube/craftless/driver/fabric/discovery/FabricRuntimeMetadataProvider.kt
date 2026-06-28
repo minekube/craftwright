@@ -1,6 +1,9 @@
 package com.minekube.craftless.driver.fabric.discovery
 
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.protocol.RuntimeAvailability
+import com.minekube.craftless.protocol.RuntimeResourceNode
+import com.minekube.craftless.protocol.RuntimeSourceEvidence
 import net.fabricmc.loader.api.FabricLoader
 import java.security.MessageDigest
 
@@ -76,6 +79,22 @@ class FabricLoaderRuntimeMetadataReader(
             .map { container -> container.metadata.version.friendlyString }
             .orElse(null)
 }
+
+fun fabricRuntimeResourceNode(
+    metadata: DriverRuntimeMetadata,
+    sourceEvidence: List<RuntimeSourceEvidence> = emptyList(),
+): RuntimeResourceNode =
+    RuntimeResourceNode(
+        id = "runtime",
+        availability = RuntimeAvailability.available(),
+        sourceEvidence =
+            listOf(
+                RuntimeSourceEvidence("installed-mods", metadata.installedModsFingerprint),
+                RuntimeSourceEvidence("registry", metadata.registryFingerprint),
+                RuntimeSourceEvidence("server-features", metadata.serverFeatureFingerprint),
+                RuntimeSourceEvidence("permissions", metadata.permissionsFingerprint),
+            ) + sourceEvidence,
+    )
 
 fun fabricRuntimeFingerprint(
     label: String,

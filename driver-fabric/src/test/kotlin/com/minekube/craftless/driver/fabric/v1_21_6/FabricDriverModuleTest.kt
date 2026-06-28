@@ -473,6 +473,8 @@ class FabricDriverModuleTest {
         assertTrue(officialSources.contains("SnapshotFabricRuntimeMetadataProvider"))
         assertTrue(officialSources.contains("FabricLoaderRuntimeMetadataReader"))
         assertTrue(officialBackend.contains("FabricRuntimeMetadataProvider"))
+        assertTrue(officialBackend.contains("fabricRuntimeResourceNode"))
+        assertFalse(officialBackend.contains("import com.minekube.craftless.protocol.RuntimeResourceNode"))
         assertFalse(officialBackend.contains("mods:official-lane-probe"))
         assertFalse(officialBackend.contains("registries:unavailable"))
         assertFalse(officialBackend.contains("server-features:unavailable"))

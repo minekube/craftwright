@@ -1,6 +1,7 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeResourceNode
 import com.minekube.craftless.driver.fabric.runtime.FabricCompatibilityLane
 import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
@@ -85,16 +86,9 @@ internal object FabricRuntimeMetadataCapabilityProbe : FabricCapabilityProbe {
         FabricCapabilityGraphFragment(
             resources =
                 listOf(
-                    RuntimeResourceNode(
-                        id = "runtime",
-                        availability = RuntimeAvailability.available(),
-                        sourceEvidence =
-                            listOf(
-                                RuntimeSourceEvidence("installed-mods", context.runtimeMetadata.installedModsFingerprint),
-                                RuntimeSourceEvidence("registry", context.runtimeMetadata.registryFingerprint),
-                                RuntimeSourceEvidence("server-features", context.runtimeMetadata.serverFeatureFingerprint),
-                                RuntimeSourceEvidence("permissions", context.runtimeMetadata.permissionsFingerprint),
-                            ) + context.compatibilityLane.sourceEvidence(),
+                    fabricRuntimeResourceNode(
+                        metadata = context.runtimeMetadata,
+                        sourceEvidence = context.compatibilityLane.sourceEvidence(),
                     ),
                 ),
         )

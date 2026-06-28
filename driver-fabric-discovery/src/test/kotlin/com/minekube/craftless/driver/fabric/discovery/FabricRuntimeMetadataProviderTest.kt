@@ -1,5 +1,8 @@
 package com.minekube.craftless.driver.fabric.discovery
 
+import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.protocol.RuntimeAvailability
+import com.minekube.craftless.protocol.RuntimeSourceEvidence
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -45,5 +48,41 @@ class FabricRuntimeMetadataProviderTest {
         assertTrue(first.startsWith("mods:"))
         assertEquals(first, reordered)
         assertNotEquals(first, changed)
+    }
+
+    @Test
+    fun `runtime resource projection includes metadata and caller lane evidence`() {
+        val node =
+            fabricRuntimeResourceNode(
+                metadata =
+                    DriverRuntimeMetadata(
+                        loaderVersion = "0.19.3",
+                        driver = "craftless-driver-fabric-official",
+                        driverVersion = "0.1.0-SNAPSHOT",
+                        mappings = "craftless-official-bindings-26-2",
+                        installedModsFingerprint = "mods:test",
+                        registryFingerprint = "registries:not-discovered",
+                        serverFeatureFingerprint = "server-features:not-connected",
+                        permissionsFingerprint = "permissions:local-client",
+                    ),
+                sourceEvidence =
+                    listOf(
+                        RuntimeSourceEvidence("runtime-lane", "latest-current-official"),
+                        RuntimeSourceEvidence("runtime-status", "metadata-only"),
+                        RuntimeSourceEvidence("runtime-java", "java:25"),
+                    ),
+            )
+
+        val evidence = node.sourceEvidence.associate { it.kind to it.fingerprint }
+
+        assertEquals("runtime", node.id)
+        assertEquals(RuntimeAvailability.available(), node.availability)
+        assertEquals("mods:test", evidence["installed-mods"])
+        assertEquals("registries:not-discovered", evidence["registry"])
+        assertEquals("server-features:not-connected", evidence["server-features"])
+        assertEquals("permissions:local-client", evidence["permissions"])
+        assertEquals("latest-current-official", evidence["runtime-lane"])
+        assertEquals("metadata-only", evidence["runtime-status"])
+        assertEquals("java:25", evidence["runtime-java"])
     }
 }

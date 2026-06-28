@@ -9,12 +9,11 @@ import com.minekube.craftless.driver.fabric.discovery.FabricLoaderRuntimeMetadat
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataSnapshot
 import com.minekube.craftless.driver.fabric.discovery.SnapshotFabricRuntimeMetadataProvider
+import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeResourceNode
 import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.driver.runtime.DriverBackendResult
-import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
-import com.minekube.craftless.protocol.RuntimeResourceNode
 import com.minekube.craftless.protocol.RuntimeSourceEvidence
 
 internal class OfficialFabricDriverBackend(
@@ -32,14 +31,14 @@ internal class OfficialFabricDriverBackend(
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = runtimeMetadataProvider.runtimeMetadata(clientId)
 
-    override fun runtimeGraph(clientId: String): RuntimeCapabilityGraph =
-        RuntimeCapabilityGraph(
+    override fun runtimeGraph(clientId: String): RuntimeCapabilityGraph {
+        val metadata = runtimeMetadata(clientId)
+        return RuntimeCapabilityGraph(
             clientId = clientId,
             resources =
                 listOf(
-                    RuntimeResourceNode(
-                        id = "runtime",
-                        availability = RuntimeAvailability.available(),
+                    fabricRuntimeResourceNode(
+                        metadata = metadata,
                         sourceEvidence =
                             listOf(
                                 RuntimeSourceEvidence("runtime-lane", "latest-current-official"),
@@ -49,6 +48,7 @@ internal class OfficialFabricDriverBackend(
                     ),
                 ),
         )
+    }
 
     override fun invoke(
         clientId: String,
