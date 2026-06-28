@@ -244,6 +244,10 @@ Legend:
   `docs/superpowers/specs/2026-06-28-145-latest-official-mapping-lane-probe-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-145-latest-official-mapping-lane-probe-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-146-latest-official-fabric-lane-boundary-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-146-latest-official-fabric-lane-boundary-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -4097,7 +4101,7 @@ Verification:
 - [x] The latest official probe writes
   `build/reports/fabric-lane-check-latest-official.log` and
   `build/reports/fabric-lane-check-latest-official.status`.
-- [x] Current probe evidence records:
+- [x] Phase 145 probe evidence recorded:
   `status=source-compatibility-blocked` and
   `blockers=loom-remap-requires-mappings`.
 - [x] This phase adds no public gameplay API, static gameplay catalog,
@@ -4112,6 +4116,36 @@ Verification:
   `mise run fabric-lane-check-latest-official`.
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-latest-official-mapping-lane-probe.md`.
+
+## Phase 146: Latest Official Fabric Lane Boundary
+
+- [x] `settings.gradle.kts` includes `driver-fabric-official`.
+- [x] The root Gradle plugin block declares non-remap
+  `net.fabricmc.fabric-loom`.
+- [x] `driver-fabric-official` applies `net.fabricmc.fabric-loom`, not
+  `net.fabricmc.fabric-loom-remap`.
+- [x] `driver-fabric-official` uses Java 25, Minecraft `26.2`, Fabric Loader
+  `0.19.3`, and Fabric API `0.153.0+26.2`.
+- [x] `driver-fabric-official` has a minimal Fabric client entrypoint and no
+  gameplay bindings, route catalogs, generated action descriptors, or scenario
+  shortcuts.
+- [x] `fabric-lane-check-latest-official` now compiles
+  `:driver-fabric-official:compileKotlin`,
+  `:driver-fabric-official:processResources`, and
+  `:driver-fabric-official:jar` through Java 25.
+- [x] Latest official lane probe evidence now records `status=compiled`.
+- [x] This phase adds no packaged 26.x driver manifest entry, no public
+  gameplay API, no static gameplay catalog, no version-specific public route
+  family, no survival shortcut, and no final latest/current support claim.
+
+Verification:
+
+- Focused guard tests:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.latest official lane probe uses separate non remap module boundary' --tests '*FabricDriverModuleTest.mise latest lane probe uses official mapping boundary not yarn remap lane*'`.
+- Latest official lane probe:
+  `mise run fabric-lane-check-latest-official`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-latest-official-fabric-lane-boundary.md`.
 
 ## Final Completion Gate
 
@@ -4160,15 +4194,15 @@ Verification:
   140 parameterized Fabric smoke client command, and Phase 141 representative
   older Fabric real-client smoke, and Phase 142 installed packaged older
   Fabric live attach, Phase 143 installed latest-release alias compatibility
-  probe, Phase 144 latest driver lane preflight, and Phase 145 latest official
-  mapping lane probe.
+  probe, Phase 144 latest driver lane preflight, Phase 145 latest official
+  mapping lane probe, and Phase 146 latest official Fabric lane boundary.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
   122, Phase 123, Phase 124, Phase 125, Phase 126, Phase 127, Phase 128,
   Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
   135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141,
-  Phase 142, Phase 143, Phase 144, and Phase 145 do not
+  Phase 142, Phase 143, Phase 144, Phase 145, and Phase 146 do not
   satisfy the full runnable latest/older support
   requirement by themselves.
   The broader project goal remains active until
@@ -4215,9 +4249,11 @@ Verification:
   actions/resources, SSE events, and cleanup for Minecraft `1.20.6`. Phase
   144 makes missing latest/current driver lanes fail before heavy binary cache
   downloads. Phase 145 records the latest/current official-mapping probe
-  blocker as `loom-remap-requires-mappings`. Full product support still
-  requires a runnable provider-backed latest/current driver lane, final
-  compatibility audit, and honest final survival gameplay without
-  server-provisioned inventory.
+  blocker as `loom-remap-requires-mappings`, and Phase 146 removes that build
+  blocker by compiling a separate non-remap official Fabric module boundary.
+  Full product support still requires porting or extracting driver attach,
+  runtime discovery/projection/invocation, generated OpenAPI/actions/resources,
+  SSE, packaged launch, final compatibility audit, and honest final survival
+  gameplay without server-provisioned inventory.
 - [x] Changes are committed and pushed to `main`. This entry is current only
   after the checklist update that changes it is also pushed.

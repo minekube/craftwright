@@ -22,6 +22,7 @@ include(
     "driver-api",
     "driver-runtime",
     "driver-fabric",
+    "driver-fabric-official",
     "testkit",
     "daemon",
     "bridge-hmc",

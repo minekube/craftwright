@@ -272,24 +272,48 @@ class FabricDriverModuleTest {
     fun `mise latest lane probe uses official mapping boundary not yarn remap lane`() {
         val mise = Files.readString(repositoryRoot().resolve(".mise.toml"))
         val latestTask =
-            mise.substringAfter("[tasks.fabric-lane-check-latest-official]", missingDelimiterValue = "")
+            mise
+                .substringAfter("[tasks.fabric-lane-check-latest-official]", missingDelimiterValue = "")
                 .substringBefore("\n[tasks.", missingDelimiterValue = "")
 
         assertTrue(latestTask.isNotBlank(), "latest official Fabric lane probe task is missing")
         assertTrue(latestTask.contains("fabric-lane-check-latest-official.log"))
         assertTrue(latestTask.contains("fabric-lane-check-latest-official.status"))
         assertTrue(latestTask.contains("mise exec java@temurin-25.0.3+9.0.LTS gradle@9.6.0 -- gradle"))
-        assertTrue(latestTask.contains("-Pcraftless.fabric.mappingMode=official"))
-        assertTrue(latestTask.contains("-Pcraftless.fabric.minecraftVersion=26.2"))
-        assertTrue(latestTask.contains("-Pcraftless.fabric.loaderVersion=0.19.3"))
-        assertTrue(latestTask.contains("-Pcraftless.fabric.apiVersion=0.153.0+26.2"))
-        assertTrue(latestTask.contains("-Pcraftless.fabric.javaMajorVersion=25"))
-        assertTrue(latestTask.contains("-Pcraftless.fabric.laneId=fabric-latest-official-lane"))
-        assertTrue(latestTask.contains("-Pcraftless.fabric.providerId=fabric-latest-official-lane"))
-        assertTrue(latestTask.contains("-Pcraftless.fabric.artifactKey=fabric-latest-official-jar"))
-        assertTrue(latestTask.contains("-Pcraftless.fabric.mappingsFingerprint=craftless-fabric-official-bindings-26-2"))
-        assertTrue(latestTask.contains("-Pcraftless.fabric.distributionPath=mods/fabric-26.2/craftless-driver-fabric.jar"))
+        assertTrue(latestTask.contains(":driver-fabric-official:compileKotlin"))
+        assertTrue(latestTask.contains(":driver-fabric-official:processResources"))
+        assertTrue(latestTask.contains(":driver-fabric-official:jar"))
+        assertFalse(latestTask.contains("-Pcraftless.fabric.mappingMode"))
         assertFalse(latestTask.contains("craftless.fabric.yarnMappings"))
+    }
+
+    @Test
+    fun `latest official lane probe uses separate non remap module boundary`() {
+        val root = repositoryRoot()
+        val settings = Files.readString(root.resolve("settings.gradle.kts"))
+        val rootBuild = Files.readString(root.resolve("build.gradle.kts"))
+        val mise = Files.readString(root.resolve(".mise.toml"))
+        val latestTask =
+            mise
+                .substringAfter("[tasks.fabric-lane-check-latest-official]", missingDelimiterValue = "")
+                .substringBefore("\n[tasks.", missingDelimiterValue = "")
+        val officialBuild = root.resolve("driver-fabric-official/build.gradle.kts")
+
+        assertTrue(settings.contains("\"driver-fabric-official\""))
+        assertTrue(rootBuild.contains("id(\"net.fabricmc.fabric-loom\") version \"1.17.12\" apply false"))
+        assertTrue(latestTask.contains(":driver-fabric-official:compileKotlin"))
+        assertTrue(latestTask.contains(":driver-fabric-official:processResources"))
+        assertTrue(latestTask.contains(":driver-fabric-official:jar"))
+        assertFalse(latestTask.contains(":driver-fabric:compileKotlin"))
+        assertTrue(Files.exists(officialBuild), "official Fabric lane build file is missing")
+        val officialBuildSource = Files.readString(officialBuild)
+        assertTrue(officialBuildSource.contains("id(\"net.fabricmc.fabric-loom\")"))
+        assertTrue(officialBuildSource.contains("com.mojang:minecraft:26.2"))
+        assertTrue(officialBuildSource.contains("net.fabricmc:fabric-loader:0.19.3"))
+        assertTrue(officialBuildSource.contains("net.fabricmc.fabric-api:fabric-api:0.153.0+26.2"))
+        assertTrue(officialBuildSource.contains("JavaLanguageVersion.of(25)"))
+        assertFalse(officialBuildSource.contains("fabric-loom-remap"))
+        assertFalse(officialBuildSource.contains("craftless.fabric.yarnMappings"))
     }
 
     @Test

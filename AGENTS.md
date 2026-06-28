@@ -256,6 +256,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 143. installed latest-release alias compatibility probe.
 144. latest driver lane preflight.
 145. latest official-mapping lane probe.
+146. latest official Fabric lane boundary.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -339,6 +340,14 @@ blockers until a real latest driver artifact compiles, packages, launches,
 attaches, and exposes generated OpenAPI/actions/resources. This phase must not
 mark `latest-release` supported by adding a static unsupported/supported matrix
 entry, cloning gameplay bindings, or changing public API shape.
+
+Phase 146 introduces a separate internal latest/current official Fabric lane
+build boundary so the 26.x probe no longer runs through the Yarn/remap module.
+The boundary may compile a minimal in-client entrypoint and metadata under
+Java 25 with the non-remap Fabric Loom plugin, but it must not be packaged as a
+supported driver lane, added to the public driver manifest, or used as final
+runtime evidence until it can launch, self-attach, expose generated
+OpenAPI/actions/resources, stream SSE, and pass public API/CLI gameplay checks.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

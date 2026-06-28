@@ -26,7 +26,7 @@ gameplay SDK.
 | Gameplay surface | Runtime capability graph projection, not a static catalog |
 | Events | SSE streams plus JSON-RPC-style HTTP control/query calls |
 | Current Fabric lane | Verified for the compiled lane |
-| Latest and older lanes | Representative older `1.20.6` packaged attach is verified; `latest-release` resolves to `26.2`, fails early without a packaged 26.x driver lane, and the latest official-mapping probe is blocked by `loom-remap-requires-mappings` |
+| Latest and older lanes | Representative older `1.20.6` packaged attach is verified; `latest-release` resolves to `26.2`, fails early without a packaged 26.x driver lane, and the latest official module now compiles as a non-remap boundary |
 | Final gameplay evidence | Historical public API/CLI survival evidence exists; final completion still requires a refreshed run after latest/current compatibility work |
 | Completion | Still active; see `docs/project-completion-checklist.md` |
 

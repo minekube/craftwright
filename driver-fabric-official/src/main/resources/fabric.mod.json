@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "craftless-driver-fabric-official",
+  "version": "${version}",
+  "name": "Craftless Driver Fabric official lane probe",
+  "description": "Internal Craftless latest/current Fabric official-mapping lane probe.",
+  "authors": [
+    "Minekube"
+  ],
+  "license": "Apache-2.0",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.minekube.craftless.driver.fabric.official.CraftlessFabricOfficialEntrypoint"
+    ]
+  },
+  "depends": {
+    "fabric-api": ">=0.153.0+26.2",
+    "fabricloader": ">=0.19.3",
+    "minecraft": "26.2",
+    "java": ">=25"
+  }
+}
