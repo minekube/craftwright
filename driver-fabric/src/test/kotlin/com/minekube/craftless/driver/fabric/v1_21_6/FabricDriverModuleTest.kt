@@ -417,10 +417,22 @@ class FabricDriverModuleTest {
                     "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt",
                 ),
             )
+        val fabricCapabilityProbe =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricCapabilityProbe.kt",
+                ),
+            )
         val officialBackend =
             Files.readString(
                 root.resolve(
                     "driver-fabric-official/src/main/kotlin/com/minekube/craftless/driver/fabric/official/OfficialFabricDriverBackend.kt",
+                ),
+            )
+        val fabricRuntimeGraph =
+            Files.readString(
+                root.resolve(
+                    "driver-fabric-discovery/src/main/kotlin/com/minekube/craftless/driver/fabric/discovery/FabricRuntimeGraphFragment.kt",
                 ),
             )
         val officialSources =
@@ -467,14 +479,19 @@ class FabricDriverModuleTest {
         assertTrue(attachAgents.contains("lane adapter"))
         assertFalse(fabricBackend.contains("internal data class FabricRuntimeMetadataSnapshot"))
         assertFalse(fabricBackend.contains("internal class SnapshotFabricRuntimeMetadataProvider"))
+        assertFalse(fabricCapabilityProbe.contains("internal data class FabricCapabilityGraphFragment"))
+        assertTrue(fabricCapabilityProbe.contains("typealias FabricCapabilityGraphFragment = FabricRuntimeGraphFragment"))
         assertFalse(fabricBackend.contains("private fun FabricLoader.installedMods()"))
         assertFalse(officialSources.contains("OfficialFabricRuntimeMetadataProvider"))
         assertFalse(officialSources.contains("OfficialFabricRuntimeMetadataSnapshot"))
         assertTrue(officialSources.contains("SnapshotFabricRuntimeMetadataProvider"))
         assertTrue(officialSources.contains("FabricLoaderRuntimeMetadataReader"))
         assertTrue(officialBackend.contains("FabricRuntimeMetadataProvider"))
-        assertTrue(officialBackend.contains("fabricRuntimeResourceNode"))
+        assertTrue(officialBackend.contains("fabricRuntimeMetadataGraph"))
+        assertTrue(fabricRuntimeGraph.contains("fabricRuntimeResourceNode"))
+        assertTrue(fabricRuntimeGraph.contains("FabricRuntimeGraphFragment"))
         assertFalse(officialBackend.contains("import com.minekube.craftless.protocol.RuntimeResourceNode"))
+        assertFalse(officialBackend.contains("import com.minekube.craftless.protocol.RuntimeCapabilityGraph"))
         assertFalse(officialBackend.contains("mods:official-lane-probe"))
         assertFalse(officialBackend.contains("registries:unavailable"))
         assertFalse(officialBackend.contains("server-features:unavailable"))

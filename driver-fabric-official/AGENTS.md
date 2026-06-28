@@ -41,9 +41,10 @@ divergence that forced it.
   JSON-RPC-style invocation transport, SSE/lifecycle event plumbing, action
   projection, and OpenAPI generation shared by default.
 - Use `driver-fabric-discovery` for shared Fabric Loader identity,
-  installed-mod fingerprints, runtime metadata snapshots, and deterministic
-  fingerprint helpers. Do not reintroduce official-only copies of that
-  metadata plumbing.
+  installed-mod fingerprints, runtime metadata snapshots, deterministic
+  fingerprint helpers, runtime metadata projection, and protocol-level graph
+  composition. Do not reintroduce official-only copies of that metadata or
+  graph plumbing.
 - If latest/current support requires per-version code, isolate only the
   diverging adapter/accessor/provider behind the lane boundary and document the
   exact incompatibility that forced it.

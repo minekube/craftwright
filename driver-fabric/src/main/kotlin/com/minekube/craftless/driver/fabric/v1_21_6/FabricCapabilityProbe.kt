@@ -1,13 +1,14 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeGraphFragment
+import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeGraph
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeResourceNode
 import com.minekube.craftless.driver.fabric.runtime.FabricCompatibilityLane
 import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import com.minekube.craftless.protocol.RuntimeEventNode
 import com.minekube.craftless.protocol.RuntimeHandleNode
-import com.minekube.craftless.protocol.RuntimeOperationNode
 import com.minekube.craftless.protocol.RuntimeResourceNode
 import com.minekube.craftless.protocol.RuntimeSchema
 import com.minekube.craftless.protocol.RuntimeSourceEvidence
@@ -20,19 +21,14 @@ internal fun interface FabricCapabilityProbe {
     fun discover(context: FabricCapabilityProbeContext): FabricCapabilityGraphFragment
 }
 
+internal typealias FabricCapabilityGraphFragment = FabricRuntimeGraphFragment
+
 internal data class FabricCapabilityProbeContext(
     val clientId: String,
     val modeId: String,
     val gateway: FabricClientGateway?,
     val runtimeMetadata: DriverRuntimeMetadata = DriverRuntimeMetadata.runtimeAdapter(),
     val compatibilityLane: FabricCompatibilityLane? = null,
-)
-
-internal data class FabricCapabilityGraphFragment(
-    val resources: List<RuntimeResourceNode> = emptyList(),
-    val operations: List<RuntimeOperationNode> = emptyList(),
-    val handles: List<RuntimeHandleNode> = emptyList(),
-    val events: List<RuntimeEventNode> = emptyList(),
 )
 
 internal data class FabricClientCapabilitySnapshot(
@@ -62,13 +58,9 @@ internal fun defaultFabricCapabilityDiscovery(
     probes: List<FabricCapabilityProbe> = defaultFabricCapabilityProbes(),
 ): FabricCapabilityDiscovery =
     FabricCapabilityDiscovery { context ->
-        val fragments = probes.map { probe -> probe.discover(context) }
-        RuntimeCapabilityGraph(
+        fabricRuntimeGraph(
             clientId = context.clientId,
-            resources = fragments.flatMap { it.resources },
-            operations = fragments.flatMap { it.operations },
-            handles = fragments.flatMap { it.handles },
-            events = fragments.flatMap { it.events },
+            fragments = probes.map { probe -> probe.discover(context) },
         )
     }
 

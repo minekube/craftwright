@@ -9,11 +9,10 @@ import com.minekube.craftless.driver.fabric.discovery.FabricLoaderRuntimeMetadat
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataSnapshot
 import com.minekube.craftless.driver.fabric.discovery.SnapshotFabricRuntimeMetadataProvider
-import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeResourceNode
+import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeMetadataGraph
 import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.driver.runtime.DriverBackendResult
-import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import com.minekube.craftless.protocol.RuntimeSourceEvidence
 
 internal class OfficialFabricDriverBackend(
@@ -31,24 +30,17 @@ internal class OfficialFabricDriverBackend(
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = runtimeMetadataProvider.runtimeMetadata(clientId)
 
-    override fun runtimeGraph(clientId: String): RuntimeCapabilityGraph {
-        val metadata = runtimeMetadata(clientId)
-        return RuntimeCapabilityGraph(
+    override fun runtimeGraph(clientId: String) =
+        fabricRuntimeMetadataGraph(
             clientId = clientId,
-            resources =
+            metadata = runtimeMetadata(clientId),
+            sourceEvidence =
                 listOf(
-                    fabricRuntimeResourceNode(
-                        metadata = metadata,
-                        sourceEvidence =
-                            listOf(
-                                RuntimeSourceEvidence("runtime-lane", "latest-current-official"),
-                                RuntimeSourceEvidence("runtime-status", "metadata-only"),
-                                RuntimeSourceEvidence("runtime-java", "java:25"),
-                            ),
-                    ),
+                    RuntimeSourceEvidence("runtime-lane", "latest-current-official"),
+                    RuntimeSourceEvidence("runtime-status", "metadata-only"),
+                    RuntimeSourceEvidence("runtime-java", "java:25"),
                 ),
         )
-    }
 
     override fun invoke(
         clientId: String,

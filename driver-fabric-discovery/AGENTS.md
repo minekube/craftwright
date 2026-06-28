@@ -10,6 +10,7 @@ driver lanes.
 - Deterministic runtime metadata fingerprints.
 - Shared Fabric runtime metadata snapshot/provider helpers.
 - Shared Fabric runtime metadata resource projection for the runtime graph.
+- Shared protocol-level Fabric runtime graph fragments and graph composition.
 
 ## Rules
 
@@ -22,9 +23,15 @@ driver lanes.
 - Prefer generic Fabric Loader data and Craftless-owned metadata over
   per-version constants. Per-version divergence belongs in the lane adapter
   that calls this module.
-- Shared runtime graph projection may expose metadata evidence only. Lane
-  modules must provide any lane-specific source evidence and keep Minecraft
-  game-class registry/server/action discovery outside this module.
+- Shared runtime graph projection may compose protocol-level resource,
+  operation, handle, and event nodes passed in by lanes, but this module must
+  not discover Minecraft game classes or mint gameplay action catalogs itself.
+  Lane modules must provide any lane-specific source evidence and keep
+  Minecraft game-class registry/server/action discovery outside this module.
+- Keep graph composition version-agnostic. If current, older, latest/current,
+  or future Fabric versions diverge, model the difference as lane-provided
+  metadata, evidence, availability, or a narrow adapter before adding
+  per-version code.
 - Do not depend on `driver-fabric`, `driver-fabric-official`, `daemon`, or
   `cli`.
 

@@ -252,6 +252,18 @@ Legend:
   `docs/superpowers/specs/2026-06-28-150-official-fabric-runtime-metadata-discovery-design.md`.
 - [x] Plan exists:
   `docs/superpowers/plans/2026-06-28-150-official-fabric-runtime-metadata-discovery-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-151-shared-fabric-runtime-metadata-discovery-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-151-shared-fabric-runtime-metadata-discovery-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-152-shared-fabric-runtime-resource-projection-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-152-shared-fabric-runtime-resource-projection-plan.md`.
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-153-shared-fabric-runtime-graph-composition-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-153-shared-fabric-runtime-graph-composition-plan.md`.
 
 ## Phase 1: Truth And Guardrails
 
@@ -4441,6 +4453,47 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-shared-fabric-runtime-resource-projection.md`.
 
+## Phase 153: Shared Fabric Runtime Graph Composition
+
+- [x] Spec written:
+  `docs/superpowers/specs/2026-06-28-153-shared-fabric-runtime-graph-composition-design.md`.
+- [x] Plan written:
+  `docs/superpowers/plans/2026-06-28-153-shared-fabric-runtime-graph-composition-plan.md`.
+- [x] `driver-fabric-discovery` owns shared
+  `FabricRuntimeGraphFragment` and `fabricRuntimeGraph`.
+- [x] `driver-fabric-discovery` owns `fabricRuntimeMetadataGraph` for
+  metadata-only lanes.
+- [x] Shared tests prove runtime graph fragments compose resources,
+  operations, graph fingerprints, and duplicate-node validation.
+- [x] The Yarn/remap Fabric lane keeps lane-specific probes but delegates
+  fragment merging through the shared graph composer.
+- [x] The official backend uses the shared metadata graph helper and no longer
+  imports `RuntimeCapabilityGraph` directly.
+- [x] Root and driver-local `AGENTS.md` files now state that protocol-level
+  graph composition is shared and per-version code is limited to proven
+  lane-specific divergence.
+- [x] This phase adds no packaged 26.x driver manifest entry, no public
+  gameplay API, no static gameplay catalog, no version-specific public route
+  family, no survival shortcut, and no final latest/current support claim.
+
+Verification:
+
+- Red shared graph-composition test before implementation:
+  `mise exec -- gradle :driver-fabric-discovery:test :driver-fabric:test --tests '*FabricDriverModuleTest.official lane has opt in launch attach probe task without packaging support claim'`
+  failed before `fabricRuntimeGraph` and `FabricRuntimeGraphFragment` existed.
+- Focused green tests:
+  `mise exec -- gradle :driver-fabric-discovery:test :driver-fabric:test --tests '*FabricDriverModuleTest.official lane has opt in launch attach probe task without packaging support claim' :driver-fabric-official:test --tests '*OfficialFabricSharedRuntimeMetadataTest*'`.
+- Real enabled official attach probe:
+  `CRAFTLESS_OFFICIAL_FABRIC_ATTACH_PROBE=1`
+  `CRAFTLESS_OFFICIAL_ATTACH_PROBE_TIMEOUT_MS=120000`
+  `mise exec -- gradle :driver-fabric-official:officialFabricAttachProbe`.
+  Observed `status=ATTACHED`, `client=official-probe`,
+  `installedMods=mods:6d85fb9272c1d2f5`,
+  `runtimeFingerprint=graph:755b3b5233a65773`, `actions=0`, and
+  `resources=1`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-shared-fabric-runtime-graph-composition.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -4494,7 +4547,7 @@ Verification:
   dependency packaging, Phase 149 official Fabric launch attach probe, Phase
   150 official Fabric runtime metadata discovery, Phase 151 shared Fabric
   runtime metadata discovery, and Phase 152 shared Fabric runtime resource
-  projection.
+  projection, and Phase 153 shared Fabric runtime graph composition.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
@@ -4502,8 +4555,8 @@ Verification:
   Phase 129, Phase 130, Phase 131, Phase 132, Phase 133, Phase 134, Phase
   135, Phase 136, Phase 137, Phase 138, Phase 139, Phase 140, Phase 141,
   Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, Phase 147, Phase
-  148, Phase 149, Phase 150, Phase 151, and Phase 152 do not satisfy the full runnable latest/older support
-  requirement by themselves.
+  148, Phase 149, Phase 150, Phase 151, Phase 152, and Phase 153 do not
+  satisfy the full runnable latest/older support requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support
