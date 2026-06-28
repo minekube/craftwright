@@ -1,7 +1,11 @@
 package com.minekube.craftless.driver.api
 
 import com.minekube.craftless.protocol.ClientState
+import com.minekube.craftless.protocol.RuntimeAvailability
+import com.minekube.craftless.protocol.RuntimeAvailabilityState
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
+import com.minekube.craftless.protocol.RuntimeOperationNode
+import com.minekube.craftless.protocol.RuntimeSchema
 import com.minekube.craftless.protocol.isCraftlessActionArgumentName
 import com.minekube.craftless.protocol.isCraftlessActionArgumentType
 import com.minekube.craftless.protocol.isCraftlessActionId
@@ -22,7 +26,11 @@ interface DriverSession {
 
     fun connect(target: ConnectionTarget): DriverClientSnapshot
 
-    fun actions(): List<DriverActionDescriptor>
+    fun actions(): List<DriverActionDescriptor> =
+        runtimeGraph()
+            .operations
+            .sortedBy { operation -> operation.id }
+            .map { operation -> operation.toDriverActionDescriptor() }
 
     fun runtimeMetadata(): DriverRuntimeMetadata
 
@@ -234,3 +242,47 @@ private fun defaultDriverActionResultProperties(): Map<String, DriverActionResul
         "message" to DriverActionResultProperty("string"),
         "data" to DriverActionResultProperty("object"),
     )
+
+fun RuntimeOperationNode.toDriverActionDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = id,
+        schemaVersion = "1",
+        arguments = arguments.mapValues { (_, schema) -> schema.toDriverActionArgument() },
+        result = result.toDriverActionResultDescriptor(),
+        source = DriverActionSource.RUNTIME_PROBE,
+        availability = availability.toDriverActionAvailability(),
+        availabilityReason = availability.reason,
+    )
+
+fun RuntimeSchema.toDriverActionArgument(): DriverActionArgument =
+    DriverActionArgument(
+        type = type,
+        required = required,
+        properties = properties.mapValues { (_, schema) -> schema.toDriverActionArgument() },
+        items = items?.toDriverActionArgument(),
+    )
+
+fun RuntimeSchema.toDriverActionResultDescriptor(): DriverActionResultDescriptor =
+    DriverActionResultDescriptor(
+        properties =
+            mapOf(
+                "action" to DriverActionResultProperty("string"),
+                "status" to DriverActionResultProperty("string"),
+                "message" to DriverActionResultProperty("string"),
+                "data" to toDriverActionResultProperty(),
+            ),
+        required = listOf("action", "status"),
+    )
+
+fun RuntimeSchema.toDriverActionResultProperty(): DriverActionResultProperty =
+    DriverActionResultProperty(
+        type = type,
+        properties = properties.mapValues { (_, schema) -> schema.toDriverActionResultProperty() },
+        items = items?.toDriverActionResultProperty(),
+    )
+
+fun RuntimeAvailability.toDriverActionAvailability(): DriverActionAvailability =
+    when (state) {
+        RuntimeAvailabilityState.AVAILABLE -> DriverActionAvailability.AVAILABLE
+        RuntimeAvailabilityState.UNAVAILABLE -> DriverActionAvailability.UNAVAILABLE
+    }

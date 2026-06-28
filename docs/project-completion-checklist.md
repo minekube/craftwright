@@ -48,8 +48,10 @@ Codex-verifiable evidence:
   interactions, and write evidence artifacts. This is diagnostic smoke only:
   the earlier iron sword was server-provisioned and does not count as final
   completion evidence.
-- [x] Root `AGENTS.md` now states that existing hand-written gameplay bindings
-  are transitional bootstrap/evidence code, not the durable API shape.
+- [x] Root `AGENTS.md` stays short and points agents to
+  `docs/agent-operating-contract.md`, where existing hand-written gameplay
+  bindings are defined as transitional bootstrap/evidence code, not the
+  durable API shape.
 
 ## Required Specs And Plans
 
@@ -5096,6 +5098,44 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-official-fabric-json-rpc-subscription-sse-evidence.md`.
 
+## Phase 166: Runtime Graph Default Action Projection
+
+- [x] Spec written:
+  `docs/superpowers/specs/2026-06-28-166-runtime-graph-default-action-projection-design.md`.
+- [x] Plan written:
+  `docs/superpowers/plans/2026-06-28-166-runtime-graph-default-action-projection-plan.md`.
+- [x] Phase history is maintained in `docs/superpowers/phase-index.md`, not
+  appended to root `AGENTS.md`.
+- [x] `DriverSession.actions()` now defaults to sorted
+  `runtimeGraph().operations.map { it.toDriverActionDescriptor() }`.
+- [x] Shared projection helpers now live in `driver-api` for
+  `RuntimeOperationNode`, `RuntimeSchema`, and `RuntimeAvailability`.
+- [x] Fake sessions, prepared graph-empty sessions, and Fabric backend code no
+  longer duplicate graph-to-action descriptor conversion where the shared
+  projection is enough.
+- [x] The Fabric module guardrail test now reads durable version-breadth rules
+  from `docs/agent-operating-contract.md`, keeping root `AGENTS.md` short.
+- [x] This phase adds no gameplay operation, no public route, no static action
+  catalog, no action adapter, no scenario shortcut, and no official 26.x
+  support claim.
+
+Verification:
+
+- Red contract check:
+  `mise exec -- gradle :driver-api:test --tests '*DriverSessionContractTest*'`
+  failed before implementation because `GraphOnlyDriverSession` did not
+  implement abstract `actions()`.
+- Focused green contract check:
+  `mise exec -- gradle :driver-api:cleanTest :driver-api:test --tests '*DriverSessionContractTest*'`.
+- Affected module check:
+  `mise exec -- gradle :driver-api:test :testkit:test :driver-fabric:test :daemon:test :driver-fabric-official:test`.
+- Latest official lane check:
+  `mise run fabric-lane-check-latest-official`.
+- Local CI:
+  `mise run ci`.
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-runtime-graph-default-action-projection.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -5158,7 +5198,8 @@ Verification:
   Phase 161 official Fabric event-source metadata, and Phase 162 official
   Fabric connected SSE evidence, and Phase 163 official Fabric public
   projection endpoints, Phase 164 official Fabric JSON-RPC query evidence,
-  and Phase 165 official Fabric JSON-RPC subscription SSE evidence.
+  Phase 165 official Fabric JSON-RPC subscription SSE evidence, and Phase 166
+  runtime graph default action projection.
   Phase 105, Phase 107, Phase
   108, Phase 109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase
   115, Phase 116, Phase 117, Phase 118, Phase 119, Phase 120, Phase 121, Phase
@@ -5168,8 +5209,8 @@ Verification:
   Phase 142, Phase 143, Phase 144, Phase 145, Phase 146, Phase 147, Phase
   148, Phase 149, Phase 150, Phase 151, Phase 152, Phase 153, Phase 154, and
   Phase 155, Phase 156, Phase 157, Phase 158, Phase 159, Phase 160, and Phase
-  161, Phase 162, Phase 163, Phase 164, and Phase 165 do not satisfy the full
-  runnable latest/older support requirement by themselves.
+  161, Phase 162, Phase 163, Phase 164, Phase 165, and Phase 166 do not
+  satisfy the full runnable latest/older support requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

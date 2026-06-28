@@ -1,5 +1,11 @@
 package com.minekube.craftless.driver.api
 
+import com.minekube.craftless.protocol.ClientState
+import com.minekube.craftless.protocol.RuntimeAvailability
+import com.minekube.craftless.protocol.RuntimeCapabilityGraph
+import com.minekube.craftless.protocol.RuntimeOperationNode
+import com.minekube.craftless.protocol.RuntimeResourceNode
+import com.minekube.craftless.protocol.RuntimeSchema
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
@@ -47,6 +53,27 @@ class DriverSessionContractTest {
                     )
             },
         )
+    }
+
+    @Test
+    fun `driver session derives actions from runtime graph operations by default`() {
+        val session = GraphOnlyDriverSession()
+
+        val actions = session.actions()
+
+        assertEquals(listOf("inventory.query"), actions.map { action -> action.id })
+        val action = actions.single()
+        assertEquals(DriverActionSource.RUNTIME_PROBE, action.source)
+        assertEquals(DriverActionAvailability.UNAVAILABLE, action.availability)
+        assertEquals("client-not-connected", action.availabilityReason)
+        val filter = action.arguments.getValue("filter")
+        val data = action.result.properties.getValue("data")
+
+        assertEquals("object", filter.type)
+        assertEquals(true, filter.required)
+        assertEquals("string", filter.properties.getValue("item").type)
+        assertEquals("object", data.type)
+        assertEquals("array", data.properties.getValue("items").type)
     }
 
     @Test
@@ -248,4 +275,53 @@ class DriverSessionContractTest {
             }
         }
     }
+}
+
+private class GraphOnlyDriverSession : DriverSession {
+    override val clientId: String = "graph-only"
+
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot = snapshot()
+
+    override fun runtimeMetadata(): DriverRuntimeMetadata = DriverRuntimeMetadata(driver = "craftless-test")
+
+    override fun runtimeGraph(): RuntimeCapabilityGraph =
+        RuntimeCapabilityGraph(
+            clientId = clientId,
+            resources = listOf(RuntimeResourceNode("inventory", RuntimeAvailability.unavailable("client-not-connected"))),
+            operations =
+                listOf(
+                    RuntimeOperationNode(
+                        id = "inventory.query",
+                        resource = "inventory",
+                        adapter = "test.inventory-query",
+                        arguments =
+                            mapOf(
+                                "filter" to
+                                    RuntimeSchema(
+                                        type = "object",
+                                        required = true,
+                                        properties = mapOf("item" to RuntimeSchema("string")),
+                                    ),
+                            ),
+                        result =
+                            RuntimeSchema(
+                                type = "object",
+                                properties =
+                                    mapOf(
+                                        "items" to RuntimeSchema(type = "array", items = RuntimeSchema("object")),
+                                    ),
+                            ),
+                        availability = RuntimeAvailability.unavailable("client-not-connected"),
+                    ),
+                ),
+        )
+
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
+        DriverActionResult(invocation.action, DriverActionStatus.UNSUPPORTED)
+
+    override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
+
+    override fun events(): List<DriverEvent> = emptyList()
 }

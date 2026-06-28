@@ -1,19 +1,15 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
 import com.minekube.craftless.driver.api.ConnectionTarget
-import com.minekube.craftless.driver.api.DriverActionArgument
-import com.minekube.craftless.driver.api.DriverActionAvailability
 import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
-import com.minekube.craftless.driver.api.DriverActionResultDescriptor
-import com.minekube.craftless.driver.api.DriverActionResultProperty
-import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverOperationAdapter
 import com.minekube.craftless.driver.api.DriverOperationAdapters
 import com.minekube.craftless.driver.api.DriverOperationInvocation
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.driver.api.toDriverActionDescriptor
 import com.minekube.craftless.driver.fabric.discovery.FabricLoaderRuntimeMetadataReader
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataSnapshot
@@ -28,11 +24,8 @@ import com.minekube.craftless.driver.runtime.DriverBackendResult
 import com.minekube.craftless.protocol.NavigationGoal
 import com.minekube.craftless.protocol.NavigationTaskRequest
 import com.minekube.craftless.protocol.NavigationTaskState
-import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeAvailabilityState
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
-import com.minekube.craftless.protocol.RuntimeOperationNode
-import com.minekube.craftless.protocol.RuntimeSchema
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -1298,50 +1291,6 @@ private fun String.recipeHandleIndex(): Int? =
     removePrefix("recipe.handle:")
         .takeIf { it != this }
         ?.toIntOrNull()
-
-private fun RuntimeOperationNode.toDriverActionDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = id,
-        schemaVersion = "1",
-        arguments = arguments.mapValues { (_, schema) -> schema.toDriverActionArgument() },
-        result = result.toDriverActionResultDescriptor(),
-        source = DriverActionSource.RUNTIME_PROBE,
-        availability = availability.toDriverActionAvailability(),
-        availabilityReason = availability.reason,
-    )
-
-private fun RuntimeSchema.toDriverActionArgument(): DriverActionArgument =
-    DriverActionArgument(
-        type = type,
-        required = required,
-        properties = properties.mapValues { (_, schema) -> schema.toDriverActionArgument() },
-        items = items?.toDriverActionArgument(),
-    )
-
-private fun RuntimeSchema.toDriverActionResultDescriptor(): DriverActionResultDescriptor =
-    DriverActionResultDescriptor(
-        properties =
-            mapOf(
-                "action" to DriverActionResultProperty("string"),
-                "status" to DriverActionResultProperty("string"),
-                "message" to DriverActionResultProperty("string"),
-                "data" to toDriverActionResultProperty(),
-            ),
-        required = listOf("action", "status"),
-    )
-
-private fun RuntimeSchema.toDriverActionResultProperty(): DriverActionResultProperty =
-    DriverActionResultProperty(
-        type = type,
-        properties = properties.mapValues { (_, schema) -> schema.toDriverActionResultProperty() },
-        items = items?.toDriverActionResultProperty(),
-    )
-
-private fun RuntimeAvailability.toDriverActionAvailability(): DriverActionAvailability =
-    when (state) {
-        RuntimeAvailabilityState.AVAILABLE -> DriverActionAvailability.AVAILABLE
-        RuntimeAvailabilityState.UNAVAILABLE -> DriverActionAvailability.UNAVAILABLE
-    }
 
 private fun net.minecraft.client.recipebook.ClientRecipeBook.craftlessRecipeEntries(
     finder: Any?,

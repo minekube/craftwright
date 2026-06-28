@@ -48,6 +48,7 @@ not grow with every completed phase.
 - Phase 163: official Fabric public projection endpoints.
 - Phase 164: official Fabric JSON-RPC query evidence.
 - Phase 165: official Fabric JSON-RPC subscription SSE evidence.
+- Phase 166: runtime graph default action projection.
 
 ## Current Direction
 
@@ -55,6 +56,9 @@ The latest/current official lane has launch, attach, connected client-state,
 connected server-feature, registry, event-source metadata, public SSE
 lifecycle, projection endpoint, JSON-RPC query, and JSON-RPC subscription
 filter evidence.
+The shared JVM driver contract now derives `DriverSession.actions()` from
+runtime graph operations by default, so graph-backed sessions do not need a
+second hand-written action-list projection path.
 Continue by moving official 26.x support through shared Fabric
 discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
 gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the

@@ -1,12 +1,8 @@
 package com.minekube.craftless.testkit
 
 import com.minekube.craftless.driver.api.ConnectionTarget
-import com.minekube.craftless.driver.api.DriverActionArgument
-import com.minekube.craftless.driver.api.DriverActionAvailability
-import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
-import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverClientSnapshot
 import com.minekube.craftless.driver.api.DriverEvent
@@ -17,7 +13,6 @@ import com.minekube.craftless.driver.api.intArgument
 import com.minekube.craftless.driver.api.stringArgument
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.RuntimeAvailability
-import com.minekube.craftless.protocol.RuntimeAvailabilityState
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import com.minekube.craftless.protocol.RuntimeOperationNode
 import com.minekube.craftless.protocol.RuntimeResourceNode
@@ -52,12 +47,6 @@ class FakeDriverSession(
             )
         return snapshot()
     }
-
-    override fun actions(): List<DriverActionDescriptor> =
-        runtimeGraph()
-            .operations
-            .sortedBy { operation -> operation.id }
-            .map { operation -> operation.toDriverActionDescriptor() }
 
     override fun runtimeMetadata(): DriverRuntimeMetadata = fakeDriverRuntimeMetadata()
 
@@ -186,27 +175,3 @@ fun fakeDriverRuntimeMetadata(): DriverRuntimeMetadata =
         driver = "craftless-fake",
         permissionsFingerprint = "local-fake",
     )
-
-private fun RuntimeOperationNode.toDriverActionDescriptor(): DriverActionDescriptor =
-    DriverActionDescriptor(
-        id = id,
-        schemaVersion = "1",
-        arguments = arguments.mapValues { (_, schema) -> schema.toDriverActionArgument() },
-        source = DriverActionSource.RUNTIME_PROBE,
-        availability = availability.toDriverActionAvailability(),
-        availabilityReason = availability.reason,
-    )
-
-private fun RuntimeSchema.toDriverActionArgument(): DriverActionArgument =
-    DriverActionArgument(
-        type = type,
-        required = required,
-        properties = properties.mapValues { (_, schema) -> schema.toDriverActionArgument() },
-        items = items?.toDriverActionArgument(),
-    )
-
-private fun RuntimeAvailability.toDriverActionAvailability(): DriverActionAvailability =
-    when (state) {
-        RuntimeAvailabilityState.AVAILABLE -> DriverActionAvailability.AVAILABLE
-        RuntimeAvailabilityState.UNAVAILABLE -> DriverActionAvailability.UNAVAILABLE
-    }

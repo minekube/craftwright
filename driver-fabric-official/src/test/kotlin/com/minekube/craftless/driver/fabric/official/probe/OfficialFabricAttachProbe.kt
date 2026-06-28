@@ -5,7 +5,6 @@ import com.minekube.craftless.daemon.DriverSessionFactory
 import com.minekube.craftless.daemon.LocalSessionApiServer
 import com.minekube.craftless.daemon.SessionEvent
 import com.minekube.craftless.driver.api.ConnectionTarget
-import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
@@ -482,8 +481,6 @@ private class ProbePreparedDriverSession(
     override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
 
     override fun connect(target: ConnectionTarget): DriverClientSnapshot = snapshot()
-
-    override fun actions(): List<DriverActionDescriptor> = emptyList()
 
     override fun runtimeMetadata(): DriverRuntimeMetadata = DriverRuntimeMetadata(driver = "craftless-official-probe-prepared")
 
