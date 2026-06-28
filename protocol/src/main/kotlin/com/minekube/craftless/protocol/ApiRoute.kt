@@ -93,6 +93,7 @@ class ApiRouteCatalog(
                     route("POST", "/clients", "createClient", "clients", "clients", "create", "route"),
                     route("GET", "/clients/{id}", "getClient", "clients", "clients", "get", "route"),
                     route("GET", "/clients/{id}/openapi.json", "getClientOpenapiJson", "clients", "clients", "openapi", "route"),
+                    route("POST", "/clients/{id}:attach", "attachClientDriver", "clients", "clients", "attach", "method"),
                     route("POST", "/clients/{id}:connect", "clientConnect", "clients", "clients", "connect", "method"),
                     route("GET", "/clients/{id}/actions", "listClientActions", "clients", "clients", "actions", "action"),
                     route("GET", "/clients/{id}/resources", "listClientResources", "clients", "clients", "resources", "resource"),

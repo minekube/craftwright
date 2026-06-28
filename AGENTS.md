@@ -208,6 +208,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 95. launch mod materialization.
 96. Craftless driver mod launch artifact.
 97. packaged driver mod distribution.
+98. driver attach proxy.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -752,6 +753,10 @@ Phase 97 packages the Fabric driver mod for normal runtime distribution and
 threads driver-mod configuration from the CLI/Docker entrypoint into the daemon
 provider. It must not add compile-time dependencies from `daemon` or `cli` to
 `driver-fabric`; the driver jar is a runtime artifact only.
+Phase 98 adds supervisor attach/proxy plumbing so a launched client driver can
+replace the prepared placeholder session with a generic HTTP-backed
+`DriverSession`. This is lifecycle transport infrastructure; generated
+gameplay APIs still come only from the attached runtime graph/actions.
 
 ## Acceptance Scenarios Are Not Product APIs
 

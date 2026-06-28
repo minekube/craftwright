@@ -765,6 +765,18 @@ class OpenApiGenerationTest {
         assertEquals(listOf("host", "port"), connectSchema.required)
         assertEquals("string", connectSchema.properties["host"]?.type)
         assertEquals("integer", connectSchema.properties["port"]?.type)
+
+        val attachSchema =
+            document.paths["/clients/{id}:attach"]
+                ?.post
+                ?.requestBody
+                ?.content
+                ?.get("application/json")
+                ?.schema
+        assertNotNull(attachSchema)
+        assertEquals("object", attachSchema.type)
+        assertEquals(listOf("endpoint"), attachSchema.required)
+        assertEquals("string", attachSchema.properties["endpoint"]?.type)
     }
 
     @Test
@@ -780,6 +792,7 @@ class OpenApiGenerationTest {
 
         assertClientSchema(requireNotNull(document.paths["/clients"]?.post?.successSchema("201")))
         assertClientSchema(requireNotNull(document.paths["/clients/{id}"]?.get?.okSchema()))
+        assertClientSchema(requireNotNull(document.paths["/clients/{id}:attach"]?.post?.okSchema()))
         assertClientSchema(requireNotNull(document.paths["/clients/{id}:connect"]?.post?.okSchema()))
         assertClientSchema(requireNotNull(document.paths["/clients/{id}:stop"]?.post?.okSchema()))
     }
@@ -843,6 +856,8 @@ class OpenApiGenerationTest {
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:connect"]?.post?.errorSchema("400")))
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:connect"]?.post?.errorSchema("404")))
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:connect"]?.post?.errorSchema("409")))
+        assertErrorSchema(requireNotNull(document.paths["/clients/{id}:attach"]?.post?.errorSchema("400")))
+        assertErrorSchema(requireNotNull(document.paths["/clients/{id}:attach"]?.post?.errorSchema("404")))
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:run"]?.post?.errorSchema("400")))
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:run"]?.post?.errorSchema("404")))
         assertErrorSchema(requireNotNull(document.paths["/clients/{id}:run"]?.post?.errorSchema("409")))

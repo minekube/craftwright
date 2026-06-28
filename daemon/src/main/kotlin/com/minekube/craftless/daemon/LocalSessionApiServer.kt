@@ -111,7 +111,10 @@ class LocalSessionApiServer private constructor(
                     val request = json.decodeFromString<CachePrepareRequest>(call.receiveText())
                     call.respondJson(HttpStatusCode.OK, preparer.prepare(request))
                 }.getOrElse { error ->
-                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                    when (error) {
+                        is MissingClient -> call.respondMissingClient(error)
+                        else -> call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                    }
                 }
             }
             post("/cache:export") {
@@ -174,6 +177,31 @@ class LocalSessionApiServer private constructor(
                     call.respondJson(HttpStatusCode.Created, client)
                 }.getOrElse { error ->
                     call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                }
+            }
+            post("/clients/{id}:attach") {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                runCatching {
+                    service.requireActiveClient(clientId)
+                    val request = json.decodeFromString<DriverAttachRequest>(call.receiveText())
+                    require(request.endpoint.isNotBlank()) { "driver attach endpoint is required" }
+                    val client =
+                        service.attachDriver(
+                            clientId = clientId,
+                            driver = HttpDriverSession(clientId = clientId, endpoint = request.endpoint),
+                        )
+                    events +=
+                        SessionEvent(
+                            type = "client.attached",
+                            client = client.id,
+                            message = "attached driver for client ${client.id}",
+                        )
+                    call.respondJson(HttpStatusCode.OK, client)
+                }.getOrElse { error ->
+                    when (error) {
+                        is MissingClient -> call.respondMissingClient(error)
+                        else -> call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                    }
                 }
             }
             get("/clients") {
@@ -884,6 +912,11 @@ data class ErrorResponse(
 data class ConnectRequest(
     val host: String,
     val port: Int,
+)
+
+@Serializable
+data class DriverAttachRequest(
+    val endpoint: String,
 )
 
 @Serializable

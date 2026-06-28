@@ -10,8 +10,10 @@ import com.minekube.craftless.driver.api.DriverActionResultDescriptor
 import com.minekube.craftless.driver.api.DriverActionResultProperty
 import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
+import com.minekube.craftless.driver.api.DriverClientSnapshot
 import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
+import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.driver.runtime.BackendDriverSession
 import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
@@ -25,6 +27,7 @@ import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.OpenApiResourceAvailability
 import com.minekube.craftless.protocol.OpenApiResponse
 import com.minekube.craftless.protocol.Profile
+import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import com.minekube.craftless.testkit.FakeDriverSession
 import com.minekube.craftless.testkit.fakeDriverRuntimeMetadata
 import kotlinx.serialization.json.JsonPrimitive
@@ -87,6 +90,31 @@ class ClientSessionServiceTest {
         assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/stop" })
         assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/player" })
         assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/player/position" })
+    }
+
+    @Test
+    fun `attached driver replaces prepared session as openapi authority`() {
+        val service =
+            ClientSessionService.inMemory(
+                DriverSessionFactory { request ->
+                    PreparedOnlyTestDriverSession(request.id)
+                },
+            )
+        service.createClient(
+            CreateClientRequest(
+                id = "alice",
+                version = "1.21.6",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Alice"),
+            ),
+        )
+        assertEquals("craftless-prepared-client-runtime", service.openApiFor("alice").extensions["x-craftless-driver"])
+
+        service.attachDriver("alice", AttachedTestDriverSession("alice"))
+
+        val document = service.openApiFor("alice")
+        assertEquals("craftless-driver-fabric", document.extensions["x-craftless-driver"])
+        assertTrue(document.actions.any { action -> action.id == "player.chat" })
     }
 
     @Test
@@ -830,6 +858,70 @@ private class ChangingActionsBackend(
         clientId: String,
         invocation: DriverActionInvocation,
     ): DriverActionResult = DriverActionResult(invocation.action, DriverActionStatus.ACCEPTED)
+}
+
+private class PreparedOnlyTestDriverSession(
+    override val clientId: String,
+) : DriverSession {
+    override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot = snapshot()
+
+    override fun actions(): List<DriverActionDescriptor> = emptyList()
+
+    override fun runtimeMetadata(): DriverRuntimeMetadata =
+        DriverRuntimeMetadata(
+            driver = "craftless-prepared-client-runtime",
+            mappings = "runtime-launch-plan",
+            installedModsFingerprint = "mods:fabric",
+            registryFingerprint = "registries:unattached",
+            serverFeatureFingerprint = "server-features:unattached",
+            permissionsFingerprint = "permissions:workspace",
+        )
+
+    override fun runtimeGraph(): RuntimeCapabilityGraph = RuntimeCapabilityGraph(clientId = clientId)
+
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
+        DriverActionResult(
+            action = invocation.action,
+            status = DriverActionStatus.UNSUPPORTED,
+            message = "not-attached",
+        )
+
+    override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
+
+    override fun events() = emptyList<com.minekube.craftless.driver.api.DriverEvent>()
+}
+
+private class AttachedTestDriverSession(
+    override val clientId: String,
+) : DriverSession {
+    private val fake = FakeDriverSession(clientId)
+
+    override fun snapshot(): DriverClientSnapshot = fake.snapshot()
+
+    override fun connect(target: ConnectionTarget): DriverClientSnapshot = fake.connect(target)
+
+    override fun actions(): List<DriverActionDescriptor> = fake.actions()
+
+    override fun runtimeMetadata(): DriverRuntimeMetadata =
+        DriverRuntimeMetadata(
+            loaderVersion = "0.19.3",
+            driver = "craftless-driver-fabric",
+            mappings = "craftless-fabric-bindings",
+            installedModsFingerprint = "mods:attached",
+            registryFingerprint = "registries:attached",
+            serverFeatureFingerprint = "server-features:attached",
+            permissionsFingerprint = "permissions:local-client",
+        )
+
+    override fun runtimeGraph(): RuntimeCapabilityGraph = fake.runtimeGraph()
+
+    override fun invoke(invocation: DriverActionInvocation): DriverActionResult = fake.invoke(invocation)
+
+    override fun stop(): DriverClientSnapshot = fake.stop()
+
+    override fun events() = fake.events()
 }
 
 private fun fakeClientSessionService(fileStore: InstanceFileStore? = null): ClientSessionService =

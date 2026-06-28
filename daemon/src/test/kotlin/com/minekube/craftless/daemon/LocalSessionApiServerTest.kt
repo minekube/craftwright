@@ -57,6 +57,14 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import io.ktor.server.application.call
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.request.receiveText
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.routing
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
@@ -64,6 +72,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import java.net.ServerSocket
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
@@ -71,6 +80,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import io.ktor.server.cio.CIO as ServerCIO
 
 class LocalSessionApiServerTest {
     private val json = Json { ignoreUnknownKeys = true }
@@ -757,6 +767,51 @@ class LocalSessionApiServerTest {
                         assertTrue(body.contains("scanned world radius 4"))
                     }
                 }
+        }
+
+    @Test
+    fun `server attach proxies generated run calls to remote driver endpoint`() =
+        withHttpClient { http ->
+            RemoteDriverEndpoint("alice").use { remote ->
+                fakeLocalSessionApiServer().use { server ->
+                    server.start()
+                    createAlice(http, server)
+
+                    http
+                        .post(server.url("/clients/missing:attach")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"endpoint":"${remote.url}/driver"}""")
+                        }.let { response ->
+                            assertEquals(HttpStatusCode.NotFound, response.status)
+                            assertError(response.bodyAsText(), "MISSING_CLIENT", "client missing not found")
+                        }
+
+                    http
+                        .post(server.url("/clients/alice:attach")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"endpoint":"${remote.url}/driver"}""")
+                        }.let { response ->
+                            assertEquals(HttpStatusCode.OK, response.status)
+                        }
+
+                    http.get(server.url("/clients/alice/openapi.json")).let { response ->
+                        val document = json.decodeFromString<OpenApiDocument>(response.bodyAsText())
+                        assertEquals("craftless-driver-fabric", document.extensions["x-craftless-driver"])
+                        assertTrue(document.actions.any { action -> action.id == "player.chat" })
+                    }
+
+                    http
+                        .post(server.url("/clients/alice:run")) {
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"action":"player.chat","args":{"message":"hello attached"}}""")
+                        }.let { response ->
+                            assertEquals(HttpStatusCode.OK, response.status)
+                            assertTrue(response.bodyAsText().contains("hello attached"))
+                        }
+
+                    assertEquals(listOf("player.chat:hello attached"), remote.invocations)
+                }
+            }
         }
 
     @Test
@@ -1801,6 +1856,111 @@ private data class RecordedClientRuntimeLaunch(
     val launch: CacheLaunchPlan,
     val files: InstanceFiles,
 )
+
+private class RemoteDriverEndpoint(
+    private val clientId: String,
+) : AutoCloseable {
+    private val port = allocateLoopbackPort()
+    private val engine =
+        embeddedServer(ServerCIO, host = "127.0.0.1", port = port) {
+            routing {
+                get("/driver/snapshot") {
+                    call.respondJson(DriverClientSnapshot(clientId, ClientState.RUNNING))
+                }
+                post("/driver/connect") {
+                    call.respondJson(DriverClientSnapshot(clientId, ClientState.CONNECTED))
+                }
+                get("/driver/actions") {
+                    call.respondJson(listOf(remoteChatActionDescriptor()))
+                }
+                get("/driver/runtime-metadata") {
+                    call.respondJson(remoteDriverRuntimeMetadata())
+                }
+                get("/driver/runtime-graph") {
+                    call.respondJson(remoteRuntimeGraph(clientId))
+                }
+                post("/driver/invoke") {
+                    val invocation = remoteJson.decodeFromString<DriverActionInvocation>(call.receiveText())
+                    val message =
+                        invocation.arguments["message"]
+                            ?.jsonPrimitive
+                            ?.content
+                            .orEmpty()
+                    invocations += "${invocation.action}:$message"
+                    call.respondJson(
+                        DriverActionResult(
+                            action = invocation.action,
+                            status = DriverActionStatus.ACCEPTED,
+                            message = message,
+                        ),
+                    )
+                }
+                post("/driver/stop") {
+                    call.respondJson(DriverClientSnapshot(clientId, ClientState.STOPPED))
+                }
+                get("/driver/events") {
+                    call.respondJson(emptyList<DriverEvent>())
+                }
+            }
+        }
+    val invocations = mutableListOf<String>()
+    val url: String = "http://127.0.0.1:$port"
+
+    init {
+        engine.start()
+    }
+
+    override fun close() {
+        engine.stop(gracePeriodMillis = 250, timeoutMillis = 1_000)
+    }
+}
+
+private fun remoteChatActionDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = "player.chat",
+        schemaVersion = "1",
+        arguments = mapOf("message" to DriverActionArgument("string", required = true)),
+        source = DriverActionSource.RUNTIME_PROBE,
+    )
+
+private fun remoteDriverRuntimeMetadata(): DriverRuntimeMetadata =
+    DriverRuntimeMetadata(
+        loaderVersion = "0.19.3",
+        driver = "craftless-driver-fabric",
+        mappings = "craftless-fabric-bindings",
+        installedModsFingerprint = "mods:remote",
+        registryFingerprint = "registries:remote",
+        serverFeatureFingerprint = "server-features:remote",
+        permissionsFingerprint = "permissions:remote",
+    )
+
+private fun remoteRuntimeGraph(clientId: String): RuntimeCapabilityGraph =
+    RuntimeCapabilityGraph(
+        clientId = clientId,
+        resources = listOf(RuntimeResourceNode("player", RuntimeAvailability.available())),
+        operations =
+            listOf(
+                RuntimeOperationNode(
+                    id = "player.chat",
+                    resource = "player",
+                    adapter = "remote.chat",
+                    arguments = mapOf("message" to RuntimeSchema("string", required = true)),
+                    availability = RuntimeAvailability.available(),
+                ),
+            ),
+    )
+
+private suspend inline fun <reified T> io.ktor.server.application.ApplicationCall.respondJson(value: T) {
+    respondText(remoteJson.encodeToString(value), ContentType.Application.Json)
+}
+
+private fun allocateLoopbackPort(): Int =
+    ServerSocket(0).use { socket ->
+        socket.reuseAddress = true
+        socket.localPort
+    }
+
+private val remoteJson = Json { encodeDefaults = true }
 
 private class RecordingClientRuntimeLauncher : ClientRuntimeLauncher {
     val launches = mutableListOf<RecordedClientRuntimeLaunch>()

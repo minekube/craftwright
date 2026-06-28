@@ -595,6 +595,7 @@ private fun ApiRoute.responses(actionsById: Map<String, OpenApiAction>): Map<Str
                 path == "/cache:cleanup" && method == "POST" -> cacheCleanupResponse()
                 path == "/clients" && method == "GET" -> clientListResponse()
                 path == "/clients" && method == "POST" -> clientResponse()
+                path.endsWith(":attach") && method == "POST" -> clientResponse()
                 path.endsWith(":connect") && method == "POST" -> clientResponse()
                 path.endsWith(":stop") && method == "POST" -> clientResponse()
                 path.matches(Regex("/clients/\\{?[^/]+}?")) && method == "GET" -> clientResponse()
@@ -613,6 +614,7 @@ private fun ApiRoute.errorStatuses(): List<String> =
         path == "/cache:prepare" && method == "POST" -> listOf("400")
         path == "/cache:export" && method == "POST" -> listOf("400")
         path == "/cache:cleanup" && method == "POST" -> listOf("400")
+        path.endsWith(":attach") && method == "POST" -> listOf("400", "404")
         path.endsWith(":connect") && method == "POST" -> listOf("400", "404", "409")
         source == "action" && method == "POST" -> listOf("400", "404", "409")
         path.endsWith(":run") && method == "POST" -> listOf("400", "404", "409")
@@ -633,6 +635,7 @@ private fun ApiRoute.requestBody(actionsById: Map<String, OpenApiAction>): OpenA
         path == "/cache:export" -> cacheExportRequestBody()
         path == "/cache:cleanup" -> cacheCleanupRequestBody()
         path == "/clients" -> createClientRequestBody()
+        path.endsWith(":attach") -> attachDriverRequestBody()
         path.endsWith(":connect") -> connectRequestBody()
         path.endsWith(":run") -> genericActionRequestBody()
         else -> null
@@ -1088,6 +1091,21 @@ private fun connectRequestBody(): OpenApiRequestBody =
                             "port" to OpenApiSchema(type = "integer"),
                         ),
                     required = listOf("host", "port"),
+                ),
+            ),
+    )
+
+private fun attachDriverRequestBody(): OpenApiRequestBody =
+    OpenApiRequestBody(
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "endpoint" to OpenApiSchema(type = "string"),
+                        ),
+                    required = listOf("endpoint"),
                 ),
             ),
     )

@@ -65,6 +65,16 @@ class ClientSessionService private constructor(
 
     fun driverFor(clientId: String): DriverSession = drivers[clientId] ?: error("client $clientId not found")
 
+    fun attachDriver(
+        clientId: String,
+        driver: DriverSession,
+    ): Client {
+        require(clients.containsKey(clientId)) { "client $clientId not found" }
+        require(driver.clientId == clientId) { "attached driver client id must match $clientId" }
+        drivers[clientId] = driver
+        return updateState(clientId, driver.snapshot().state)
+    }
+
     fun connectClient(
         clientId: String,
         target: ConnectionTarget,

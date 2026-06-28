@@ -3110,6 +3110,32 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-packaged-driver-mod-distribution.md`.
 
+## Phase 98: Driver Attach Proxy
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-98-driver-attach-proxy-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-98-driver-attach-proxy-plan.md`.
+- [x] A prepared client session can be replaced by an attached driver session.
+- [x] `POST /clients/{id}:attach` can attach a loopback HTTP driver endpoint.
+- [x] Attached generated OpenAPI/actions/runtime metadata are projected from
+  the attached driver, not the prepared placeholder.
+- [x] `POST /clients/{id}:run` can invoke through the attached HTTP driver
+  endpoint.
+- [~] Fabric in-client endpoint startup remains open for the next phase.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, new compiled
+  lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red guard:
+  `mise exec -- gradle :daemon:test --tests '*ClientSessionServiceTest.attached driver replaces prepared session as openapi authority*'`
+- Red guard:
+  `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.server attach proxies generated run calls to remote driver endpoint*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-driver-attach-proxy.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3126,7 +3152,8 @@ Verification:
   completion gate, and Phase 92 build-generated compiled lane metadata, and
   Phase 93 static unsupported version lane removal, and Phase 94 Fabric API
   cache resolution, Phase 95 launch mod materialization, Phase 96 Craftless
-  driver mod launch artifact, and Phase 97 packaged driver mod distribution.
+  driver mod launch artifact, Phase 97 packaged driver mod distribution, and
+  Phase 98 driver attach proxy.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support
