@@ -3,8 +3,9 @@ package com.minekube.craftless.driver.fabric.v1_21_6
 import com.minekube.craftless.protocol.RuntimeSourceEvidence
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Proxy
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
@@ -42,7 +43,7 @@ internal object FabricEventCallbacks {
 
         ClientTickEvents.START_CLIENT_TICK.register { record(CLIENT_TICK_START) }
         ClientTickEvents.END_CLIENT_TICK.register { record(CLIENT_TICK_END) }
-        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register { _, _ -> record(CLIENT_WORLD_CHANGE) }
+        registerClientWorldChangeCallbackReflectively()
         ClientEntityEvents.ENTITY_LOAD.register { _, _ -> record(CLIENT_ENTITY_LOAD) }
         ClientEntityEvents.ENTITY_UNLOAD.register { _, _ -> record(CLIENT_ENTITY_UNLOAD) }
         ClientPlayConnectionEvents.JOIN.register { _, _, _ -> record(PLAY_JOIN) }
@@ -59,8 +60,46 @@ internal object FabricEventCallbacks {
     private fun record(source: String) {
         counters.getValue(source).incrementAndGet()
     }
+
+    private fun registerClientWorldChangeCallbackReflectively(): Boolean =
+        try {
+            val eventsClass = Class.forName(listOf(FABRIC_CLIENT_LIFECYCLE_PACKAGE, clientWorldEventTypeName()).joinToString("."))
+            val listenerClass = Class.forName("${eventsClass.name}\$AfterClientWorldChange")
+            val event = eventsClass.getField("AFTER_CLIENT_WORLD_CHANGE").get(null)
+            val listener =
+                Proxy.newProxyInstance(listenerClass.classLoader, arrayOf(listenerClass)) { proxy, method, args ->
+                    when (method.name) {
+                        "toString" -> "craftless-client-world-change-listener"
+                        "hashCode" -> System.identityHashCode(proxy)
+                        "equals" -> proxy === args?.firstOrNull()
+                        else -> {
+                            record(CLIENT_WORLD_CHANGE)
+                            null
+                        }
+                    }
+                }
+            val register =
+                event.javaClass.methods.firstOrNull { method -> method.name == "register" && method.parameterCount == 1 }
+                    ?: return false
+            register.invoke(event, listener)
+            true
+        } catch (_: ClassNotFoundException) {
+            false
+        } catch (_: NoSuchFieldException) {
+            false
+        } catch (_: IllegalAccessException) {
+            false
+        } catch (_: InvocationTargetException) {
+            false
+        } catch (_: LinkageError) {
+            false
+        }
+
+    private fun clientWorldEventTypeName(): String = listOf("Client", "World", "Events").joinToString("")
 }
 
 internal data class FabricEventCallbackSnapshot(
     val counts: Map<String, Long>,
 )
+
+private const val FABRIC_CLIENT_LIFECYCLE_PACKAGE = "net.fabricmc.fabric.api.client.event.lifecycle.v1"

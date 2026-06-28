@@ -58,8 +58,11 @@ if [ "$status" -eq 0 ]; then
 fi
 grep -q "Unresolved reference 'PlayerInput'" build/reports/fabric-lane-check-older.log
 grep -q "Unresolved reference 'RecipeDisplayEntry'" build/reports/fabric-lane-check-older.log
-grep -q "Unresolved reference 'ClientWorldEvents'" build/reports/fabric-lane-check-older.log
-printf 'status=source-compatibility-blocked\\nblockers=PlayerInput,RecipeDisplayEntry,ClientWorldEvents\\n' > build/reports/fabric-lane-check-older.status
+if grep -q "Unresolved reference 'ClientWorldEvents'" build/reports/fabric-lane-check-older.log; then
+  echo "unexpected ClientWorldEvents compile blocker remained after reflective callback registration" >&2
+  exit 1
+fi
+printf 'status=source-compatibility-blocked\\nblockers=PlayerInput,RecipeDisplayEntry\\n' > build/reports/fabric-lane-check-older.status
 cat build/reports/fabric-lane-check-older.status
 """
 

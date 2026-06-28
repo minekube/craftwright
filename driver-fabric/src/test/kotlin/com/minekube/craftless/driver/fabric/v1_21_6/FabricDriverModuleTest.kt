@@ -329,6 +329,17 @@ class FabricDriverModuleTest {
     }
 
     @Test
+    fun `fabric event callbacks do not compile against optional world change event`() {
+        val source =
+            Files.readString(
+                repositoryRoot()
+                    .resolve("driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricEventCallbacks.kt"),
+            )
+
+        assertFalse(source.contains("ClientWorldEvents"))
+    }
+
+    @Test
     fun `fabric backend exposes driver runtime actions without changing daemon contract`() {
         val backend = FabricDriverBackend.metadataOnly()
 
