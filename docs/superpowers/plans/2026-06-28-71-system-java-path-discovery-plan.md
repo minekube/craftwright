@@ -100,7 +100,7 @@
   mise run ci
   ```
 
-- [ ] **Step 3: Commit, push, and verify CI**
+- [x] **Step 3: Commit, push, and verify CI**
 
   Run:
 
