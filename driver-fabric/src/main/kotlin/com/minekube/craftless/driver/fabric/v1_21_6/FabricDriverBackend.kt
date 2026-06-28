@@ -1,9 +1,14 @@
 package com.minekube.craftless.driver.fabric.v1_21_6
 
 import com.minekube.craftless.driver.api.ConnectionTarget
+import com.minekube.craftless.driver.api.DriverActionArgument
+import com.minekube.craftless.driver.api.DriverActionAvailability
 import com.minekube.craftless.driver.api.DriverActionDescriptor
 import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
+import com.minekube.craftless.driver.api.DriverActionResultDescriptor
+import com.minekube.craftless.driver.api.DriverActionResultProperty
+import com.minekube.craftless.driver.api.DriverActionSource
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverOperationAdapter
 import com.minekube.craftless.driver.api.DriverOperationAdapters
@@ -19,8 +24,11 @@ import com.minekube.craftless.driver.runtime.DriverBackendResult
 import com.minekube.craftless.protocol.NavigationGoal
 import com.minekube.craftless.protocol.NavigationTaskRequest
 import com.minekube.craftless.protocol.NavigationTaskState
+import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeAvailabilityState
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
+import com.minekube.craftless.protocol.RuntimeOperationNode
+import com.minekube.craftless.protocol.RuntimeSchema
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -89,7 +97,8 @@ class FabricDriverBackend private constructor(
         )
     }
 
-    override fun actions(clientId: String): List<DriverActionDescriptor> = discoveredActions(clientId).map { it.descriptor }
+    override fun actions(clientId: String): List<DriverActionDescriptor> =
+        runtimeGraph(clientId).operations.sortedBy { operation -> operation.id }.map { operation -> operation.toDriverActionDescriptor() }
 
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = runtimeMetadataProvider.runtimeMetadata(clientId)
 
@@ -1297,6 +1306,50 @@ private fun String.recipeHandleIndex(): Int? =
 
 private fun String.fabricOperationAdapterKey(): String = "fabric.${replace(".", "-")}"
 
+private fun RuntimeOperationNode.toDriverActionDescriptor(): DriverActionDescriptor =
+    DriverActionDescriptor(
+        id = id,
+        schemaVersion = "1",
+        arguments = arguments.mapValues { (_, schema) -> schema.toDriverActionArgument() },
+        result = result.toDriverActionResultDescriptor(),
+        source = DriverActionSource.RUNTIME_PROBE,
+        availability = availability.toDriverActionAvailability(),
+        availabilityReason = availability.reason,
+    )
+
+private fun RuntimeSchema.toDriverActionArgument(): DriverActionArgument =
+    DriverActionArgument(
+        type = type,
+        required = required,
+        properties = properties.mapValues { (_, schema) -> schema.toDriverActionArgument() },
+        items = items?.toDriverActionArgument(),
+    )
+
+private fun RuntimeSchema.toDriverActionResultDescriptor(): DriverActionResultDescriptor =
+    DriverActionResultDescriptor(
+        properties =
+            mapOf(
+                "action" to DriverActionResultProperty("string"),
+                "status" to DriverActionResultProperty("string"),
+                "message" to DriverActionResultProperty("string"),
+                "data" to toDriverActionResultProperty(),
+            ),
+        required = listOf("action", "status"),
+    )
+
+private fun RuntimeSchema.toDriverActionResultProperty(): DriverActionResultProperty =
+    DriverActionResultProperty(
+        type = type,
+        properties = properties.mapValues { (_, schema) -> schema.toDriverActionResultProperty() },
+        items = items?.toDriverActionResultProperty(),
+    )
+
+private fun RuntimeAvailability.toDriverActionAvailability(): DriverActionAvailability =
+    when (state) {
+        RuntimeAvailabilityState.AVAILABLE -> DriverActionAvailability.AVAILABLE
+        RuntimeAvailabilityState.UNAVAILABLE -> DriverActionAvailability.UNAVAILABLE
+    }
+
 private fun net.minecraft.client.recipebook.ClientRecipeBook.craftlessRecipeEntries(
     finder: RecipeFinder,
     features: FeatureSet?,
@@ -1553,13 +1606,17 @@ internal class GatewayFabricServerFeatureProvider(
     private val gateway: FabricClientGateway,
 ) {
     fun serverFeatures(): List<String> =
-        gateway.queryOnClient {
-            listOf(
-                "connection:${if (networkHandler != null && player != null) "connected" else "disconnected"}",
-                "server:${serverKind()}",
-                "local-server:$isConnectedToLocalServer",
-                "feature-set:${networkHandler?.enabledFeatures?.hashCode() ?: "none"}",
-            )
+        try {
+            gateway.queryOnClient {
+                listOf(
+                    "connection:${if (networkHandler != null && player != null) "connected" else "disconnected"}",
+                    "server:${serverKind()}",
+                    "local-server:$isConnectedToLocalServer",
+                    "feature-set:${networkHandler?.enabledFeatures?.hashCode() ?: "none"}",
+                )
+            }
+        } catch (_: ClassCastException) {
+            listOf("server-features:unavailable")
         }
 }
 
@@ -1575,9 +1632,9 @@ private class FabricLoaderRuntimeMetadataProvider(
             loaderVersion = loader.versionFor(FABRIC_LOADER_ID) ?: "unknown",
             driverVersion = loader.versionFor(FABRIC_DRIVER_ID) ?: FABRIC_DRIVER_VERSION,
             installedMods = loader.installedMods(),
-            registries = runtimeRegistryEntries(),
+            registries = safeRuntimeRegistryEntries(),
             serverFeatures =
-                listOf("environment:${if (loader.isDevelopmentEnvironment) "dev" else "runtime"}") +
+                listOf("environment:${if (loader.safeIsDevelopmentEnvironment()) "dev" else "runtime"}") +
                     GatewayFabricServerFeatureProvider(gateway).serverFeatures(),
         )
     }
@@ -1602,6 +1659,13 @@ private fun FabricLoader.installedMods(): List<String> =
         .map { "${it.metadata.id}@${it.metadata.version.friendlyString}" }
         .sorted()
 
+private fun FabricLoader.safeIsDevelopmentEnvironment(): Boolean =
+    try {
+        isDevelopmentEnvironment
+    } catch (_: NullPointerException) {
+        false
+    }
+
 private fun runtimeRegistryEntries(): List<String> =
     listOf(
         registryEntries("block", Registries.BLOCK),
@@ -1611,6 +1675,19 @@ private fun runtimeRegistryEntries(): List<String> =
         registryEntries("status-effect", Registries.STATUS_EFFECT),
         registryEntries("game-event", Registries.GAME_EVENT),
     ).flatten()
+
+private fun safeRuntimeRegistryEntries(): List<String> =
+    try {
+        runtimeRegistryEntries()
+    } catch (_: IllegalArgumentException) {
+        listOf("registry:unavailable-unbootstrapped")
+    } catch (_: IllegalStateException) {
+        listOf("registry:unavailable-unbootstrapped")
+    } catch (_: ExceptionInInitializerError) {
+        listOf("registry:unavailable-unbootstrapped")
+    } catch (_: NoClassDefFoundError) {
+        listOf("registry:unavailable-unbootstrapped")
+    }
 
 private fun registryEntries(
     label: String,

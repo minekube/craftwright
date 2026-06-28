@@ -2407,15 +2407,52 @@ Verification:
 - `mise run ci`
 - GitHub Actions CI for the pushed `main` commit
 
+## Phase 77: Graph-Owned Fabric Actions
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-77-graph-owned-fabric-actions-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-77-graph-owned-fabric-actions-plan.md`.
+- [x] Public Fabric action descriptors returned by `FabricDriverBackend.actions`
+  are projected from `RuntimeCapabilityGraph.operations`.
+- [x] Public Fabric action descriptors now use
+  `DriverActionSource.RUNTIME_PROBE` instead of `DriverActionSource.BINDING`
+  when exposed through `actions()`.
+- [x] Transitional `FabricActionBinding` implementations remain private
+  execution adapters; the phase does not add new Fabric descriptor/binding
+  pairs or gameplay breadth.
+- [x] Unit tests preserve generated-operation invocation behavior while
+  updating source assertions to the graph-owned public descriptor source.
+- [~] The broader binding-exit blocker remains active until descriptor schemas
+  and future gameplay breadth no longer depend on hand-maintained bootstrap
+  descriptor/schema code.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric descriptor/binding pair, scenario shortcut, new
+  compiled lane, public version-specific API, or new Minecraft support claim.
+
+Verification:
+
+- Red test:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric public actions are projected from runtime graph instead of binding descriptors*'`
+- Green focused test:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric public actions are projected from runtime graph instead of binding descriptors*'`
+- Focused regression:
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric runtime discovery probes client state before advertising unavailable raycast*' --tests '*FabricDriverModuleTest.fabric runtime discovery exposes player query only from client state*' --tests '*FabricDriverModuleTest.fabric runtime discovery exposes inventory equip only from client state*'`
+- Full Fabric regression:
+  `mise exec -- gradle :driver-fabric:test`
+- Final local and remote verification are recorded in
+  `docs/superpowers/evidence/2026-06-28-graph-owned-fabric-actions.md`.
+
 ## Final Completion Gate
 
-- [~] All implementation phases above have current Phase 75 evidence and a
-  Phase 76 completion audit. The broader project goal remains active until the
-  transitional hand-written Fabric action allowlist no longer owns public
-  gameplay breadth, latest and representative older runtime lanes have the
-  requested support or an explicitly accepted support boundary, and every
-  generic-discovery, multi-version, transport, CLI, docs, and gameplay
-  requirement is reverified after that exit work.
+- [~] All implementation phases above have current Phase 75 evidence, a Phase
+  76 completion audit, and Phase 77 graph-owned public Fabric action
+  descriptors. The broader project goal remains active until transitional
+  binding/schema bootstrap code no longer owns future public gameplay breadth,
+  latest and representative older runtime lanes have the requested support or
+  an explicitly accepted support boundary, and every generic-discovery,
+  multi-version, transport, CLI, docs, and gameplay requirement is reverified
+  after that exit work.
 - [x] `mise run lint` passes. Current 2026-06-28 evidence: `mise run ci`
   completed lint successfully before this checklist update.
 - [x] `mise run architecture-check` passes. Current 2026-06-28 evidence:

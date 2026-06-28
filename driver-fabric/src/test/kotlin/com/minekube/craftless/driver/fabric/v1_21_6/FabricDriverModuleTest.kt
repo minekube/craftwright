@@ -978,11 +978,47 @@ class FabricDriverModuleTest {
 
         val actionIds = backend.actions("alice").map { it.id }.toSet()
 
-        assertEquals(setOf("player.chat", "player.move"), actionIds)
+        assertTrue("player.chat" in actionIds)
+        assertTrue("world.block.query" in actionIds)
+        assertTrue("entity.attack" in actionIds)
+        assertFalse("find.tree" in actionIds)
+        assertFalse("mine.log" in actionIds)
+        assertFalse("craft.sword" in actionIds)
+        assertFalse("kill.cow" in actionIds)
     }
 
     @Test
-    fun `hand written fabric gameplay descriptors stay transitional and graph represented`() {
+    fun `fabric public actions are projected from runtime graph instead of binding descriptors`() {
+        val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
+        val backend =
+            FabricDriverBackend.real(
+                gateway = gateway,
+                runtimeMetadataProvider = blockQueryRuntimeMetadataProvider(),
+            )
+
+        val actions = backend.actions("alice")
+
+        assertTrue(actions.any { it.id == "player.query" })
+        assertTrue(actions.any { it.id == "inventory.equip" })
+        assertTrue(actions.any { it.id == "world.block.break" })
+        assertTrue(actions.all { it.source == DriverActionSource.RUNTIME_PROBE })
+        assertEquals(DriverActionAvailability.AVAILABLE, actions.single { it.id == "player.query" }.availability)
+        assertEquals(null, actions.single { it.id == "player.query" }.availabilityReason)
+        assertEquals("integer", actions.single { it.id == "inventory.equip" }.arguments["slot"]?.type)
+        assertEquals(true, actions.single { it.id == "inventory.equip" }.arguments["slot"]?.required)
+        assertEquals(
+            "object",
+            actions
+                .single { it.id == "player.query" }
+                .result
+                .properties["data"]
+                ?.type,
+        )
+    }
+
+    @Test
+    fun `hand written fabric gameplay bindings stay transitional and graph represented`() {
         val root = repositoryRoot()
         val allowlist = transitionalFabricActionAllowlist(root)
         val source =
@@ -1009,7 +1045,7 @@ class FabricDriverModuleTest {
         assertEquals(
             allowlist,
             descriptorIds,
-            "Hand-written Fabric gameplay descriptors are transitional only; " +
+            "Hand-written Fabric gameplay binding descriptors are transitional private adapter metadata only; " +
                 "new public gameplay breadth must be discovered through the runtime graph.",
         )
         assertTrue(
@@ -1041,7 +1077,7 @@ class FabricDriverModuleTest {
                     },
             )
 
-        val action = backend.actions("alice").single()
+        val action = backend.actions("alice").single { it.id == "player.raycast" }
         val result = backend.invoke("alice", DriverActionInvocation("player.raycast"))
 
         assertEquals("player.raycast", action.id)
@@ -1089,9 +1125,17 @@ class FabricDriverModuleTest {
                         },
                     ),
             )
-        val backend = FabricDriverBackend.metadataOnly(discovery)
+        val actions =
+            discovery.discover(
+                FabricActionDiscoveryContext(
+                    clientId = "alice",
+                    modeId = "metadata-only",
+                    gateway = null,
+                    bindings = emptyMap(),
+                ),
+            )
 
-        assertEquals(listOf("player.raycast", "screen.query"), backend.actions("alice").map { it.id })
+        assertEquals(listOf("player.raycast", "screen.query"), actions.map { it.descriptor.id })
     }
 
     @Test
@@ -1118,9 +1162,17 @@ class FabricDriverModuleTest {
                         },
                     ),
             )
-        val backend = FabricDriverBackend.metadataOnly(discovery)
-
-        val error = assertFailsWith<IllegalArgumentException> { backend.actions("alice") }
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                discovery.discover(
+                    FabricActionDiscoveryContext(
+                        clientId = "alice",
+                        modeId = "metadata-only",
+                        gateway = null,
+                        bindings = emptyMap(),
+                    ),
+                )
+            }
 
         assertEquals("duplicate discovered Fabric action id player.query", error.message)
     }
@@ -1149,7 +1201,7 @@ class FabricDriverModuleTest {
 
         gateway.connected = true
         val connectedRaycast = backend.actions("alice").single { it.id == "player.raycast" }
-        assertEquals(DriverActionSource.BINDING, connectedRaycast.source)
+        assertEquals(DriverActionSource.RUNTIME_PROBE, connectedRaycast.source)
         assertEquals(DriverActionAvailability.AVAILABLE, connectedRaycast.availability)
         assertEquals(null, connectedRaycast.availabilityReason)
         assertEquals("object", connectedRaycast.result.properties["data"]?.type)
@@ -1224,7 +1276,7 @@ class FabricDriverModuleTest {
         val player = backend.actions("alice").single { it.id == "player.query" }
         val result = backend.invoke("alice", DriverActionInvocation("player.query"))
 
-        assertEquals(DriverActionSource.BINDING, player.source)
+        assertEquals(DriverActionSource.RUNTIME_PROBE, player.source)
         assertEquals(DriverActionAvailability.AVAILABLE, player.availability)
         assertEquals(null, player.availabilityReason)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
@@ -1282,7 +1334,7 @@ class FabricDriverModuleTest {
                 ),
             )
 
-        assertEquals(DriverActionSource.BINDING, look.source)
+        assertEquals(DriverActionSource.RUNTIME_PROBE, look.source)
         assertEquals(DriverActionAvailability.AVAILABLE, look.availability)
         assertEquals(null, look.availabilityReason)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
@@ -1368,7 +1420,7 @@ class FabricDriverModuleTest {
         val inventory = backend.actions("alice").single { it.id == "inventory.query" }
         val result = backend.invoke("alice", DriverActionInvocation("inventory.query"))
 
-        assertEquals(DriverActionSource.BINDING, inventory.source)
+        assertEquals(DriverActionSource.RUNTIME_PROBE, inventory.source)
         assertEquals(DriverActionAvailability.AVAILABLE, inventory.availability)
         assertEquals(null, inventory.availabilityReason)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
@@ -1421,7 +1473,7 @@ class FabricDriverModuleTest {
                 ),
             )
 
-        assertEquals(DriverActionSource.BINDING, equip.source)
+        assertEquals(DriverActionSource.RUNTIME_PROBE, equip.source)
         assertEquals(DriverActionAvailability.AVAILABLE, equip.availability)
         assertEquals(null, equip.availabilityReason)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
@@ -1507,7 +1559,7 @@ class FabricDriverModuleTest {
                 ),
             )
 
-        assertEquals(DriverActionSource.BINDING, blockBreak.source)
+        assertEquals(DriverActionSource.RUNTIME_PROBE, blockBreak.source)
         assertEquals(DriverActionAvailability.AVAILABLE, blockBreak.availability)
         assertEquals(null, blockBreak.availabilityReason)
         assertEquals("object", blockBreak.arguments["target"]?.type)
@@ -2506,7 +2558,7 @@ class FabricDriverModuleTest {
                 ),
             )
 
-        assertEquals(DriverActionSource.BINDING, blockInteract.source)
+        assertEquals(DriverActionSource.RUNTIME_PROBE, blockInteract.source)
         assertEquals(DriverActionAvailability.AVAILABLE, blockInteract.availability)
         assertEquals(null, blockInteract.availabilityReason)
         assertEquals("object", blockInteract.arguments["target"]?.type)
@@ -2650,7 +2702,7 @@ class FabricDriverModuleTest {
         val worldTime = backend.actions("alice").single { it.id == "world.time.query" }
         val result = backend.invoke("alice", DriverActionInvocation("world.time.query"))
 
-        assertEquals(DriverActionSource.BINDING, worldTime.source)
+        assertEquals(DriverActionSource.RUNTIME_PROBE, worldTime.source)
         assertEquals(DriverActionAvailability.AVAILABLE, worldTime.availability)
         assertEquals(null, worldTime.availabilityReason)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
@@ -2696,13 +2748,14 @@ class FabricDriverModuleTest {
 
         assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
         assertEquals("interaction-unavailable", result.message)
-        assertEquals(2, gateway.capabilityProbeQueries)
+        assertEquals(1, gateway.capabilityProbeQueries)
+        assertEquals(2, gateway.graphCapabilityProbeQueries)
     }
 
     @Test
     fun `fabric runtime discovery exposes screen query only from live client state`() {
         val metadataOnly = FabricDriverBackend.metadataOnly()
-        assertTrue(metadataOnly.actions("alice").none { it.id == "screen.query" })
+        assertEquals(DriverActionAvailability.AVAILABLE, metadataOnly.actions("alice").single { it.id == "screen.query" }.availability)
 
         val gateway = RecordingFabricClientGateway()
         val backend = FabricDriverBackend.real(gateway)
@@ -2715,7 +2768,7 @@ class FabricDriverModuleTest {
         val screen = backend.actions("alice").single { it.id == "screen.query" }
         val result = backend.invoke("alice", DriverActionInvocation("screen.query"))
 
-        assertEquals(DriverActionSource.BINDING, screen.source)
+        assertEquals(DriverActionSource.RUNTIME_PROBE, screen.source)
         assertEquals(DriverActionAvailability.AVAILABLE, screen.availability)
         assertEquals(null, screen.availabilityReason)
         assertEquals("object", screen.result.properties["data"]?.type)
@@ -2729,7 +2782,9 @@ class FabricDriverModuleTest {
     @Test
     fun `fabric runtime discovery exposes unavailable screen close when no screen is open`() {
         val metadataOnly = FabricDriverBackend.metadataOnly()
-        assertTrue(metadataOnly.actions("alice").none { it.id == "screen.close" })
+        val metadataOnlyClose = metadataOnly.actions("alice").single { it.id == "screen.close" }
+        assertEquals(DriverActionAvailability.UNAVAILABLE, metadataOnlyClose.availability)
+        assertEquals("screen-not-open", metadataOnlyClose.availabilityReason)
 
         val gateway = RecordingFabricClientGateway()
         gateway.screenOpen = false
@@ -2743,7 +2798,7 @@ class FabricDriverModuleTest {
         assertEquals("screen-not-open", close.availabilityReason)
         assertEquals(DriverActionStatus.UNSUPPORTED, result.status)
         assertEquals("screen-not-open", result.message)
-        assertEquals(2, gateway.screenProbeQueries)
+        assertEquals(1, gateway.screenProbeQueries)
         assertEquals(emptyList(), gateway.actions)
         assertEquals(0, gateway.scheduled)
     }
@@ -2751,17 +2806,19 @@ class FabricDriverModuleTest {
     @Test
     fun `fabric runtime discovery exposes screen close only when a screen is open`() {
         val gateway = RecordingFabricClientGateway()
+        gateway.connected = true
         gateway.screenOpen = true
         val backend = FabricDriverBackend.real(gateway)
 
         val close = backend.actions("alice").single { it.id == "screen.close" }
         val result = backend.invoke("alice", DriverActionInvocation("screen.close"))
 
-        assertEquals(DriverActionSource.BINDING, close.source)
+        assertEquals(DriverActionSource.RUNTIME_PROBE, close.source)
         assertEquals(DriverActionAvailability.AVAILABLE, close.availability)
         assertEquals(null, close.availabilityReason)
         assertEquals(DriverActionStatus.ACCEPTED, result.status)
-        assertEquals(2, gateway.screenProbeQueries)
+        assertEquals(1, gateway.screenProbeQueries)
+        assertEquals(2, gateway.graphCapabilityProbeQueries)
         assertEquals(listOf("client-action"), gateway.actions)
         assertEquals(1, gateway.scheduled)
     }
@@ -3671,6 +3728,15 @@ private class RecordingFabricClientGateway : FabricClientGateway {
             screenProbeQueries += 1
             return screenOpen as T
         }
+        if (isServerFeatureMetadataProbe()) {
+            val queued = queryResults.firstOrNull()
+            if (queued is List<*>) {
+                scheduled += 1
+                actions += "client-query"
+                return queryResults.removeFirst() as T
+            }
+            return listOf("connection:connected", "server:test", "feature-set:test") as T
+        }
         scheduled += 1
         actions += "client-query"
         return (queryResults.removeFirstOrNull() ?: queryResult) as T
@@ -3722,5 +3788,10 @@ private class RecordingFabricClientGateway : FabricClientGateway {
     private fun isCapabilityGraphProbe(): Boolean =
         Thread.currentThread().stackTrace.any { frame ->
             frame.className.endsWith("FabricClientStateCapabilityProbe")
+        }
+
+    private fun isServerFeatureMetadataProbe(): Boolean =
+        Thread.currentThread().stackTrace.any { frame ->
+            frame.className.endsWith("GatewayFabricServerFeatureProvider")
         }
 }
