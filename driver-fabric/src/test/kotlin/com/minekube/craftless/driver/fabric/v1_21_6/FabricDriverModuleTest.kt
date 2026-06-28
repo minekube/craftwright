@@ -137,7 +137,7 @@ class FabricDriverModuleTest {
         assertEquals("com.minekube.craftless.driver.fabric.v1_21_6.mixin", mixins["package"]?.jsonPrimitive?.content)
         assertEquals("client", mixins["environment"]?.jsonPrimitive?.content)
         assertEquals(
-            listOf("ClientRecipeBookAccessor", "MinecraftClientMixin"),
+            listOf("MinecraftClientMixin"),
             mixins["mixins"]?.jsonArray?.map { it.jsonPrimitive.content },
         )
     }
@@ -348,6 +348,36 @@ class FabricDriverModuleTest {
             )
 
         assertFalse(source.contains("PlayerInput"))
+    }
+
+    @Test
+    fun `fabric recipe bridge does not compile against version-specific recipe display types`() {
+        val root = repositoryRoot()
+        val backend =
+            Files.readString(
+                root.resolve("driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt"),
+            )
+        val projection =
+            Files.readString(
+                root.resolve("driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricRecipeProjection.kt"),
+            )
+        val mixins =
+            Files.readString(root.resolve("driver-fabric/src/main/resources/craftless-driver-fabric.mixins.json"))
+        val forbidden =
+            listOf(
+                "NetworkRecipeId",
+                "RecipeDisplayEntry",
+                "RecipeFinder",
+                "AbstractCraftingScreenHandler",
+                "net.minecraft.recipe.display",
+                "ClientRecipeBookAccessor",
+            )
+
+        forbidden.forEach { token ->
+            assertFalse(backend.contains(token), "backend contains $token")
+            assertFalse(projection.contains(token), "projection contains $token")
+            assertFalse(mixins.contains(token), "mixin config contains $token")
+        }
     }
 
     @Test
@@ -2813,9 +2843,8 @@ class FabricDriverModuleTest {
                 .substringAfter("private fun craftRecipe(")
                 .substringBefore("private fun queryEntities(")
 
-        assertTrue(craftRecipeSource.contains("clickRecipe("))
-        assertTrue(craftRecipeSource.contains("AbstractCraftingScreenHandler"))
-        assertTrue(craftRecipeSource.contains("getOutputSlot()"))
+        assertTrue(craftRecipeSource.contains("clickCraftlessRecipe("))
+        assertTrue(craftRecipeSource.contains("craftlessOutputSlot()"))
         assertTrue(craftRecipeSource.contains("expectedOutput"))
         assertTrue(craftRecipeSource.contains("crafting-output-mismatch"))
         assertTrue(craftRecipeSource.contains("clickSlot("))

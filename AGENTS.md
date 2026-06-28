@@ -247,6 +247,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 134. parameterized Fabric compiled lane build.
 135. reflective Fabric world-change callback.
 136. reflective movement input shim.
+137. reflective recipe bridge.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -257,6 +258,13 @@ Phase 136 removes the direct compile-time dependency on the newer
 transitional bootstrap binding; the phase is version compatibility plumbing for
 the existing generic invocation path, not a new gameplay action, route family,
 or support claim.
+
+Phase 137 removes direct compile-time dependencies on version-specific recipe
+display and recipe-click types from the Fabric backend. The recipe bridge may
+reflect over the running client's recipe book, recipe handles, and screen
+handler when present. It must not reintroduce typed recipe display imports,
+typed recipe-book accessor mixins, static recipe catalogs, or claims that older
+runtime gameplay is complete.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

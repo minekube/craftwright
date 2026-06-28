@@ -17,7 +17,6 @@ import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.fabric.runtime.FabricCompiledLaneMetadata
 import com.minekube.craftless.driver.fabric.runtime.FabricRuntimeIdentity
 import com.minekube.craftless.driver.fabric.runtime.defaultFabricCompatibilityMatrix
-import com.minekube.craftless.driver.fabric.v1_21_6.mixin.ClientRecipeBookAccessor
 import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.driver.runtime.DriverBackendResult
@@ -50,14 +49,10 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.mob.HostileEntity
 import net.minecraft.entity.passive.PassiveEntity
 import net.minecraft.item.ItemStack
-import net.minecraft.recipe.NetworkRecipeId
-import net.minecraft.recipe.RecipeDisplayEntry
-import net.minecraft.recipe.RecipeFinder
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
 import net.minecraft.registry.tag.BlockTags
 import net.minecraft.resource.featuretoggle.FeatureSet
-import net.minecraft.screen.AbstractCraftingScreenHandler
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
@@ -318,9 +313,9 @@ class FabricDriverBackend private constructor(
             clientGateway.queryOnClient {
                 val currentPlayer = requireNotNull(player) { "client is not connected to a server" }
                 val recipeBook = currentPlayer.recipeBook
-                val finder = RecipeFinder()
-                currentPlayer.inventory.populateRecipeFinder(finder)
-                recipeBook.refresh()
+                val finder = newCraftlessRecipeLookup()
+                currentPlayer.inventory.populateCraftlessRecipeLookup(finder)
+                recipeBook.refreshCraftlessRecipes()
                 val features = networkHandler?.enabledFeatures
                 val recipes =
                     recipeBook
@@ -436,16 +431,15 @@ class FabricDriverBackend private constructor(
                             requestedCount = count,
                             phase = "recipe-fill-failed",
                         )
-                val recipeId = NetworkRecipeId(recipeIndex)
                 val recipeBook = currentPlayer.recipeBook
-                val finder = RecipeFinder()
-                currentPlayer.inventory.populateRecipeFinder(finder)
-                recipeBook.refresh()
+                val finder = newCraftlessRecipeLookup()
+                currentPlayer.inventory.populateCraftlessRecipeLookup(finder)
+                recipeBook.refreshCraftlessRecipes()
                 val features = networkHandler?.enabledFeatures
                 val matchingRecipe =
                     recipeBook
                         .craftlessRecipeEntries(finder, features)
-                        .firstOrNull { candidate -> candidate.entry.id() == recipeId }
+                        .firstOrNull { candidate -> candidate.handleKey == recipeIndex.toString() }
                         ?: return@queryOnClient recipeCraftFailure(
                             handle = targetHandle,
                             reason = "stale-recipe-handle",
@@ -466,8 +460,17 @@ class FabricDriverBackend private constructor(
                         .craftlessOutputItems()
                         .firstOrNull()
                         ?.toCraftlessRecipeItem()
-                currentInteractionManager.clickRecipe(currentScreenHandler.syncId, recipeId, count > 1)
-                currentPlayer.onRecipeDisplayed(recipeId)
+                val recipeHandleObject =
+                    matchingRecipe.idObject ?: matchingRecipe.entry
+                if (!currentInteractionManager.clickCraftlessRecipe(currentScreenHandler.syncId, recipeHandleObject, count > 1)) {
+                    return@queryOnClient recipeCraftFailure(
+                        handle = targetHandle,
+                        reason = "recipe-click-unavailable",
+                        requestedCount = count,
+                        phase = "recipe-fill-failed",
+                    )
+                }
+                currentPlayer.onCraftlessRecipeDisplayed(recipeHandleObject)
                 currentScreenHandler.sendContentUpdates()
                 buildJsonObject {
                     put("handle", targetHandle)
@@ -572,15 +575,14 @@ class FabricDriverBackend private constructor(
                             phase = "crafting-output-failed",
                         )
                     }
-                    val craftingHandler =
-                        currentScreenHandler as? AbstractCraftingScreenHandler
+                    val outputSlot =
+                        currentScreenHandler.craftlessOutputSlot()
                             ?: return@queryOnClient recipeCraftFailure(
                                 handle = handle,
                                 reason = "crafting-handler-unavailable",
                                 requestedCount = count,
                                 phase = "crafting-output-failed",
                             )
-                    val outputSlot = craftingHandler.getOutputSlot()
                     if (!outputSlot.hasStack()) {
                         return@queryOnClient recipeCraftPending(
                             handle = handle,
@@ -1339,36 +1341,142 @@ private fun RuntimeAvailability.toDriverActionAvailability(): DriverActionAvaila
     }
 
 private fun net.minecraft.client.recipebook.ClientRecipeBook.craftlessRecipeEntries(
-    finder: RecipeFinder,
+    finder: Any?,
     features: FeatureSet?,
-): Sequence<CraftlessRecipeDisplayCandidate> {
-    val groupedEntries =
-        orderedResults
-            .asSequence()
-            .onEach { collection ->
-                collection.populateRecipes(finder) { display ->
-                    features == null || display.isEnabled(features)
-                }
-            }.flatMap { collection ->
-                collection.allRecipes.asSequence().map { entry ->
-                    CraftlessRecipeDisplayCandidate(entry, collection.isCraftable(entry.id()))
-                }
+): Sequence<CraftlessRecipeCandidate> =
+    orderedResults
+        .asSequence()
+        .onEach { collection -> collection.populateCraftlessRecipes(finder, features) }
+        .flatMap { collection ->
+            collection.craftlessAllRecipes().asSequence().map { entry ->
+                val idObject = entry.craftlessIdObject()
+                CraftlessRecipeCandidate(
+                    entry = entry,
+                    idObject = idObject,
+                    handleKey = entry.craftlessRecipeHandleKey(),
+                    craftable = collection.craftlessIsRecipeCraftable(idObject ?: entry),
+                )
             }
-    val synchronizedEntries =
-        (this as? ClientRecipeBookAccessor)
-            ?.`craftless$getRecipes`()
-            ?.values
-            ?.asSequence()
-            ?.filter { entry -> features == null || entry.display().isEnabled(features) }
-            ?.map { entry -> CraftlessRecipeDisplayCandidate(entry, entry.isCraftable(finder)) }
-            ?: emptySequence()
-    return (groupedEntries + synchronizedEntries).distinctBy { candidate -> candidate.entry.id() }
-}
+        }.filter { candidate ->
+            candidate.handleKey.isNotBlank() &&
+                candidate.entry.craftlessDisplayObject()?.craftlessIsEnabled(features) != false
+        }.distinctBy { candidate -> candidate.handleKey }
 
-private data class CraftlessRecipeDisplayCandidate(
-    val entry: RecipeDisplayEntry,
+private data class CraftlessRecipeCandidate(
+    val entry: Any,
+    val idObject: Any?,
+    val handleKey: String,
     val craftable: Boolean,
 )
+
+private fun net.minecraft.entity.player.PlayerInventory.populateCraftlessRecipeLookup(finder: Any?) {
+    if (finder == null) {
+        return
+    }
+    invokeReflective(
+        name = "populate" + "Recipe" + "Finder",
+        arguments = arrayOf(finder),
+    )
+}
+
+private fun net.minecraft.client.recipebook.ClientRecipeBook.refreshCraftlessRecipes() {
+    invokeReflective("refresh", emptyArray())
+}
+
+private fun Any.populateCraftlessRecipes(
+    finder: Any?,
+    features: FeatureSet?,
+) {
+    if (finder == null) {
+        return
+    }
+    val predicate = java.util.function.Predicate<Any> { display -> display.craftlessIsEnabled(features) }
+    invokeReflective(
+        name = "populate" + "Recipes",
+        arguments = arrayOf(finder, predicate),
+    )
+}
+
+private fun Any.craftlessAllRecipes(): List<Any> =
+    (invokeReflective("getAll" + "Recipes", emptyArray()).asIterable() ?: emptyList()).toList()
+
+private fun Any.craftlessIsRecipeCraftable(handle: Any): Boolean = invokeReflective("isCraftable", arrayOf(handle)) as? Boolean ?: false
+
+private fun Any.clickCraftlessRecipe(
+    syncId: Int,
+    recipe: Any,
+    craftAll: Boolean,
+): Boolean =
+    invokeReflective(
+        name = "click" + "Recipe",
+        arguments = arrayOf(syncId, recipe, craftAll),
+    ) != null
+
+private fun Any.onCraftlessRecipeDisplayed(recipe: Any) {
+    invokeReflective(
+        name = "on" + "Recipe" + "Displayed",
+        arguments = arrayOf(recipe),
+    )
+}
+
+private fun net.minecraft.screen.ScreenHandler.craftlessOutputSlot(): net.minecraft.screen.slot.Slot? =
+    invokeReflective("getOutputSlot", emptyArray()) as? net.minecraft.screen.slot.Slot
+
+private fun newCraftlessRecipeLookup(): Any? =
+    try {
+        Class
+            .forName(listOf("net.minecraft.recipe", "Recipe" + "Finder").joinToString("."))
+            .getConstructor()
+            .newInstance()
+    } catch (_: ClassNotFoundException) {
+        null
+    } catch (_: NoSuchMethodException) {
+        null
+    } catch (_: InstantiationException) {
+        null
+    } catch (_: IllegalAccessException) {
+        null
+    } catch (_: java.lang.reflect.InvocationTargetException) {
+        null
+    } catch (_: LinkageError) {
+        null
+    }
+
+private fun Any.invokeReflective(
+    name: String,
+    arguments: Array<Any?>,
+): Any? {
+    val method =
+        javaClass.methods.firstOrNull { candidate ->
+            candidate.name == name &&
+                candidate.parameterCount == arguments.size &&
+                candidate.parameterTypes.zip(arguments).all { (type, argument) ->
+                    argument == null || type.toBoxedJavaType().isInstance(argument)
+                }
+        } ?: return null
+    return try {
+        method.invoke(this, *arguments)
+    } catch (_: IllegalAccessException) {
+        null
+    } catch (_: java.lang.reflect.InvocationTargetException) {
+        null
+    } catch (_: SecurityException) {
+        null
+    }
+}
+
+private fun Class<*>.toBoxedJavaType(): Class<*> =
+    when (this) {
+        Boolean::class.javaPrimitiveType -> Boolean::class.javaObjectType
+        Int::class.javaPrimitiveType -> Int::class.javaObjectType
+        Long::class.javaPrimitiveType -> Long::class.javaObjectType
+        Float::class.javaPrimitiveType -> Float::class.javaObjectType
+        Double::class.javaPrimitiveType -> Double::class.javaObjectType
+        Short::class.javaPrimitiveType -> Short::class.javaObjectType
+        Byte::class.javaPrimitiveType -> Byte::class.javaObjectType
+        Char::class.javaPrimitiveType -> Char::class.javaObjectType
+        else -> this
+    }
 
 private fun DriverOperationInvocation.unavailableRecipeOperationResult(): DriverActionResult? {
     if (operation.availability.state != RuntimeAvailabilityState.UNAVAILABLE) {

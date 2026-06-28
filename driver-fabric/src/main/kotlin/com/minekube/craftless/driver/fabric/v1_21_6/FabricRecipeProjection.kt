@@ -9,33 +9,36 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import net.minecraft.item.ItemStack
-import net.minecraft.recipe.RecipeDisplayEntry
-import net.minecraft.recipe.display.FurnaceRecipeDisplay
-import net.minecraft.recipe.display.ShapedCraftingRecipeDisplay
-import net.minecraft.recipe.display.ShapelessCraftingRecipeDisplay
-import net.minecraft.recipe.display.SlotDisplay
+import java.lang.reflect.InvocationTargetException
 
 internal fun craftlessRecipeRecord(
-    entry: RecipeDisplayEntry,
+    entry: Any,
     craftable: Boolean,
-): JsonObject {
-    val display = entry.display()
-    return craftlessRecipeRecord(
-        CraftlessRecipeProjection(
-            handleIndex = entry.id().index(),
-            kind = display.toCraftlessRecipeKind(),
-            outputs = display.result().toCraftlessRecipeItems(),
-            ingredients =
-                display
-                    .toCraftlessIngredientDisplays()
-                    .flatMap { ingredient -> ingredient.toCraftlessRecipeItems() },
-            station = display.craftingStation().toCraftlessRecipeItems().firstOrNull(),
-        ),
+): JsonObject =
+    craftlessRecipeRecord(
+        recipe = entry.toCraftlessRecipeProjection(),
         craftable = craftable,
     )
-}
 
-internal fun RecipeDisplayEntry.craftlessOutputItems(): List<CraftlessRecipeItem> = display().result().toCraftlessRecipeItems()
+internal fun Any.craftlessOutputItems(): List<CraftlessRecipeItem> =
+    craftlessDisplayObject()
+        ?.invokeNoArg("result")
+        ?.toCraftlessRecipeItems()
+        ?: emptyList()
+
+internal fun Any.craftlessRecipeHandleKey(): String =
+    craftlessIdObject()
+        ?.invokeNoArg("index")
+        ?.toString()
+        ?: craftlessIdObject()?.toString().orEmpty()
+
+internal fun Any.craftlessIdObject(): Any? = invokeNoArg("id")
+
+internal fun Any.craftlessDisplayObject(): Any? =
+    invokeNoArg("display")
+        ?: invokeNoArg("value")
+
+internal fun Any.craftlessIsEnabled(features: Any?): Boolean = features == null || invokeBoolean("isEnabled", features) ?: true
 
 internal fun craftlessRecipeRecord(
     recipe: CraftlessRecipeProjection,
@@ -50,7 +53,7 @@ internal fun craftlessRecipeRecord(
             recipe.ingredients.forEach { ingredient -> add(ingredient.toCraftlessRecipeItem()) }
         }
     return buildJsonObject {
-        put("handle", "recipe.handle:${recipe.handleIndex}")
+        put("handle", "recipe.handle:${recipe.handle}")
         put("kind", recipe.kind)
         put("craftable", craftable)
         put("outputs", outputs)
@@ -67,12 +70,26 @@ internal fun craftlessRecipeRecord(
 }
 
 internal data class CraftlessRecipeProjection(
-    val handleIndex: Int,
+    val handle: String,
     val kind: String,
     val outputs: List<CraftlessRecipeItem>,
     val ingredients: List<CraftlessRecipeItem> = emptyList(),
     val station: CraftlessRecipeItem? = null,
-)
+) {
+    constructor(
+        handleIndex: Int,
+        kind: String,
+        outputs: List<CraftlessRecipeItem>,
+        ingredients: List<CraftlessRecipeItem> = emptyList(),
+        station: CraftlessRecipeItem? = null,
+    ) : this(
+        handle = handleIndex.toString(),
+        kind = kind,
+        outputs = outputs,
+        ingredients = ingredients,
+        station = station,
+    )
+}
 
 internal fun craftlessRecipeItem(
     rawName: String,
@@ -113,34 +130,59 @@ internal fun JsonObject.matchesCraftlessRecipeQuery(
     return true
 }
 
-private fun net.minecraft.recipe.display.RecipeDisplay.toCraftlessRecipeKind(): String =
-    when (this) {
-        is ShapedCraftingRecipeDisplay -> "shaped-crafting"
-        is ShapelessCraftingRecipeDisplay -> "shapeless-crafting"
-        is FurnaceRecipeDisplay -> "furnace"
+private fun Any.toCraftlessRecipeProjection(): CraftlessRecipeProjection {
+    val display = craftlessDisplayObject()
+    return CraftlessRecipeProjection(
+        handle = craftlessRecipeHandleKey(),
+        kind = display?.toCraftlessRecipeKind() ?: "recipe",
+        outputs = display?.invokeNoArg("result")?.toCraftlessRecipeItems().orEmpty(),
+        ingredients =
+            display
+                ?.toCraftlessIngredientDisplays()
+                .orEmpty()
+                .flatMap { ingredient -> ingredient.toCraftlessRecipeItems() },
+        station = display?.invokeNoArg("craftingStation")?.toCraftlessRecipeItems()?.firstOrNull(),
+    )
+}
+
+private fun Any.toCraftlessRecipeKind(): String {
+    val name = javaClass.simpleName
+    return when {
+        name.contains("Shaped") -> "shaped-crafting"
+        name.contains("Shapeless") -> "shapeless-crafting"
+        name.contains("Furnace") || name.contains("Smelting") || name.contains("Blasting") || name.contains("Smoking") -> "furnace"
         else -> "recipe"
     }
+}
 
-private fun net.minecraft.recipe.display.RecipeDisplay.toCraftlessIngredientDisplays(): List<SlotDisplay> =
-    when (this) {
-        is ShapedCraftingRecipeDisplay -> ingredients()
-        is ShapelessCraftingRecipeDisplay -> ingredients()
-        is FurnaceRecipeDisplay -> listOf(ingredient(), fuel())
-        else -> emptyList()
+private fun Any.toCraftlessIngredientDisplays(): List<Any> =
+    invokeNoArg("ingredients")
+        .asIterable()
+        ?.toList()
+        ?: listOfNotNull(invokeNoArg("ingredient"), invokeNoArg("fuel"))
+
+private fun Any.toCraftlessRecipeItems(): List<CraftlessRecipeItem> {
+    if (this is ItemStack) {
+        return listOf(toCraftlessRecipeItem()).filterNot { item -> item.label.isBlank() }
     }
-
-private fun SlotDisplay.toCraftlessRecipeItems(): List<CraftlessRecipeItem> =
-    when (this) {
-        is SlotDisplay.StackSlotDisplay ->
-            listOf(stack().toCraftlessRecipeItem())
-        is SlotDisplay.ItemSlotDisplay ->
-            listOf(item().value().defaultStack.toCraftlessRecipeItem())
-        is SlotDisplay.CompositeSlotDisplay ->
-            contents().flatMap { content -> content.toCraftlessRecipeItems() }
-        is SlotDisplay.WithRemainderSlotDisplay ->
-            input().toCraftlessRecipeItems()
-        else -> emptyList()
-    }.filterNot { item -> item.label.isBlank() }
+    val stack = invokeNoArg("stack") as? ItemStack
+    if (stack != null) {
+        return listOf(stack.toCraftlessRecipeItem()).filterNot { item -> item.label.isBlank() }
+    }
+    val itemStack = invokeNoArg("item")?.invokeNoArg("value")?.invokeNoArg("getDefaultStack") as? ItemStack
+    if (itemStack != null) {
+        return listOf(itemStack.toCraftlessRecipeItem()).filterNot { item -> item.label.isBlank() }
+    }
+    val contents = invokeNoArg("contents").asIterable()
+    if (contents != null) {
+        return contents.flatMap { content -> content.toCraftlessRecipeItems() }.filterNot { item -> item.label.isBlank() }
+    }
+    val input = invokeNoArg("input")
+    if (input != null) {
+        return input.toCraftlessRecipeItems().filterNot { item -> item.label.isBlank() }
+    }
+    return emptyList()
+}
 
 internal data class CraftlessRecipeItem(
     val label: String,
@@ -161,6 +203,41 @@ internal fun ItemStack.toCraftlessRecipeItem(): CraftlessRecipeItem =
         translationKey = item.translationKey,
         count = count,
     )
+
+internal fun Any?.asIterable(): Iterable<Any>? =
+    when (this) {
+        is Iterable<*> -> filterNotNull()
+        else -> null
+    }
+
+internal fun Any.invokeNoArg(name: String): Any? =
+    try {
+        javaClass.methods
+            .firstOrNull { method -> method.name == name && method.parameterCount == 0 }
+            ?.invoke(this)
+    } catch (_: IllegalAccessException) {
+        null
+    } catch (_: InvocationTargetException) {
+        null
+    } catch (_: SecurityException) {
+        null
+    }
+
+internal fun Any.invokeBoolean(
+    name: String,
+    argument: Any,
+): Boolean? =
+    try {
+        javaClass.methods
+            .firstOrNull { method -> method.name == name && method.parameterCount == 1 }
+            ?.invoke(this, argument) as? Boolean
+    } catch (_: IllegalAccessException) {
+        null
+    } catch (_: InvocationTargetException) {
+        null
+    } catch (_: SecurityException) {
+        null
+    }
 
 private fun String.toCraftlessItemLabel(rawName: String): String {
     val fallback = substringAfterLast('.').toCraftlessTitle()
@@ -188,20 +265,12 @@ private fun String.toCraftlessItemCategory(): String {
             key.contains("beef") ||
             key.contains("pork") ||
             key.contains("chicken") ||
-            key.contains("mutton") ||
-            key.contains("cod") ||
-            key.contains("salmon") ||
-            key.contains("stew") ||
-            key.contains("soup") -> "food"
+            key.contains("mutton") -> "food"
         else -> "item"
     }
 }
 
 private fun String.toCraftlessTitle(): String =
-    split('_', '-', ' ')
+    split('_', '-', '.')
         .filter { part -> part.isNotBlank() }
-        .joinToString(" ") { part ->
-            part.replaceFirstChar { char ->
-                if (char.isLowerCase()) char.titlecase() else char.toString()
-            }
-        }
+        .joinToString(" ") { part -> part.replaceFirstChar { char -> char.uppercase() } }
