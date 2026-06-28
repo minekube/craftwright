@@ -172,7 +172,7 @@
   mise exec -- gradle :driver-fabric:test
   ```
 
-- [ ] **Step 2: Commit and push**
+- [x] **Step 2: Commit and push**
 
   ```sh
   git add AGENTS.md docs/project-completion-checklist.md docs/superpowers/specs/2026-06-28-92-build-generated-compiled-lane-metadata-design.md docs/superpowers/plans/2026-06-28-92-build-generated-compiled-lane-metadata-plan.md docs/superpowers/evidence/2026-06-28-build-generated-compiled-lane-metadata.md driver-fabric/build.gradle.kts driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt

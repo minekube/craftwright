@@ -35,6 +35,11 @@ Minecraft client support.
 Not waited on during active development. Local forced CI is the working gate;
 remote CI may continue in the background after push.
 
+## Push Evidence
+
+- `29e4457 driver-fabric: generate compiled lane metadata` pushed to
+  `origin/main`.
+
 ## Notes
 
 - Latest `26.2` and representative older `1.20.6` compatibility records remain
