@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make Fabric's legacy `invoke(...)` path dispatch through runtime graph
+Make Fabric's generic `invoke(...)` compatibility path dispatch through runtime graph
 operations and private operation adapters instead of through
 `FabricActionDiscovery`.
 
@@ -31,7 +31,7 @@ source of truth.
   via `operationAdapters(clientId).invoke(DriverOperationInvocation(...))`.
 - If the graph operation is available but no adapter exists, return
   `UNSUPPORTED` using the operation adapter id as evidence.
-- Injected or default `FabricActionDiscovery` must not control legacy
+- Injected or default `FabricActionDiscovery` must not control generic
   `invoke(...)` success, availability, or unsupported behavior.
 - Transitional `FabricActionBinding` implementations may remain private
   operation-adapter implementations.
@@ -51,7 +51,7 @@ source of truth.
 ## Verification
 
 - Red/green focused test:
-  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend dispatch does not depend on fabric action discovery*' --tests '*FabricDriverModuleTest.fabric legacy invoke dispatches unavailable operations from runtime graph*' --tests '*FabricDriverModuleTest.fabric legacy invoke adapters come from private binding map*'`
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend dispatch does not depend on fabric action discovery*' --tests '*FabricDriverModuleTest.fabric compatibility invoke dispatches unavailable operations from runtime graph*' --tests '*FabricDriverModuleTest.fabric compatibility invoke adapters come from private binding map*'`
 - Focused unavailable regression:
   `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric runtime discovery probes client state before advertising unavailable raycast*'`
 - Full Fabric regression:

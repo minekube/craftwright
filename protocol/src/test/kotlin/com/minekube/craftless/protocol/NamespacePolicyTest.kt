@@ -383,6 +383,39 @@ class NamespacePolicyTest {
     }
 
     @Test
+    fun `active code and governance avoid stale invoke wording`() {
+        val staleTerms =
+            listOf(
+                "legacy " + "invoke",
+                "legacy" + "Invoke",
+                "fabric legacy " + "invoke",
+            )
+        val root = repositoryRoot()
+        val violations =
+            repositoryContentViolations(
+                include = { path ->
+                    val relative = root.relativize(path).pathString
+                    when {
+                        relative == "AGENTS.md" -> true
+                        relative == "docs/project-completion-checklist.md" -> true
+                        relative.startsWith("docs/superpowers/specs/") && relative.endsWith(".md") -> true
+                        relative.startsWith("docs/superpowers/plans/") && relative.endsWith(".md") -> true
+                        relative.endsWith(".kt") || relative.endsWith(".kts") -> true
+                        else -> false
+                    }
+                },
+            ) { contents ->
+                staleTerms.any { staleTerm -> contents.contains(staleTerm, ignoreCase = true) }
+            }
+
+        assertTrue(
+            violations.isEmpty(),
+            "Active code and governance must use generic invoke compatibility wording:\n" +
+                violations.joinToString("\n"),
+        )
+    }
+
+    @Test
     fun `driver runtime public errors do not expose bridge internals`() {
         val forbiddenMessage = "bridge" + " returned"
         val root = repositoryRoot()

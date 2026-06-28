@@ -230,6 +230,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 117. live event action fallback removal.
 118. action result event type removal.
 119. driver event type gameplay removal.
+120. invoke fallback naming removal.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -904,6 +905,13 @@ action observations remain operation-id-owned through daemon session/live
 events. This is driver contract cleanup only; it must not add gameplay
 descriptors, static route families, CLI gameplay catalogs, Fabric bindings,
 scenario shortcuts, replacement gameplay event enums, or support claims.
+Phase 120 removes stale old-invoke wording from active code, tests,
+specs/plans, and governance. Generic invocation remains the stable
+`DriverSession.invoke(...)` contract; fallback-path tests should use
+compatibility/fallback wording. This is naming and guardrail cleanup only; it
+must not change dispatch behavior, add gameplay descriptors, static route
+families, CLI gameplay catalogs, Fabric bindings, scenario shortcuts, compiled
+lanes, public version-specific APIs, or support claims.
 
 ## Acceptance Scenarios Are Not Product APIs
 

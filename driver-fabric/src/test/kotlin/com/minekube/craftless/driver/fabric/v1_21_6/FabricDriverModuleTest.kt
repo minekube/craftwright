@@ -1417,7 +1417,7 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric legacy invoke dispatches unavailable operations from runtime graph`() {
+    fun `fabric compatibility invoke dispatches unavailable operations from runtime graph`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connected = false
         val backend =
@@ -1436,7 +1436,7 @@ class FabricDriverModuleTest {
     }
 
     @Test
-    fun `fabric legacy invoke adapters come from private binding map`() {
+    fun `fabric compatibility invoke adapters come from private binding map`() {
         val gateway = RecordingFabricClientGateway()
         gateway.connected = true
         val backend =

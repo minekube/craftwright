@@ -2,15 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Route Fabric's legacy `invoke(...)` compatibility path through runtime graph operations and operation adapters.
+**Goal:** Route Fabric's generic `invoke(...)` compatibility path through runtime graph operations and operation adapters.
 
-**Architecture:** Add a red test proving injected `FabricActionDiscovery` cannot make legacy invoke succeed when the runtime graph marks an operation unavailable. Change `FabricDriverBackend.invoke(...)` to use `runtimeGraph(clientId).operations` plus `operationAdapters(clientId)` for dispatch, keeping `FabricActionBinding` only as private adapter implementation.
+**Architecture:** Add a red test proving injected `FabricActionDiscovery` cannot make compatibility invoke succeed when the runtime graph marks an operation unavailable. Change `FabricDriverBackend.invoke(...)` to use `runtimeGraph(clientId).operations` plus `operationAdapters(clientId)` for dispatch, keeping `FabricActionBinding` only as private adapter implementation.
 
 **Tech Stack:** Kotlin/JVM, Gradle via mise, Kotlin test, Markdown.
 
 ---
 
-### Task 1: Add Red Tests For Graph-Owned Legacy Invoke
+### Task 1: Add Red Tests For Graph-Owned Compatibility Invoke
 
 **Files:**
 - Modify: `driver-fabric/src/test/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverModuleTest.kt`
@@ -34,7 +34,7 @@
   }
 
   @Test
-  fun `fabric legacy invoke dispatches unavailable operations from runtime graph`() {
+  fun `fabric compatibility invoke dispatches unavailable operations from runtime graph`() {
       val gateway = RecordingFabricClientGateway()
       gateway.connected = false
       val backend =
@@ -53,7 +53,7 @@
   }
 
   @Test
-  fun `fabric legacy invoke adapters come from private binding map`() {
+  fun `fabric compatibility invoke adapters come from private binding map`() {
       val gateway = RecordingFabricClientGateway()
       gateway.connected = true
       val backend =
@@ -84,18 +84,18 @@
   Run:
 
   ```sh
-  mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend dispatch does not depend on fabric action discovery*' --tests '*FabricDriverModuleTest.fabric legacy invoke dispatches unavailable operations from runtime graph*' --tests '*FabricDriverModuleTest.fabric legacy invoke adapters come from private binding map*'
+  mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend dispatch does not depend on fabric action discovery*' --tests '*FabricDriverModuleTest.fabric compatibility invoke dispatches unavailable operations from runtime graph*' --tests '*FabricDriverModuleTest.fabric compatibility invoke adapters come from private binding map*'
   ```
 
   Expected: FAIL before implementation because `FabricDriverBackend` still
-  contains `FabricActionDiscovery`/`discoveredActions` and legacy dispatch can
+  contains `FabricActionDiscovery`/`discoveredActions` and compatibility dispatch can
   be controlled by action discovery.
 
   Evidence: command failed as expected before the implementation. A connected
   override red test also failed while adapters still came from action
   discovery.
 
-### Task 2: Route Legacy Invoke Through Runtime Graph
+### Task 2: Route Compatibility Invoke Through Runtime Graph
 
 **Files:**
 - Modify: `driver-fabric/src/main/kotlin/com/minekube/craftless/driver/fabric/v1_21_6/FabricDriverBackend.kt`
@@ -147,7 +147,7 @@
   Run:
 
   ```sh
-  mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend dispatch does not depend on fabric action discovery*' --tests '*FabricDriverModuleTest.fabric legacy invoke dispatches unavailable operations from runtime graph*' --tests '*FabricDriverModuleTest.fabric legacy invoke adapters come from private binding map*'
+  mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend dispatch does not depend on fabric action discovery*' --tests '*FabricDriverModuleTest.fabric compatibility invoke dispatches unavailable operations from runtime graph*' --tests '*FabricDriverModuleTest.fabric compatibility invoke adapters come from private binding map*'
   ```
 
   Expected: PASS.
@@ -194,7 +194,7 @@
 
 - [x] **Step 1: Add Phase 79 governance text**
 
-  Add Phase 79 to the active sequence and state that legacy invoke dispatch is
+  Add Phase 79 to the active sequence and state that generic invoke compatibility dispatch is
   graph-owned.
 
 - [x] **Step 2: Add checklist section**

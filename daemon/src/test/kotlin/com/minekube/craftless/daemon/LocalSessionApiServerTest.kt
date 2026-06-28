@@ -1374,7 +1374,7 @@ class LocalSessionApiServerTest {
                         }
 
                     assertEquals(1, driver.adapterInvokeCount)
-                    assertEquals(0, driver.legacyInvokeCount)
+                    assertEquals(0, driver.fallbackInvokeCount)
                 }
         }
 
@@ -1406,7 +1406,7 @@ class LocalSessionApiServerTest {
                         }
 
                     assertEquals(0, driver.adapterInvokeCount)
-                    assertEquals(0, driver.legacyInvokeCount)
+                    assertEquals(0, driver.fallbackInvokeCount)
                 }
 
             val schemaDriver = GraphOperationAdapterDriverSession("alice")
@@ -1430,7 +1430,7 @@ class LocalSessionApiServerTest {
                         }
 
                     assertEquals(0, schemaDriver.adapterInvokeCount)
-                    assertEquals(0, schemaDriver.legacyInvokeCount)
+                    assertEquals(0, schemaDriver.fallbackInvokeCount)
                 }
         }
 
@@ -1473,7 +1473,7 @@ class LocalSessionApiServerTest {
                             }
 
                         assertEquals(0, driver.adapterInvokeCount)
-                        assertEquals(0, driver.legacyInvokeCount)
+                        assertEquals(0, driver.fallbackInvokeCount)
                     }
             }
         }
@@ -2386,7 +2386,7 @@ private class GraphOperationAdapterDriverSession(
     private val availability: RuntimeAvailability = RuntimeAvailability.available(),
 ) : DriverSession {
     var adapterInvokeCount = 0
-    var legacyInvokeCount = 0
+    var fallbackInvokeCount = 0
 
     override fun snapshot(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.RUNNING)
 
@@ -2428,11 +2428,11 @@ private class GraphOperationAdapterDriverSession(
         )
 
     override fun invoke(invocation: DriverActionInvocation): DriverActionResult {
-        legacyInvokeCount += 1
+        fallbackInvokeCount += 1
         return DriverActionResult(
             action = invocation.action,
             status = DriverActionStatus.UNSUPPORTED,
-            message = "legacy invoke should not run",
+            message = "fallback invoke should not run",
         )
     }
 
@@ -2485,7 +2485,7 @@ private class GenericGraphQueryDriverSession(
         )
 
     override fun invoke(invocation: DriverActionInvocation): DriverActionResult =
-        DriverActionResult(invocation.action, DriverActionStatus.UNSUPPORTED, message = "legacy invoke should not run")
+        DriverActionResult(invocation.action, DriverActionStatus.UNSUPPORTED, message = "fallback invoke should not run")
 
     override fun stop(): DriverClientSnapshot = DriverClientSnapshot(clientId, ClientState.STOPPED)
 

@@ -2561,9 +2561,9 @@ Verification:
   `docs/superpowers/plans/2026-06-28-79-graph-owned-fabric-invoke-plan.md`.
 - [x] `FabricDriverBackend.invoke(...)` looks up operations in
   `RuntimeCapabilityGraph.operations`.
-- [x] Legacy invoke returns graph availability reasons when operations are
+- [x] Generic invoke compatibility returns graph availability reasons when operations are
   unavailable.
-- [x] Legacy invoke dispatches available operations through
+- [x] Generic invoke compatibility dispatches available operations through
   `DriverOperationAdapters`.
 - [x] `FabricDriverBackend` no longer accepts or calls `FabricActionDiscovery`
   for public-compatible dispatch.
@@ -2582,7 +2582,7 @@ Verification:
 Verification:
 
 - Green focused tests:
-  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend dispatch does not depend on fabric action discovery*' --tests '*FabricDriverModuleTest.fabric legacy invoke dispatches unavailable operations from runtime graph*' --tests '*FabricDriverModuleTest.fabric legacy invoke adapters come from private binding map*'`
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric backend dispatch does not depend on fabric action discovery*' --tests '*FabricDriverModuleTest.fabric compatibility invoke dispatches unavailable operations from runtime graph*' --tests '*FabricDriverModuleTest.fabric compatibility invoke adapters come from private binding map*'`
 - Full Fabric regression:
   `mise exec -- gradle :driver-fabric:test`
 - Final local and remote verification are recorded in
@@ -3714,12 +3714,38 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-driver-event-type-gameplay-removal.md`.
 
+## Phase 120: Invoke Fallback Naming Removal
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-120-invoke-fallback-naming-removal-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-120-invoke-fallback-naming-removal-plan.md`.
+- [x] Active Kotlin source/tests, AGENTS/checklist text, and active specs/plans
+  avoid stale old-invoke wording for the graph-owned generic invocation path.
+- [x] Test-only fallback counters use `fallbackInvokeCount`.
+- [x] Phase 79 docs and verification commands use generic invoke
+  compatibility wording.
+- [x] This phase adds no new public gameplay action, generated route family,
+  CLI gameplay catalog, Fabric gameplay binding, scenario shortcut, public
+  version-specific API, runnable latest/older lane, replacement gameplay event
+  enum, runtime dispatch behavior change, or new Minecraft support claim.
+
+Verification:
+
+- Red/green protocol policy guard:
+  `mise exec -- gradle :protocol:test --tests '*NamespacePolicyTest.active code and governance avoid stale invoke wording*'`
+- Focused daemon/Fabric regressions:
+  `mise exec -- gradle :daemon:test --tests '*LocalSessionApiServerTest.server dispatches graph operations through registered operation adapters*' --tests '*LocalSessionApiServerTest.server rejects graph operation availability and schema before operation adapters*'`
+  `mise exec -- gradle :driver-fabric:test --tests '*FabricDriverModuleTest.fabric compatibility invoke dispatches unavailable operations from runtime graph*' --tests '*FabricDriverModuleTest.fabric compatibility invoke adapters come from private binding map*'`
+- Final local verification is recorded in
+  `docs/superpowers/evidence/2026-06-28-invoke-fallback-naming-removal.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
   76 completion audit, Phase 77 graph-owned public Fabric action descriptors,
   Phase 78 graph-native bootstrap operation schemas, Phase 79 graph-owned
-  legacy invoke dispatch, Phase 80 deletion of standalone action discovery,
+  generic invoke compatibility dispatch, Phase 80 deletion of standalone action discovery,
   Phase 81 HMC bridge gameplay removal, and Phase 82 README public entrypoint
   overhaul, Phase 83 Fabric binding descriptor removal, and Phase 84 bootstrap
   operation definition isolation, and Phase 85 binding operation id source
@@ -3744,10 +3770,11 @@ Verification:
   resolution, and Phase 114 active docs latest alias, and Phase 115 local
   server latest alias, and Phase 116 local smoke default latest alias, and
   Phase 117 live event action fallback removal, and Phase 118 action result
-  event type removal, and Phase 119 driver event type gameplay removal. Phase
-  105, Phase 107, Phase 108, Phase 109, Phase 110, Phase 111, Phase 112, Phase
-  113, Phase 114, Phase 115, Phase 116, Phase 117, Phase 118, and Phase 119 do
-  not satisfy the runnable latest/older support requirement by themselves.
+  event type removal, Phase 119 driver event type gameplay removal, and Phase
+  120 invoke fallback naming removal. Phase 105, Phase 107, Phase 108, Phase
+  109, Phase 110, Phase 111, Phase 112, Phase 113, Phase 114, Phase 115, Phase
+  116, Phase 117, Phase 118, Phase 119, and Phase 120 do not satisfy the
+  runnable latest/older support requirement by themselves.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support
