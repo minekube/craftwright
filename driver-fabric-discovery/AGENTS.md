@@ -11,6 +11,8 @@ driver lanes.
 - Shared Fabric runtime metadata snapshot/provider helpers.
 - Shared Fabric runtime metadata resource projection for the runtime graph.
 - Shared protocol-level Fabric runtime graph fragments and graph composition.
+- Shared non-gameplay registry resource and handle projection from
+  lane-provided registry fingerprints.
 
 ## Rules
 
@@ -28,6 +30,10 @@ driver lanes.
   not discover Minecraft game classes or mint gameplay action catalogs itself.
   Lane modules must provide any lane-specific source evidence and keep
   Minecraft game-class registry/server/action discovery outside this module.
+- Registry projection in this module may expose Craftless-owned registry
+  resources/handles and availability from lane-provided fingerprints. It must
+  not inspect Minecraft registries itself, hard-code mod content, or imply a
+  supported gameplay lane.
 - Keep graph composition version-agnostic. If current, older, latest/current,
   or future Fabric versions diverge, model the difference as lane-provided
   metadata, evidence, availability, or a narrow adapter before adding

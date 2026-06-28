@@ -2,6 +2,7 @@ package com.minekube.craftless.driver.fabric.v1_21_6
 
 import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeGraphFragment
+import com.minekube.craftless.driver.fabric.discovery.fabricRegistryGraphFragment
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeGraph
 import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeResourceNode
 import com.minekube.craftless.driver.fabric.runtime.FabricCompatibilityLane
@@ -89,29 +90,11 @@ internal object FabricRuntimeMetadataCapabilityProbe : FabricCapabilityProbe {
 private fun FabricCompatibilityLane?.sourceEvidence(): List<RuntimeSourceEvidence> = this?.sourceEvidence().orEmpty()
 
 internal object FabricRegistrySummaryCapabilityProbe : FabricCapabilityProbe {
-    override fun discover(context: FabricCapabilityProbeContext): FabricCapabilityGraphFragment {
-        val registryEvidence = RuntimeSourceEvidence("registry", context.runtimeMetadata.registryFingerprint)
-        return FabricCapabilityGraphFragment(
-            resources =
-                listOf(
-                    RuntimeResourceNode(
-                        id = "registry",
-                        availability = RuntimeAvailability.available(),
-                        sourceEvidence = listOf(registryEvidence),
-                    ),
-                ),
-            handles =
-                registrySummaryHandles.map { id ->
-                    RuntimeHandleNode(
-                        id = "registry.$id",
-                        resource = "registry",
-                        schema = RuntimeSchema.objectSchema(),
-                        availability = RuntimeAvailability.available(),
-                        sourceEvidence = listOf(registryEvidence),
-                    )
-                },
+    override fun discover(context: FabricCapabilityProbeContext): FabricCapabilityGraphFragment =
+        fabricRegistryGraphFragment(
+            metadata = context.runtimeMetadata,
+            available = true,
         )
-    }
 }
 
 internal object FabricEventSourceCapabilityProbe : FabricCapabilityProbe {
@@ -276,16 +259,6 @@ private fun FabricClientCapabilitySnapshot.bootstrapAvailability(
         FabricBootstrapOperationAvailabilityKind.SCREEN_CLOSE ->
             if (screenOpen) RuntimeAvailability.available() else RuntimeAvailability.unavailable("screen-not-open")
     }
-
-private val registrySummaryHandles =
-    listOf(
-        "block",
-        "item",
-        "entity",
-        "screen",
-        "effect",
-        "event",
-    )
 
 private val eventSourceIds =
     listOf(

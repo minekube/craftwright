@@ -51,9 +51,10 @@ or a reason to fork the generated OpenAPI model.
   first and keep only the proven version-specific accessor or adapter here.
 - Shared Fabric Loader identity, installed-mod fingerprints, runtime metadata
   snapshots, deterministic fingerprint helpers, and protocol-level graph
-  composition belong in `driver-fabric-discovery`. Keep only Minecraft
-  game-class registry, server-feature, mixin/accessor, and execution details
-  here when they truly require this lane.
+  composition belong in `driver-fabric-discovery`. Shared non-gameplay
+  registry resource/handle projection also belongs there; keep only Minecraft
+  game-class registry inspection, server-feature, mixin/accessor, and
+  execution details here when they truly require this lane.
 - Do not pin durable behavior to the currently packaged lane. Latest/current
   and older-version support should be advanced by shared compatibility shims,
   generated lane metadata, and real launch/attach evidence, not by cloning the

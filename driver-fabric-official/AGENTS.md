@@ -43,8 +43,10 @@ divergence that forced it.
 - Use `driver-fabric-discovery` for shared Fabric Loader identity,
   installed-mod fingerprints, runtime metadata snapshots, deterministic
   fingerprint helpers, runtime metadata projection, and protocol-level graph
-  composition. Do not reintroduce official-only copies of that metadata or
-  graph plumbing.
+  composition. Use it for shared non-gameplay registry resource/handle
+  projection from official-lane registry fingerprints as well. Do not
+  reintroduce official-only copies of that metadata, registry graph, or graph
+  plumbing.
 - If latest/current support requires per-version code, isolate only the
   diverging adapter/accessor/provider behind the lane boundary and document the
   exact incompatibility that forced it.

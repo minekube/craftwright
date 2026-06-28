@@ -1,5 +1,6 @@
 package com.minekube.craftless.driver.fabric.discovery
 
+import com.minekube.craftless.driver.api.DriverRuntimeMetadata
 import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeOperationNode
 import com.minekube.craftless.protocol.RuntimeResourceNode
@@ -55,5 +56,58 @@ class FabricRuntimeGraphTest {
                     ),
             )
         }
+    }
+
+    @Test
+    fun `registry graph fragment exposes available registry resource and handles from metadata evidence`() {
+        val metadata =
+            DriverRuntimeMetadata
+                .runtimeAdapter()
+                .copy(registryFingerprint = "registries:abc123")
+
+        val fragment =
+            fabricRegistryGraphFragment(
+                metadata = metadata,
+                available = true,
+            )
+
+        assertEquals(listOf("registry"), fragment.resources.map { it.id })
+        assertEquals(RuntimeAvailability.available(), fragment.resources.single().availability)
+        assertEquals(
+            listOf(
+                "registry.block",
+                "registry.effect",
+                "registry.entity",
+                "registry.event",
+                "registry.item",
+                "registry.screen",
+            ),
+            fragment.handles.map { it.id }.sorted(),
+        )
+        assertTrue(
+            fragment.resources
+                .single()
+                .sourceEvidence
+                .any { evidence -> evidence.kind == "registry" && evidence.fingerprint == "registries:abc123" },
+        )
+    }
+
+    @Test
+    fun `registry graph fragment reports unavailable registry when metadata has no discovery evidence`() {
+        val metadata =
+            DriverRuntimeMetadata
+                .runtimeAdapter()
+                .copy(registryFingerprint = "registries:not-discovered")
+
+        val fragment =
+            fabricRegistryGraphFragment(
+                metadata = metadata,
+                available = false,
+            )
+
+        val unavailable = RuntimeAvailability.unavailable("registry-not-discovered")
+        assertEquals(unavailable, fragment.resources.single().availability)
+        assertTrue(fragment.handles.isNotEmpty())
+        assertTrue(fragment.handles.all { handle -> handle.availability == unavailable })
     }
 }

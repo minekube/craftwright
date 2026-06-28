@@ -9,7 +9,9 @@ import com.minekube.craftless.driver.fabric.discovery.FabricLoaderRuntimeMetadat
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataProvider
 import com.minekube.craftless.driver.fabric.discovery.FabricRuntimeMetadataSnapshot
 import com.minekube.craftless.driver.fabric.discovery.SnapshotFabricRuntimeMetadataProvider
-import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeMetadataGraph
+import com.minekube.craftless.driver.fabric.discovery.fabricRegistryGraphFragment
+import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeGraph
+import com.minekube.craftless.driver.fabric.discovery.fabricRuntimeMetadataGraphFragment
 import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.driver.runtime.DriverBackendResult
@@ -31,16 +33,27 @@ internal class OfficialFabricDriverBackend(
     override fun runtimeMetadata(clientId: String): DriverRuntimeMetadata = runtimeMetadataProvider.runtimeMetadata(clientId)
 
     override fun runtimeGraph(clientId: String) =
-        fabricRuntimeMetadataGraph(
-            clientId = clientId,
-            metadata = runtimeMetadata(clientId),
-            sourceEvidence =
-                listOf(
-                    RuntimeSourceEvidence("runtime-lane", "latest-current-official"),
-                    RuntimeSourceEvidence("runtime-status", "metadata-only"),
-                    RuntimeSourceEvidence("runtime-java", "java:25"),
-                ),
-        )
+        runtimeMetadata(clientId).let { metadata ->
+            fabricRuntimeGraph(
+                clientId = clientId,
+                fragments =
+                    listOf(
+                        fabricRuntimeMetadataGraphFragment(
+                            metadata = metadata,
+                            sourceEvidence =
+                                listOf(
+                                    RuntimeSourceEvidence("runtime-lane", "latest-current-official"),
+                                    RuntimeSourceEvidence("runtime-status", "metadata-only"),
+                                    RuntimeSourceEvidence("runtime-java", "java:25"),
+                                ),
+                        ),
+                        fabricRegistryGraphFragment(
+                            metadata = metadata,
+                            available = false,
+                        ),
+                    ),
+            )
+        }
 
     override fun invoke(
         clientId: String,

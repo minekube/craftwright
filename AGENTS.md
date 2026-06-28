@@ -274,6 +274,7 @@ The active product-completion sequence is the numbered spec/plan pairs under
 151. shared Fabric runtime metadata discovery.
 152. shared Fabric runtime resource projection.
 153. shared Fabric runtime graph composition.
+154. shared Fabric registry graph projection.
 
 Do not implement a later phase before its spec and plan are written and the
 earlier phases are either complete or explicitly carried as active blockers in
@@ -429,6 +430,13 @@ protocol-level graph assembly path. Lane modules may still own Minecraft
 game-class probes, accessors, adapters, and source evidence when those truly
 diverge, but they must not hand-build parallel graph composers, add gameplay
 actions, package the 26.x official lane, or claim latest/current support.
+
+Phase 154 moves non-gameplay Fabric registry graph projection into
+`driver-fabric-discovery` so every Fabric lane can expose registry discovery
+status through the generated runtime graph. Lane modules still own actual
+Minecraft registry inspection and fingerprints when those diverge, but they
+must not copy registry resource/handle graph builders, add gameplay actions,
+package the 26.x official lane, or claim latest/current support.
 
 The Phase 8 correction exists because the first live gameplay gate exposed
 that a provisioned iron sword is not honest completion evidence. Final

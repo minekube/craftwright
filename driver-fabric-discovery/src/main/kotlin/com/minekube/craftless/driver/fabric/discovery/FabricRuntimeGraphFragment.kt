@@ -34,16 +34,19 @@ fun fabricRuntimeMetadataGraph(
 ): RuntimeCapabilityGraph =
     fabricRuntimeGraph(
         clientId = clientId,
-        fragments =
+        fragments = listOf(fabricRuntimeMetadataGraphFragment(metadata, sourceEvidence)),
+    )
+
+fun fabricRuntimeMetadataGraphFragment(
+    metadata: DriverRuntimeMetadata,
+    sourceEvidence: List<RuntimeSourceEvidence> = emptyList(),
+): FabricRuntimeGraphFragment =
+    FabricRuntimeGraphFragment(
+        resources =
             listOf(
-                FabricRuntimeGraphFragment(
-                    resources =
-                        listOf(
-                            fabricRuntimeResourceNode(
-                                metadata = metadata,
-                                sourceEvidence = sourceEvidence,
-                            ),
-                        ),
+                fabricRuntimeResourceNode(
+                    metadata = metadata,
+                    sourceEvidence = sourceEvidence,
                 ),
             ),
     )
