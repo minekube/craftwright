@@ -39,7 +39,9 @@ claims.
 - Result: `BUILD SUCCESSFUL`; Gradle lint, Gradle tests, and Bun Playwright
   tests passed.
 
-## Pending Remote Gates
+## Remote Gates
 
-- Push to `main`
-- GitHub Actions CI for pushed `main`
+- Commit: `7683209 driver-fabric: own graph operation schemas`
+- Push: `main` updated from `66a0e65` to `7683209`.
+- GitHub Actions: `ci` run `28309427777`.
+- Result: passed; `verify` completed in 6m05s and `Run mise run ci` passed.

@@ -210,7 +210,7 @@
   Evidence: `git diff --check`, `mise run architecture-check`, and
   `mise run ci` passed locally after the ktlint chain-wrap fix.
 
-- [ ] **Step 2: Commit and push**
+- [x] **Step 2: Commit and push**
 
   Run:
 
@@ -220,7 +220,10 @@
   git push origin main
   ```
 
-- [ ] **Step 3: Verify remote CI**
+  Evidence: pushed commit `7683209 driver-fabric: own graph operation schemas`
+  to `main`.
+
+- [x] **Step 3: Verify remote CI**
 
   Run:
 
@@ -230,3 +233,6 @@
   ```
 
   Expected: pushed `main` CI passes.
+
+  Evidence: GitHub Actions `ci` run `28309427777` passed for commit
+  `7683209`, with `verify` completing in 6m05s.
