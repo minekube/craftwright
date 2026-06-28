@@ -10,6 +10,7 @@ SERVER_PORT="${CRAFTLESS_SMOKE_SERVER_PORT:?CRAFTLESS_SMOKE_SERVER_PORT is requi
 DAEMON_PORT="${CRAFTLESS_PACKAGED_LATEST_DAEMON_PORT:-18084}"
 TIMEOUT_MS="${CRAFTLESS_PACKAGED_LATEST_TIMEOUT_MS:-300000}"
 API="http://127.0.0.1:$DAEMON_PORT"
+GENERATED_ACTION_ID=""
 
 mkdir -p "$ARTIFACTS_DIR" "$WORKSPACE"
 test -x "$CRAFTLESS_BIN"
@@ -120,6 +121,82 @@ process.exit(1);
 "$CRAFTLESS_BIN" clients "$CLIENT_ID" query actions --api "$API" > "$ARTIFACTS_DIR/client-rpc-actions.json"
 "$CRAFTLESS_BIN" clients "$CLIENT_ID" query resources --api "$API" > "$ARTIFACTS_DIR/client-rpc-resources.json"
 
+GENERATED_ACTION_ID="$(
+  API="$API" CLIENT_ID="$CLIENT_ID" ARTIFACTS_DIR="$ARTIFACTS_DIR" TIMEOUT_MS="$TIMEOUT_MS" mise exec -- bun --eval '
+  const fs = await import("node:fs/promises");
+  const path = await import("node:path");
+  const api = process.env.API;
+  const clientId = process.env.CLIENT_ID;
+  const artifactsDir = process.env.ARTIFACTS_DIR;
+  const deadline = Date.now() + Number(process.env.TIMEOUT_MS);
+  function requiredArgumentNames(action) {
+    const args = action.args && typeof action.args === "object" ? action.args : {};
+    return Object.entries(args)
+      .filter(([, schema]) => schema && schema.required === true)
+      .map(([name]) => name);
+  }
+  while (Date.now() < deadline) {
+    const response = await fetch(`${api}/clients/${clientId}/openapi.json`);
+    if (response.ok) {
+      const text = await response.text();
+      const openapi = JSON.parse(text);
+      const actions = Array.isArray(openapi["x-craftless-actions"]) ? openapi["x-craftless-actions"] : [];
+      const selected = actions.find((action) => action.availability === "available" && requiredArgumentNames(action).length === 0);
+      if (selected) {
+        await fs.writeFile(path.join(artifactsDir, "client-generated-action-selected.json"), `${JSON.stringify(selected, null, 2)}\n`);
+        process.stdout.write(selected.id);
+        process.exit(0);
+      }
+      await fs.writeFile(
+        path.join(artifactsDir, "client-generated-action-unavailable.json"),
+        `${JSON.stringify(actions.map((action) => ({
+          id: action.id,
+          availability: action.availability,
+          availabilityReason: action.availabilityReason,
+          requiredArguments: requiredArgumentNames(action),
+        })), null, 2)}\n`,
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  console.error(`timed out waiting for an available generated no-argument action for ${clientId}`);
+  process.exit(1);
+  '
+)"
+
+API="$API" CLIENT_ID="$CLIENT_ID" GENERATED_ACTION_ID="$GENERATED_ACTION_ID" ARTIFACTS_DIR="$ARTIFACTS_DIR" mise exec -- bun --eval '
+const fs = await import("node:fs/promises");
+const path = await import("node:path");
+const api = process.env.API;
+const clientId = process.env.CLIENT_ID;
+const actionId = process.env.GENERATED_ACTION_ID;
+const artifactsDir = process.env.ARTIFACTS_DIR;
+const payload = {
+  jsonrpc: "2.0",
+  id: `invoke-generated:${actionId}`,
+  method: "invoke",
+  params: { action: actionId, args: {} },
+};
+const response = await fetch(`${api}/clients/${clientId}:rpc`, {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify(payload),
+});
+const text = await response.text();
+await fs.writeFile(path.join(artifactsDir, "client-rpc-invoke-generated.json"), `${text}\n`);
+if (!response.ok) {
+  throw new Error(text);
+}
+const body = JSON.parse(text);
+if (body.result?.action !== actionId || body.result?.status !== "ACCEPTED") {
+  throw new Error(`generated action ${actionId} did not return ACCEPTED: ${text}`);
+}
+'
+
+"$CRAFTLESS_BIN" clients "$CLIENT_ID" run "$GENERATED_ACTION_ID" \
+  --api "$API" \
+  > "$ARTIFACTS_DIR/client-cli-invoke-generated.log" 2>&1
+
 API="$API" CLIENT_ID="$CLIENT_ID" ARTIFACTS_DIR="$ARTIFACTS_DIR" mise exec -- bun --eval '
 const fs = await import("node:fs/promises");
 const path = await import("node:path");
@@ -157,12 +234,14 @@ await fs.writeFile(path.join(artifactsDir, "client-rpc-subscriptions-after-unsub
 const actions = JSON.parse(await fs.readFile(path.join(artifactsDir, "client-actions.json"), "utf8"));
 const resources = JSON.parse(await fs.readFile(path.join(artifactsDir, "client-resources.json"), "utf8"));
 const openapi = JSON.parse(await fs.readFile(path.join(artifactsDir, "client-openapi-connected.json"), "utf8"));
+const selectedAction = JSON.parse(await fs.readFile(path.join(artifactsDir, "client-generated-action-selected.json"), "utf8"));
 const summary = {
   status: "connected",
   api,
   clientId,
   minecraftVersion: "latest-release",
   concreteLatestVersion: "26.2",
+  generatedInvocationAction: selectedAction.id,
   actionCount: actions.length,
   resourceIds: resources.map((resource) => resource.id),
   openapiActionCount: Array.isArray(openapi["x-craftless-actions"]) ? openapi["x-craftless-actions"].length : 0,

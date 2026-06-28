@@ -32,8 +32,8 @@ evidence, `[!]` blocked with a named blocker and next diagnostic command.
 | --- | --- | --- | --- |
 | CL-01 | [x] | Public action-list authority is removed. | Closed by Phases 171-173. |
 | CL-02 | [x] | Transitional static Fabric/bootstrap catalog design is guarded. | Closed by Phases 171-178. |
-| CL-03 | [~] | Latest/current packaged lane now creates, attaches, connects, and captures generated OpenAPI/projection/SSE/JSON-RPC artifacts for Minecraft `26.2`; only the public generated primitive invocation smoke remains. | `docs/superpowers/evidence/2026-06-28-latest-current-generated-primitive-smoke.md`. |
-| CL-04 | [ ] | Representative older lane waits until CL-03 proves the shared path. | `docs/superpowers/evidence/2026-06-28-representative-older-product-lane.md`. |
+| CL-03 | [x] | Latest/current packaged lane creates, attaches, connects, captures generated OpenAPI/projection/SSE/JSON-RPC artifacts, and invokes a generated operation through public JSON-RPC plus adaptive CLI for Minecraft `26.2`. | Closed by Phase 183. |
+| CL-04 | [~] | Representative older lane must now pass the same packaged product gate set. | `docs/superpowers/evidence/2026-06-28-representative-older-product-lane.md`. |
 | CL-05 | [ ] | User-facing docs/install/Docker/action wait until current and older lanes are true product lanes. | `docs/superpowers/evidence/2026-06-28-user-facing-usability-docs.md`. |
 | CL-06 | [ ] | Final local release gates wait until CL-03 through CL-05 are closed. | `docs/superpowers/evidence/2026-06-28-final-local-release-gates.md`. |
 | CL-07 | [ ] | Honest survival gameplay waits until generated API/CLI, compatibility, and usability gates are closed. | Final gameplay artifact summary plus public API/CLI transcripts. |
@@ -41,48 +41,44 @@ evidence, `[!]` blocked with a named blocker and next diagnostic command.
 
 ### Current Execution Packet
 
-Do this packet before CL-04/CL-05/CL-06/CL-07.
+Do this packet before CL-05/CL-06/CL-07.
 
-1. [ ] Extend the packaged latest/current probe to select an invocable
-   operation from generated per-client OpenAPI metadata, then call it through
-   the public packaged API or adaptive CLI. Prefer the already discovered
-   `world.time.query` only because it is runtime-generated in the official
-   26.x lane, not because it is hard-coded into a static gameplay catalog.
-2. [ ] Capture the public invocation transcript as
-   `client-rpc-invoke-generated.json` and, if the CLI path is used,
-   `client-cli-invoke-generated.log`.
-3. [ ] Add or update a distribution/architecture guard so this smoke cannot
-   become `task.survival`, a static CLI gameplay command, or a hand-written
-   operation catalog.
-4. [ ] Run the focused guard, then rerun
-   `mise run packaged-latest-current-probe`.
+1. [ ] Create or extend a packaged representative older probe that uses the
+   same public product path as CL-03: packaged CLI, supervisor API, cache
+   preparation, Fabric Loader/API resolution, attach, connect, generated
+   OpenAPI, projections, SSE, JSON-RPC query/subscription, and generated
+   invocation.
+2. [ ] Record the representative older Minecraft version and why it is the
+   compatibility lane.
+3. [ ] Capture older-lane equivalents of the CL-03 artifacts under a distinct
+   artifact root, including selected generated action, JSON-RPC invocation,
+   and adaptive CLI invocation transcripts.
+4. [ ] Run the focused guard for the older packaged probe, then run the older
+   packaged live probe.
 5. [ ] Write
-   `docs/superpowers/evidence/2026-06-28-latest-current-generated-primitive-smoke.md`.
-6. [ ] If the generated invocation passes, mark CL-03f and CL-03 `[x]`; if it
-   fails, add a short **Current Blocker** section here with the exact error,
-   artifact path, and next diagnostic command.
+   `docs/superpowers/evidence/2026-06-28-representative-older-product-lane.md`.
+6. [ ] If the older lane passes, mark CL-04 `[x]`; if it fails, add a short
+   **Current Blocker** section here with the exact error, artifact path, and
+   next diagnostic command.
 
 ### Latest Completed Packet
 
-1. [x] Add a red daemon test proving multiple native artifacts still produce
-   one valid `${natives_directory}` for Minecraft-style JVM args.
-2. [x] Fix cache preparation so native extraction has one aggregate runtime
-   directory while classpath and library paths remain correct.
-3. [x] Run the focused daemon test and
-   `mise exec -- bun test playwright/src/distribution.test.ts`.
-4. [x] Rerun `mise run packaged-latest-current-probe` from a clean probe
-   directory.
-5. [x] If it passes, write
-   `docs/superpowers/evidence/2026-06-28-packaged-latest-current-attach-artifacts.md`
-   and mark only the proven CL-03 sub-gates `[x]`.
-6. [x] No blocker remained after the rerun; CL-03f is now the first unchecked
-   latest/current sub-gate.
+1. [x] Extended the packaged latest/current probe to select an invocable
+   operation from generated per-client OpenAPI metadata.
+2. [x] Captured `client-generated-action-selected.json`,
+   `client-rpc-invoke-generated.json`, and `client-cli-invoke-generated.log`.
+3. [x] Proved the JSON-RPC `invoke` transcript and adaptive CLI transcript
+   both returned `ACCEPTED` for generated `world.time.query`.
+4. [x] Ran `mise exec -- bun test playwright/src/distribution.test.ts`.
+5. [x] Ran `mise run packaged-latest-current-probe`.
+6. [x] Wrote
+   `docs/superpowers/evidence/2026-06-28-latest-current-generated-primitive-smoke.md`
+   and closed CL-03.
 
-### Required CL-03 Artifact Checklist
+### Closed CL-03 Artifact Checklist
 
 The packaged latest/current probe has produced the attach/projection artifacts
-needed for CL-03c.2, CL-03d, and CL-03e.3. The remaining unchecked artifact is
-the CL-03f public generated invocation transcript.
+needed for CL-03c.2, CL-03d, CL-03e.3, and CL-03f.
 
 - [x] `clients-create-latest-release.log`
 - [x] `packaged-driver-mods.json`
@@ -96,12 +92,14 @@ the CL-03f public generated invocation transcript.
 - [x] `client-rpc-resources.json`
 - [x] `client-rpc-subscribe.json`
 - [x] `client-events-subscription-stream.sse`
-- [ ] `client-rpc-invoke-generated.json` for CL-03f
+- [x] `client-rpc-invoke-generated.json` for CL-03f
+- [x] `client-cli-invoke-generated.log` for CL-03f
+- [x] `client-generated-action-selected.json` for CL-03f
 
 ### Roadmap Order
 
-1. [~] CL-03 latest/current packaged product lane.
-2. [ ] CL-04 representative older packaged product lane.
+1. [x] CL-03 latest/current packaged product lane.
+2. [~] CL-04 representative older packaged product lane.
 3. [ ] CL-05 external-user usability and docs.
 4. [ ] CL-06 final local release gates.
 5. [ ] CL-07 final honest public API/CLI gameplay replay.
@@ -201,7 +199,7 @@ checked and the named evidence file exists.
    `mise exec -- gradle :protocol:test :driver-api:test :driver-fabric-discovery:test :driver-fabric:test`,
    `mise run architecture-check`, `git diff --check`.
 
-3. [~] CL-03: Latest/current lane is a real product lane.
+3. [x] CL-03: Latest/current lane is a real product lane.
    Done means `latest-release` resolves through normal product machinery and
    reaches the same public generated API/CLI behavior as the current compiled
    lane.
@@ -242,13 +240,11 @@ checked and the named evidence file exists.
      - [x] CL-03e.3: A connected official 26.x client captures generated
        per-client OpenAPI, actions/resources, SSE, JSON-RPC query, and
        JSON-RPC subscription artifacts from the packaged/latest lane.
-   - [ ] CL-03f: A public API/CLI gameplay smoke executes generated
+   - [x] CL-03f: A public API/CLI gameplay smoke executes generated
      primitives on the latest/current lane.
 
-   Current next step: CL-03f must invoke a generated operation through the
-   public packaged API or adaptive CLI and capture the transcript as
-   `client-rpc-invoke-generated.json`. Do not add a static operation to make
-   the smoke pass.
+   CL-03f evidence:
+   `docs/superpowers/evidence/2026-06-28-latest-current-generated-primitive-smoke.md`.
 
    Must not count: a probe that only compiles, a launch that never self-attaches,
    a manual mod drop, or official-lane code copied from the Yarn/remap lane.
@@ -257,16 +253,14 @@ checked and the named evidence file exists.
    `docs/superpowers/evidence/2026-06-28-packaged-official-latest-lane.md`,
    `docs/superpowers/evidence/2026-06-28-official-client-state-world-time-operation.md`,
    `docs/superpowers/evidence/2026-06-28-official-world-time-invocation.md`,
-   `docs/superpowers/evidence/2026-06-28-packaged-latest-current-attach-artifacts.md`.
-
-   Evidence still required:
+   `docs/superpowers/evidence/2026-06-28-packaged-latest-current-attach-artifacts.md`,
    `docs/superpowers/evidence/2026-06-28-latest-current-generated-primitive-smoke.md`.
 
    Suggested commands:
    `mise run package-cli`, `mise run fabric-lane-check-latest-official`,
    packaged latest/current create-client smoke, `mise run ci`.
 
-4. [ ] CL-04: Representative older lane passes the same gate set.
+4. [~] CL-04: Representative older lane passes the same gate set.
    Done means the older lane is not a weaker smoke path. It uses the same
    resolver, cache, Java/runtime selection, Fabric artifact resolution,
    packaged driver selection, attach, generated OpenAPI, SSE, JSON-RPC, CLI,
@@ -405,9 +399,12 @@ checked and the named evidence file exists.
   Action, packaged CLI smoke, and agent onboarding docs have staged evidence.
 - [x] Kotlin lint, formatting, unused/dead-code checks, architecture checks,
   and mise tasks exist.
+- [x] Latest/current packaged lane evidence exists for Minecraft `26.2`,
+  including generated OpenAPI, projections, SSE, JSON-RPC query/subscription,
+  JSON-RPC invocation, and adaptive CLI invocation.
 - [x] Historical public API/CLI survival evidence exists without
   server-provisioned inventory, but it is not final completion evidence until
-  replayed after CL-03 through CL-06 close.
+  replayed after CL-04 through CL-06 close.
 
 ## Current Baseline
 
@@ -416,10 +413,11 @@ generated per-client OpenAPI, graph-projected actions/resources, generic
 invocation, SSE plus JSON-RPC-style control/query calls, packaged distribution
 paths, staged Fabric gameplay evidence, and a packaged latest/current lane that
 creates, attaches, connects, and captures generated API/stream artifacts for
-Minecraft `26.2`. The remaining product blockers are the CL-03f public
-generated primitive invocation smoke, the representative older product lane,
-external-user usability/docs smokes, final local release gates, and the final
-honest survival replay through public API/CLI only.
+Minecraft `26.2`. The latest/current lane also invokes a generated operation
+through both JSON-RPC and the adaptive CLI. The remaining product blockers are
+the representative older product lane, external-user usability/docs smokes,
+final local release gates, and the final honest survival replay through public
+API/CLI only.
 
 ## Spec And Plan Inventory
 

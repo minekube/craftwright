@@ -65,6 +65,7 @@ not grow with every completed phase.
 - Phase 180: official world time invocation.
 - Phase 181: packaged official latest Fabric lane.
 - Phase 182: packaged latest-current attach artifacts.
+- Phase 183: latest-current generated primitive smoke.
 
 ## Current Direction
 
@@ -135,10 +136,11 @@ real local Minecraft server, and captures connected generated OpenAPI,
 actions/resources, SSE, JSON-RPC query, and JSON-RPC subscription artifacts.
 The native launch bug was fixed in shared cache preparation by using one
 aggregate native directory for `${natives_directory}` while keeping classpath
-and library artifacts separate. CL-03 now only waits on CL-03f: a public
-packaged API or adaptive CLI invocation of a generated operation with a
-captured transcript.
-Continue by moving official 26.x support through shared Fabric
-discovery/projection/invocation, packaging, adaptive CLI/API smoke, and honest
-gameplay evidence. Do not copy the Yarn/remap gameplay gateway into the
-official module and do not add static gameplay catalogs.
+and library artifacts separate.
+CL-03 is now closed. The packaged latest-current probe selects
+`world.time.query` from live per-client OpenAPI `x-craftless-actions`, invokes
+it through public JSON-RPC `method=invoke`, invokes it again through the
+adaptive packaged CLI, and captures both transcripts with `ACCEPTED` results.
+Continue with CL-04: the representative older packaged lane must pass the same
+product gate set as CL-03. Do not copy the Yarn/remap gameplay gateway into
+the official module and do not add static gameplay catalogs.

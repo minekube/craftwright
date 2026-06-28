@@ -93,6 +93,12 @@ describe("distribution surface", () => {
     expect(script).toContain("clients-create-latest-release.log");
     expect(script).toContain("client-openapi-connected.json");
     expect(script).toContain("client-rpc-subscribe.json");
+    expect(script).toContain("client-generated-action-selected.json");
+    expect(script).toContain("client-rpc-invoke-generated.json");
+    expect(script).toContain("client-cli-invoke-generated.log");
+    expect(script).toContain("x-craftless-actions");
+    expect(script).toContain('method: "invoke"');
+    expect(script).toContain('clients "$CLIENT_ID" run "$GENERATED_ACTION_ID"');
     expect(script).toContain("mise exec -- bun");
     expect(script).not.toContain("task.survival");
   });
