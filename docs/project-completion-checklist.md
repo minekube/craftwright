@@ -890,9 +890,9 @@ Verification:
   README quickstart surfaces.
 - [x] Release workflow builds the CLI distribution with mise/Gradle, uploads
   GitHub Release artifacts and checksums, and pushes a GHCR runtime image.
-  Current published release evidence: `v0.1.0` is published with
-  `craftless-0.1.0.tar`, `craftless-0.1.0.zip`, and `SHA256SUMS`; the latest
-  successful `release` workflow runs for tag `v0.1.0` completed on 2026-06-26.
+  Current published release evidence is being refreshed by Phase 104 for
+  `v0.1.1`, the first release that includes installed CLI driver-mod
+  distribution.
 - [x] Docker image copies an already-built Craftless CLI distribution and does
   not build the project inside Docker.
   Refreshed 2026-06-28 evidence: `mise run package-cli` built
@@ -903,9 +903,9 @@ Verification:
   returned an `ok=true` supervisor URL.
 - [x] Install script installs `craftless` from GitHub Releases without
   requiring users to clone this repository.
-  Refreshed 2026-06-28 evidence: running `install.sh` with temporary
-  `CRAFTLESS_INSTALL_DIR` and `CRAFTLESS_HOME` installed `craftless 0.1.0`, and
-  the installed binary returned `ok=true` for `server start --once --port 0`.
+  Refreshed 2026-06-28 evidence is being updated by Phase 104 for `v0.1.1`,
+  including an installed archive check for
+  `mods/craftless-driver-fabric.jar`.
 - [x] Reusable GitHub Action installs Craftless and can optionally start the
   local daemon for downstream workflows.
 - [x] README documents install script, Docker, and GitHub Actions usage with no
@@ -3288,6 +3288,34 @@ Verification:
 - Final local verification is recorded in
   `docs/superpowers/evidence/2026-06-28-installed-cli-driver-mod-distribution.md`.
 
+## Phase 104: v0.1.1 Release Install Evidence
+
+- [x] Spec exists:
+  `docs/superpowers/specs/2026-06-28-104-v011-release-install-evidence-design.md`.
+- [x] Plan exists:
+  `docs/superpowers/plans/2026-06-28-104-v011-release-install-evidence-plan.md`.
+- [x] README install and reusable GitHub Action examples target `v0.1.1`.
+- [x] Distribution tests guard the `v0.1.1` README examples.
+- [~] `v0.1.1` release publication, release assets, install-script smoke, and
+  installed archive driver-mod evidence are pending GitHub release completion.
+- [x] This phase adds no public gameplay action, generated route family, CLI
+  gameplay catalog, Fabric execution binding, scenario shortcut, compile-time
+  daemon dependency on `driver-fabric`, public version-specific API, or new
+  Minecraft support claim.
+
+Verification:
+
+- Focused docs guard:
+  `mise exec -- bun test playwright/src/distribution.test.ts`
+- Release workflow:
+  `gh run view 28316359212 --json status,conclusion,headSha,headBranch,url,displayTitle`
+- Release assets:
+  `gh release view v0.1.1 --json tagName,isLatest,assets,url`
+- Install smoke:
+  `CRAFTLESS_VERSION=v0.1.1 CRAFTLESS_INSTALL_DIR=... CRAFTLESS_HOME=... ./install.sh`
+- Final local verification will be recorded in
+  `docs/superpowers/evidence/2026-06-28-v011-release-install-evidence.md`.
+
 ## Final Completion Gate
 
 - [~] All implementation phases above have current Phase 75 evidence, a Phase
@@ -3308,7 +3336,8 @@ Verification:
   98 driver attach proxy, Phase 99 launch attach environment, and Phase 100
   Fabric driver self-attach, Phase 101 packaged driver runtime dependencies,
   Phase 102 packaged live attach and cold-cache usability, and Phase 103
-  installed CLI driver mod distribution.
+  installed CLI driver mod distribution. Phase 104 v0.1.1 release install
+  evidence is currently being refreshed.
   The broader project goal remains active until
   transitional bootstrap code no longer owns future public gameplay breadth,
   latest/current and representative older runtime lanes have runnable support

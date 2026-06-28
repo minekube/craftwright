@@ -90,7 +90,7 @@ jobs:
   minecraft:
     runs-on: ubuntu-latest
     steps:
-      - uses: minekube/craftless/.github/actions/setup-craftless@v0.1.0
+      - uses: minekube/craftless/.github/actions/setup-craftless@v0.1.1
         id: craftless
         with:
           start: "true"
