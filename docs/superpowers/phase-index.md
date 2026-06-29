@@ -214,8 +214,11 @@ Phase 194 adds a static Fumadocs Cloudflare Workers documentation site. The
 site is built with Bun through mise, exports a compact supervisor OpenAPI
 snapshot from the protocol route catalog, renders a stable `/docs/api-reference`
 entrypoint plus generated operation pages, and deploys `docs-site/out` with
-Workers Static Assets and preview URLs. A FumaPress spike found it useful as
-preview tooling but less suitable than Fumadocs Next static export for this PR.
+Workers Static Assets at `https://craftless.minekube.com`. Main-branch deploys
+run through `.github/workflows/docs-site.yml` after `mise run docs-site-verify`;
+the workflow requires the repository `CLOUDFLARE_API_TOKEN` secret. A FumaPress
+spike found it useful as preview tooling but less suitable than Fumadocs Next
+static export for this PR.
 Phase 195 adds the screenshot API product slice. Screenshot capture is exposed
 as generated runtime graph resource `media.screenshot` and operation
 `media.screenshot.capture`, with the generated route

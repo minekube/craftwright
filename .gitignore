@@ -10,3 +10,4 @@ docs-site/.next/
 docs-site/.source/
 docs-site/node_modules/
 docs-site/out/
+docs-site/tsconfig.tsbuildinfo

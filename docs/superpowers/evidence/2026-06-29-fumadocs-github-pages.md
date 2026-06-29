@@ -2,8 +2,9 @@
 
 ## Scope
 
-Phase 194 adds a static Fumadocs documentation site for Craftless, hosted by
-Cloudflare Workers Static Assets and built with Bun through mise.
+Phase 194 adds a static Fumadocs documentation site for Craftless, hosted at
+`https://craftless.minekube.com` by Cloudflare Workers Static Assets and built
+with Bun through mise.
 
 The site uses the generated Craftless supervisor OpenAPI snapshot as its API
 reference source. The snapshot is exported from the protocol route catalog, not
@@ -20,16 +21,21 @@ static hosted API documentation site generated from OpenAPI.
 
 - `docs-site/` contains a Fumadocs/Next static export app.
 - `docs-site/wrangler.jsonc` deploys `docs-site/out` with Cloudflare Workers
-  Static Assets.
-- The Worker config enables `preview_urls`, so Cloudflare Workers Builds can
-  produce branch and pull-request preview deployments when connected to GitHub.
+  Static Assets and attaches the custom domain `craftless.minekube.com`.
+- The Worker config enables `preview_urls`, so authenticated Wrangler version
+  uploads can still create ad-hoc preview URLs.
 - `docs-site/package.json` exposes `wrangler deploy` and
   `wrangler versions upload --preview-alias preview` scripts for authenticated
   deploy and preview uploads.
+- `.github/workflows/docs-site.yml` deploys on pushes to `main` after the
+  repository receives a `CLOUDFLARE_API_TOKEN` secret with Account Settings
+  Read, Workers Scripts Write, Workers Routes Write, and Zone Read permissions.
 - `mise run docs-site-openapi` exports
   `docs-site/openapi/craftless-supervisor.json` from `:protocol`.
 - `mise run docs-site-build` regenerates OpenAPI, installs with Bun, and builds
   the static site.
+- `mise run docs-site-verify` runs the build, Fumadocs/TypeScript typecheck,
+  and Wrangler deploy dry-run.
 - `docs-site/content/docs/cli.mdx` documents the current API-only CLI:
   `craftless daemon start` plus `craftless api <endpoint>` for supervisor,
   per-client generated routes, generic invocation, events, and
@@ -66,12 +72,32 @@ Result: passed. The task regenerated OpenAPI, verified the frozen Bun lockfile,
 and exported the static site to `docs-site/out`.
 
 ```sh
+mise exec -- bun run typecheck
+```
+
+Result: passed from `docs-site/`.
+
+```sh
 mise exec -- bun run wrangler deploy --dry-run
 ```
 
 Result: passed from `docs-site/` with Wrangler `4.105.0`. Wrangler read the
 static assets from `docs-site/out` and exited before upload because of
 `--dry-run`.
+
+```sh
+mise run docs-site-verify
+```
+
+Result: passed. The task regenerated OpenAPI, checked the frozen Bun lockfile,
+built the static export, ran `fumadocs-mdx && tsc --noEmit`, and completed a
+Wrangler deploy dry-run.
+
+```sh
+curl -sSI --max-time 20 https://craftless.minekube.com/
+```
+
+Result: passed with `HTTP/2 200` from Cloudflare.
 
 ```sh
 mise exec -- gradle :protocol:test --tests com.minekube.craftless.protocol.OpenApiGenerationTest.openapi\ json\ omits\ nulls\ and\ default\ empty\ sections

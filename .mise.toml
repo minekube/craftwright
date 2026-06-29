@@ -28,11 +28,19 @@ description = "Generate the supervisor OpenAPI snapshot consumed by the static d
 run = "mise exec -- gradle :protocol:exportSupervisorOpenApi"
 
 [tasks.docs-site-build]
-description = "Build the Fumadocs static site for GitHub Pages"
+description = "Build the Fumadocs static site for Cloudflare Workers"
 run = [
     "mise run docs-site-openapi",
     "cd docs-site && mise exec -- bun install --frozen-lockfile",
     "cd docs-site && mise exec -- bun run build",
+]
+
+[tasks.docs-site-verify]
+description = "Typecheck, build, and dry-run the Fumadocs Cloudflare Workers docs site"
+run = [
+    "mise run docs-site-build",
+    "cd docs-site && mise exec -- bun run typecheck",
+    "cd docs-site && mise exec -- bun run deploy --dry-run",
 ]
 
 [tasks.ci-craftless-smoke]
