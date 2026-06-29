@@ -150,3 +150,5 @@ Required negative proof:
   Release Please automation is indexed in `docs/superpowers/phase-index.md`.
 - Phase 191:
   `docs/superpowers/evidence/2026-06-29-client-lifecycle-surface-clarity.md`.
+- Phase 192:
+  `docs/superpowers/evidence/2026-06-29-core-openapi-descriptions.md`.

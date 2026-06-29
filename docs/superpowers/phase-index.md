@@ -200,3 +200,9 @@ CLI route help prints that metadata, and README plus the public gameplay-agent
 skill now tell agents to list/get/reuse or stop old clients before creating
 another. Fresh timestamped ids are documented as valid only for deliberate
 independent clients, not retries.
+Phase 192 extends supervisor OpenAPI descriptions across the remaining core
+pillars. Every stable supervisor operation now has a summary and useful
+description for discovery/version, events, cache, Java runtime resolution,
+client lifecycle, per-client OpenAPI, action/resource projections, generic
+invocation, JSON-RPC, and streams. The coverage test prevents future stable
+routes from appearing without agent-readable OpenAPI guidance.

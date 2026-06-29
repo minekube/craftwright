@@ -241,6 +241,39 @@ class OpenApiGenerationTest {
     }
 
     @Test
+    fun `stable supervisor openapi describes every core pillar route`() {
+        val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
+        val operations =
+            document.paths.flatMap { (path, item) ->
+                listOfNotNull(
+                    item.get?.let { "GET $path" to it },
+                    item.post?.let { "POST $path" to it },
+                )
+            }
+
+        operations.forEach { (route, operation) ->
+            val summary = operation.summary
+            val description = operation.description
+
+            assertTrue(!summary.isNullOrBlank(), "$route must have an OpenAPI summary")
+            assertTrue(summary.length >= 12, "$route summary should be useful to agents")
+            assertTrue(!description.isNullOrBlank(), "$route must have an OpenAPI description")
+            assertTrue(description.length >= 80, "$route description should explain when to use the route")
+        }
+
+        assertTrue(requireNotNull(document.paths["/openapi.json"]?.get?.description).contains("stable supervisor API"))
+        assertTrue(requireNotNull(document.paths["/version"]?.get?.description).contains("runtime identity"))
+        assertTrue(requireNotNull(document.paths["/events:stream"]?.get?.description).contains("Server-Sent Events"))
+        assertTrue(requireNotNull(document.paths["/cache:prepare"]?.post?.description).contains("Minecraft"))
+        assertTrue(requireNotNull(document.paths["/runtimes/java:resolve"]?.post?.description).contains("Java runtime"))
+        assertTrue(requireNotNull(document.paths["/clients/{id}/openapi.json"]?.get?.description).contains("generated live API"))
+        assertTrue(requireNotNull(document.paths["/clients/{id}/actions"]?.get?.description).contains("projection"))
+        assertTrue(requireNotNull(document.paths["/clients/{id}/resources"]?.get?.description).contains("handles"))
+        assertTrue(requireNotNull(document.paths["/clients/{id}:run"]?.post?.description).contains("advertised action"))
+        assertTrue(requireNotNull(document.paths["/clients/{id}:rpc"]?.post?.description).contains("JSON-RPC"))
+    }
+
+    @Test
     fun `stable supervisor openapi describes cache export and cleanup`() {
         val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
 
