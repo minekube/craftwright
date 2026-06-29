@@ -70,6 +70,7 @@ not grow with every completed phase.
 - Phase 185: user-facing usability docs.
 - Phase 186: final local release gates.
 - Phase 187: final public gameplay.
+- Phase 188: tiny-agent lifecycle defaults.
 
 ## Current Direction
 
@@ -174,3 +175,9 @@ rejects `task.*`/scenario shortcuts, and records final evidence in
 `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md`.
 Continue with CL-08: rerun focused final guards after the CL-07 edits, then
 commit, push `main`, and verify the worktree is clean.
+Phase 188 is a post-completion usability slice. Client creation now accepts an
+omitted profile, derives a safe offline name from the client id, records
+presentation intent on client responses, defaults API-first clients to
+non-visible muted presentation, and exposes only concrete lifecycle CLI flags
+such as `--visible` and `--audio`. This does not add gameplay roles, static
+gameplay catalogs, scenario shortcuts, or generated-action alternatives.

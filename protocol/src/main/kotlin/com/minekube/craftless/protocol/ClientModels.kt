@@ -33,6 +33,24 @@ enum class ProfileKind {
 }
 
 @Serializable
+enum class ClientWindowMode {
+    NONE,
+    VISIBLE,
+}
+
+@Serializable
+enum class ClientAudioMode {
+    MUTED,
+    DEFAULT,
+}
+
+@Serializable
+data class ClientPresentation(
+    val window: ClientWindowMode = ClientWindowMode.NONE,
+    val audio: ClientAudioMode = ClientAudioMode.MUTED,
+)
+
+@Serializable
 data class Instance(
     val id: String,
     val version: MinecraftVersion,
@@ -104,14 +122,28 @@ data class CreateClientRequest(
     val id: String,
     val version: String,
     val loader: Loader,
-    val profile: Profile,
     val loaderVersion: String? = null,
+    val profile: Profile? = null,
+    val presentation: ClientPresentation = ClientPresentation(),
 ) {
     init {
         require(id.isCraftlessClientId()) { "client id must be a route-safe segment" }
         loaderVersion?.let { requireFileSafeCacheSegment(it, "loader version") }
     }
+
+    fun resolvedProfile(): Profile = profile ?: Profile.offline(defaultOfflineProfileName(id))
 }
+
+private fun defaultOfflineProfileName(clientId: String): String {
+    val candidate =
+        clientId
+            .filter { it.isLetterOrDigit() }
+            .replaceFirstChar { char -> char.uppercaseChar() }
+            .take(MAX_OFFLINE_PROFILE_NAME_LENGTH)
+    return candidate.ifBlank { "Player" }
+}
+
+const val MAX_OFFLINE_PROFILE_NAME_LENGTH: Int = 16
 
 fun String.isCraftlessClientId(): Boolean = matches(Regex("[A-Za-z0-9][A-Za-z0-9_-]{0,63}"))
 
@@ -125,6 +157,7 @@ data class Client(
     val id: String,
     val instance: Instance,
     val profile: Profile,
+    val presentation: ClientPresentation = ClientPresentation(),
     val state: ClientState,
 )
 

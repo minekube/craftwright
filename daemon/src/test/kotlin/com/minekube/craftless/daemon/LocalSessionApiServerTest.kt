@@ -1208,6 +1208,9 @@ class LocalSessionApiServerTest {
         val materializedFabricApi =
             workspace.resolve("instances/alice-1.21.6-fabric/minecraft/mods/fabric-api.jar")
         assertEquals("fabric-api-jar", Files.readString(materializedFabricApi))
+        val options = Files.readString(workspace.resolve("instances/alice-1.21.6-fabric/minecraft/options.txt"))
+        assertTrue(options.contains("soundCategory_master:0.0"))
+        assertTrue(options.contains("soundCategory_ui:0.0"))
         assertFalse(invoked.contains("--quickPlaySingleplayer"))
         assertFalse(invoked.contains("--quickPlayMultiplayer"))
         assertFalse(invoked.contains("--quickPlayRealms"))

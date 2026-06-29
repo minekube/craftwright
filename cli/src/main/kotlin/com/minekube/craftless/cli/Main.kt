@@ -12,6 +12,9 @@ import com.minekube.craftless.daemon.LocalSessionApiServer
 import com.minekube.craftless.protocol.CacheCleanupRequest
 import com.minekube.craftless.protocol.CacheExportRequest
 import com.minekube.craftless.protocol.CachePrepareRequest
+import com.minekube.craftless.protocol.ClientAudioMode
+import com.minekube.craftless.protocol.ClientPresentation
+import com.minekube.craftless.protocol.ClientWindowMode
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.JavaRuntimeResolveRequest
 import com.minekube.craftless.protocol.JsonRpcMethod
@@ -67,6 +70,7 @@ object CraftlessCli {
     private val json =
         Json {
             encodeDefaults = true
+            explicitNulls = false
             ignoreUnknownKeys = true
         }
 
@@ -436,11 +440,23 @@ object CraftlessCli {
             }
         val loaderVersion = args.optionValue("--loader-version")
         val profileName = args.optionValue("--offline-name")
-        if (clientId.isBlank() || version.isNullOrBlank() || loader == null || profileName.isNullOrBlank()) {
+        val audioValue = args.optionValue("--audio")?.lowercase()?.replace('-', '_')
+        val audio =
+            when (audioValue) {
+                null, "muted" -> ClientAudioMode.MUTED
+                "default" -> ClientAudioMode.DEFAULT
+                else -> null
+            }
+        if (clientId.isBlank() || version.isNullOrBlank() || loader == null) {
             stderr(
                 "error: usage is clients create <id> --version <version> --loader <loader> " +
-                    "[--loader-version <version>] --offline-name <name> [--api <url>]",
+                    "[--loader-version <version>] [--offline-name <name>] " +
+                    "[--visible] [--audio <muted|default>] [--api <url>]",
             )
+            return 2
+        }
+        if (audio == null) {
+            stderr("error: --audio must be muted or default")
             return 2
         }
         val api = args.apiBaseUrl(env)
@@ -449,8 +465,13 @@ object CraftlessCli {
                 id = clientId,
                 version = version,
                 loader = loader,
-                profile = Profile.offline(profileName),
                 loaderVersion = loaderVersion,
+                profile = profileName?.let(Profile::offline),
+                presentation =
+                    ClientPresentation(
+                        window = if (args.contains("--visible")) ClientWindowMode.VISIBLE else ClientWindowMode.NONE,
+                        audio = audio,
+                    ),
             )
 
         return runCatching {

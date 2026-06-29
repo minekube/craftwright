@@ -8,6 +8,7 @@ import com.minekube.craftless.protocol.Client
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.Instance
+import com.minekube.craftless.protocol.MAX_OFFLINE_PROFILE_NAME_LENGTH
 import com.minekube.craftless.protocol.MinecraftVersion
 import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.OpenApiOperation
@@ -25,7 +26,8 @@ class ClientSessionService private constructor(
     fun createClient(request: CreateClientRequest): Client {
         require(request.id.isCraftlessClientId()) { "client id must be a route-safe segment" }
         require(request.version.isNotBlank()) { "minecraft version is required" }
-        require(request.profile.name.length <= 16) { "offline profile name must be 16 characters or fewer" }
+        val profile = request.resolvedProfile()
+        require(profile.name.length <= MAX_OFFLINE_PROFILE_NAME_LENGTH) { "offline profile name must be 16 characters or fewer" }
         require(!clients.containsKey(request.id)) { "client ${request.id} already exists" }
 
         val instance =
@@ -39,7 +41,8 @@ class ClientSessionService private constructor(
             Client(
                 id = request.id,
                 instance = instance,
-                profile = request.profile,
+                profile = profile,
+                presentation = request.presentation,
                 state = ClientState.RUNNING,
             )
         val driver = driverFactory.create(request)

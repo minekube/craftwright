@@ -72,4 +72,38 @@ class ClientModelsTest {
             )
         }
     }
+
+    @Test
+    fun `create client request defaults to automation muted non visible presentation`() {
+        val request =
+            CreateClientRequest(
+                id = "api-bot-01",
+                version = "latest-release",
+                loader = Loader.FABRIC,
+            )
+
+        assertEquals(null, request.profile)
+        assertEquals(ClientPresentation(), request.presentation)
+        assertEquals(Profile.offline("Apibot01"), request.resolvedProfile())
+    }
+
+    @Test
+    fun `create client request accepts visible default audio presentation`() {
+        val request =
+            CreateClientRequest(
+                id = "robin",
+                version = "latest-release",
+                loader = Loader.FABRIC,
+                profile = Profile.offline("Robin"),
+                presentation =
+                    ClientPresentation(
+                        window = ClientWindowMode.VISIBLE,
+                        audio = ClientAudioMode.DEFAULT,
+                    ),
+            )
+
+        assertEquals(Profile.offline("Robin"), request.resolvedProfile())
+        assertEquals(ClientWindowMode.VISIBLE, request.presentation.window)
+        assertEquals(ClientAudioMode.DEFAULT, request.presentation.audio)
+    }
 }

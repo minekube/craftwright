@@ -38,11 +38,11 @@ Status legend:
 | Field | State |
 | --- | --- |
 | Active gate | All CL gates closed |
-| Current state | Final CI corrections are verified and pushed through commit `2eb73033`; this checklist is the final closure index. |
+| Current state | All CL gates are closed. Phase 188 is a post-completion usability slice for tiny-agent lifecycle defaults. |
 | Latest product proof | `mise run final-public-gameplay-probe` passed for Minecraft `1.21.6` with server provisioning disabled. Artifacts are under `driver-fabric/build/craftless-final-gameplay/artifacts/`. |
-| Latest CI truth | `mise run ci` passes from the corrected worktree. |
+| Latest CI truth | `mise run ci` passed after Phase 188 tiny-agent lifecycle defaults. |
 | Current blocker | None known. |
-| Next commands | None for the current goal. For audit, run `git status --short --branch` and expect only `## main...origin/main`. |
+| Next commands | For the next post-completion slice, start with a fresh spec, plan, focused tests, and evidence. |
 
 ## Next Work
 
@@ -140,3 +140,5 @@ Required negative proof:
   `docs/superpowers/evidence/2026-06-28-final-public-gameplay.md`.
 - CL-08:
   `docs/superpowers/evidence/2026-06-28-final-completion.md`.
+- Phase 188:
+  `docs/superpowers/evidence/2026-06-29-tiny-agent-lifecycle-defaults.md`.

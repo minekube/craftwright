@@ -716,12 +716,26 @@ class OpenApiGenerationTest {
                 ?.schema
         assertNotNull(createSchema)
         assertEquals("object", createSchema.type)
-        assertEquals(listOf("id", "version", "loader", "profile"), createSchema.required)
+        assertEquals(listOf("id", "version", "loader"), createSchema.required)
         assertEquals("string", createSchema.properties["id"]?.type)
         assertEquals("string", createSchema.properties["version"]?.type)
         assertEquals("string", createSchema.properties["loader"]?.type)
         assertEquals("string", createSchema.properties["loaderVersion"]?.type)
         assertEquals(true, createSchema.properties["loaderVersion"]?.nullable)
+        val presentationSchema = createSchema.properties["presentation"]
+        assertNotNull(presentationSchema)
+        assertEquals("object", presentationSchema.type)
+        assertEquals(listOf("window", "audio"), presentationSchema.required)
+        val windowSchema = presentationSchema.properties["window"]
+        assertNotNull(windowSchema)
+        assertEquals("string", windowSchema.type)
+        assertEquals(listOf("NONE", "VISIBLE"), windowSchema.enumValues)
+        assertEquals("NONE", windowSchema.default)
+        val audioSchema = presentationSchema.properties["audio"]
+        assertNotNull(audioSchema)
+        assertEquals("string", audioSchema.type)
+        assertEquals(listOf("MUTED", "DEFAULT"), audioSchema.enumValues)
+        assertEquals("MUTED", audioSchema.default)
         val profileSchema = createSchema.properties["profile"]
         assertNotNull(profileSchema)
         assertEquals("object", profileSchema.type)
@@ -879,7 +893,7 @@ class OpenApiGenerationTest {
 
     private fun assertClientSchema(schema: OpenApiSchema) {
         assertEquals("object", schema.type)
-        assertEquals(listOf("id", "instance", "profile", "state"), schema.required)
+        assertEquals(listOf("id", "instance", "profile", "presentation", "state"), schema.required)
         assertEquals("string", schema.properties["id"]?.type)
         assertEquals("string", schema.properties["state"]?.type)
 
@@ -924,5 +938,19 @@ class OpenApiGenerationTest {
         assertEquals(listOf("kind", "name"), profileSchema.required)
         assertEquals("string", profileSchema.properties["kind"]?.type)
         assertEquals("string", profileSchema.properties["name"]?.type)
+        val presentationSchema = schema.properties["presentation"]
+        assertNotNull(presentationSchema)
+        assertEquals("object", presentationSchema.type)
+        assertEquals(listOf("window", "audio"), presentationSchema.required)
+        val windowSchema = presentationSchema.properties["window"]
+        assertNotNull(windowSchema)
+        assertEquals("string", windowSchema.type)
+        assertEquals(listOf("NONE", "VISIBLE"), windowSchema.enumValues)
+        assertEquals("NONE", windowSchema.default)
+        val audioSchema = presentationSchema.properties["audio"]
+        assertNotNull(audioSchema)
+        assertEquals("string", audioSchema.type)
+        assertEquals(listOf("MUTED", "DEFAULT"), audioSchema.enumValues)
+        assertEquals("MUTED", audioSchema.default)
     }
 }

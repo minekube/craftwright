@@ -16,6 +16,7 @@ import com.minekube.craftless.protocol.CachePrepareResult
 import com.minekube.craftless.protocol.CachePreparedArtifact
 import com.minekube.craftless.protocol.CachePreparedArtifactKind
 import com.minekube.craftless.protocol.CachePreparedArtifactStatus
+import com.minekube.craftless.protocol.ClientAudioMode
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.InstanceFiles
@@ -352,6 +353,7 @@ class ProcessClientRuntimeLauncher : ClientRuntimeLauncher {
         attachEnvironment: ClientDriverAttachEnvironment?,
     ): ClientRuntimeLaunch {
         materializeLaunchMods(prepared.launch, files, workspaceRoot)
+        materializePresentationOptions(request, files, workspaceRoot)
         val command = launchCommand(request, prepared.launch, files, workspaceRoot)
         val logs = workspaceRoot.resolve(files.logs).normalize()
         Files.createDirectories(logs)
@@ -390,6 +392,20 @@ class ProcessClientRuntimeLauncher : ClientRuntimeLauncher {
             require(target.startsWith(modsDirectory)) { "materialized mod target must stay under mods directory" }
             Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING)
         }
+    }
+
+    private fun materializePresentationOptions(
+        request: CreateClientRequest,
+        files: InstanceFiles,
+        workspaceRoot: Path,
+    ) {
+        if (request.presentation.audio != ClientAudioMode.MUTED) return
+        val gameRoot = workspaceRoot.resolveHandleOrPath(files.gameRoot)
+        Files.createDirectories(gameRoot)
+        val options = gameRoot.resolve("options.txt")
+        val existing = if (Files.isRegularFile(options)) Files.readAllLines(options, StandardCharsets.UTF_8) else emptyList()
+        val preserved = existing.filter { line -> line.substringBefore(":") !in mutedSoundOptionKeys }
+        Files.write(options, preserved + mutedSoundOptions.map { (key, value) -> "$key:$value" }, StandardCharsets.UTF_8)
     }
 
     private fun launchCommand(
@@ -507,25 +523,27 @@ private fun Path.sha256Hex(): String {
 }
 
 private fun CreateClientRequest.clientLaunchVariables(files: InstanceFiles): Map<String, String> =
-    mapOf(
-        "assets_index_name" to version,
-        "auth_access_token" to "0",
-        "auth_player_name" to profile.name,
-        "auth_uuid" to offlineUuid(profile.name),
-        "auth_xuid" to "",
-        "clientid" to "",
-        "gameRoot" to files.gameRoot,
-        "launcher_name" to "craftless",
-        "launcher_version" to "0",
-        "quickPlayPath" to "${files.gameRoot}/quickplay",
-        "quickPlayMultiplayer" to "",
-        "quickPlayRealms" to "",
-        "quickPlaySingleplayer" to "",
-        "resolution_height" to "",
-        "resolution_width" to "",
-        "user_type" to "legacy",
-        "version_type" to "release",
-    )
+    resolvedProfile().let { launchProfile ->
+        mapOf(
+            "assets_index_name" to version,
+            "auth_access_token" to "0",
+            "auth_player_name" to launchProfile.name,
+            "auth_uuid" to offlineUuid(launchProfile.name),
+            "auth_xuid" to "",
+            "clientid" to "",
+            "gameRoot" to files.gameRoot,
+            "launcher_name" to "craftless",
+            "launcher_version" to "0",
+            "quickPlayPath" to "${files.gameRoot}/quickplay",
+            "quickPlayMultiplayer" to "",
+            "quickPlayRealms" to "",
+            "quickPlaySingleplayer" to "",
+            "resolution_height" to "",
+            "resolution_width" to "",
+            "user_type" to "legacy",
+            "version_type" to "release",
+        )
+    }
 
 private fun offlineUuid(name: String): String = UUID.nameUUIDFromBytes("OfflinePlayer:$name".toByteArray(StandardCharsets.UTF_8)).toString()
 
@@ -554,6 +572,24 @@ private fun String.resolveClientLaunchVariables(variables: Map<String, String>):
     }
 
 private val launcherJson = Json { ignoreUnknownKeys = true }
+
+private val mutedSoundOptions =
+    linkedMapOf(
+        "soundDevice" to "\"\"",
+        "soundCategory_master" to "0.0",
+        "soundCategory_music" to "0.0",
+        "soundCategory_record" to "0.0",
+        "soundCategory_weather" to "0.0",
+        "soundCategory_block" to "0.0",
+        "soundCategory_hostile" to "0.0",
+        "soundCategory_neutral" to "0.0",
+        "soundCategory_player" to "0.0",
+        "soundCategory_ambient" to "0.0",
+        "soundCategory_voice" to "0.0",
+        "soundCategory_ui" to "0.0",
+    )
+
+private val mutedSoundOptionKeys = mutedSoundOptions.keys
 
 private const val PROCESS_STOP_TIMEOUT_SECONDS = 2L
 private const val CRAFTLESS_CLIENT_ID = "CRAFTLESS_CLIENT_ID"

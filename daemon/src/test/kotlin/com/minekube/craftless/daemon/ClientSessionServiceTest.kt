@@ -17,6 +17,7 @@ import com.minekube.craftless.driver.runtime.BackendDriverSession
 import com.minekube.craftless.driver.runtime.DriverBackend
 import com.minekube.craftless.driver.runtime.DriverBackendAction
 import com.minekube.craftless.driver.runtime.DriverBackendResult
+import com.minekube.craftless.protocol.ClientPresentation
 import com.minekube.craftless.protocol.ClientState
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.Loader
@@ -80,6 +81,7 @@ class ClientSessionServiceTest {
         assertEquals("alice", client.id)
         assertEquals(ClientState.RUNNING, client.state)
         assertEquals("Alice", client.profile.name)
+        assertEquals(ClientPresentation(), client.presentation)
         assertEquals("/clients/alice/events", service.routesFor("alice").first { it.path.endsWith("/events") }.path)
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice" })
         assertTrue(service.routesFor("alice").any { it.path == "/clients/alice/openapi.json" })
@@ -93,6 +95,22 @@ class ClientSessionServiceTest {
         assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/stop" })
         assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/player" })
         assertTrue(service.routesFor("alice").none { it.path == "/clients/alice/player/position" })
+    }
+
+    @Test
+    fun `session service derives profile and lifecycle presentation defaults`() {
+        val service = fakeClientSessionService()
+        val client =
+            service.createClient(
+                CreateClientRequest(
+                    id = "bot",
+                    version = "latest-release",
+                    loader = Loader.FABRIC,
+                ),
+            )
+
+        assertEquals("Bot", client.profile.name)
+        assertEquals(ClientPresentation(), client.presentation)
     }
 
     @Test
@@ -269,7 +287,21 @@ class ClientSessionServiceTest {
                 ?.get("application/json")
                 ?.schema
         assertNotNull(clientSchema)
-        assertEquals(listOf("id", "instance", "profile", "state"), clientSchema.required)
+        assertEquals(listOf("id", "instance", "profile", "presentation", "state"), clientSchema.required)
+        val presentationSchema = clientSchema.properties["presentation"]
+        assertNotNull(presentationSchema)
+        assertEquals("object", presentationSchema.type)
+        assertEquals(listOf("window", "audio"), presentationSchema.required)
+        val windowSchema = presentationSchema.properties["window"]
+        assertNotNull(windowSchema)
+        assertEquals("string", windowSchema.type)
+        assertEquals(listOf("NONE", "VISIBLE"), windowSchema.enumValues)
+        assertEquals("NONE", windowSchema.default)
+        val audioSchema = presentationSchema.properties["audio"]
+        assertNotNull(audioSchema)
+        assertEquals("string", audioSchema.type)
+        assertEquals(listOf("MUTED", "DEFAULT"), audioSchema.enumValues)
+        assertEquals("MUTED", audioSchema.default)
         assertEquals("runPlayerChat", document.paths["/clients/alice/player:chat"]?.post?.operationId)
         val chatSchema =
             document.paths["/clients/alice/player:chat"]

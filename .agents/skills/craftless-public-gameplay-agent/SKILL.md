@@ -32,6 +32,33 @@ Forbidden as final gameplay proof:
    fingerprint.
 7. Subscribe to `GET /clients/{id}/events:stream` before acting.
 
+## Tiny-Agent Bootstrap
+
+Use the smallest lifecycle request that can create an API-first automation
+client. Omit `profile` unless a specific offline name matters; Craftless
+derives one from the client id. The default presentation requests no visible
+window and materializes muted Minecraft sound options.
+
+```sh
+craftless clients create bot --version latest-release --loader fabric --api "$CRAFTLESS"
+craftless clients bot connect --host localhost --port 25565 --api "$CRAFTLESS"
+craftless clients bot openapi --api "$CRAFTLESS" > bot-openapi.json
+```
+
+For co-play, only ask Craftless to manage the human-facing client when a
+visible Craftless-launched window is desired:
+
+```sh
+craftless clients create robin --version latest-release --loader fabric \
+  --offline-name Robin --visible --audio default --api "$CRAFTLESS"
+craftless clients robin connect --host localhost --port 25565 --api "$CRAFTLESS"
+```
+
+If the human joins with their own launcher, skip the visible Craftless client.
+Coordinate through Minecraft chat and public Craftless events. Presentation
+window flags are lifecycle hints, not gameplay authority; still fetch the bot
+client's generated OpenAPI before choosing any gameplay action.
+
 ## Fresh State Gate
 
 Before reporting status, diagnosing another agent, or claiming completion,

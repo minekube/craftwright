@@ -1128,6 +1128,108 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `clients create defaults to muted non visible request without offline name`() {
+        RecordingCreateApiServer().use { server ->
+            val output = StringBuilder()
+            val errors = StringBuilder()
+
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "create",
+                        "bot",
+                        "--api",
+                        server.url,
+                        "--version",
+                        "latest-release",
+                        "--loader",
+                        "fabric",
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
+
+            assertEquals(0, exit, errors.toString())
+            val request = Json.parseToJsonElement(server.createBodies.single()).jsonObject
+            assertFalse(request.containsKey("profile"))
+            val presentation = requireNotNull(request["presentation"]).jsonObject
+            assertEquals("NONE", presentation["window"]?.jsonPrimitive?.content)
+            assertEquals("MUTED", presentation["audio"]?.jsonPrimitive?.content)
+        }
+    }
+
+    @Test
+    fun `clients create sends explicit visible default audio request`() {
+        RecordingCreateApiServer().use { server ->
+            val output = StringBuilder()
+            val errors = StringBuilder()
+
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "create",
+                        "robin",
+                        "--api",
+                        server.url,
+                        "--version",
+                        "latest-release",
+                        "--loader",
+                        "fabric",
+                        "--offline-name",
+                        "Robin",
+                        "--visible",
+                        "--audio",
+                        "default",
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
+
+            assertEquals(0, exit, errors.toString())
+            val request = Json.parseToJsonElement(server.createBodies.single()).jsonObject
+            val profile = requireNotNull(request["profile"]).jsonObject
+            assertEquals("Robin", profile["name"]?.jsonPrimitive?.content)
+            val presentation = requireNotNull(request["presentation"]).jsonObject
+            assertEquals("VISIBLE", presentation["window"]?.jsonPrimitive?.content)
+            assertEquals("DEFAULT", presentation["audio"]?.jsonPrimitive?.content)
+        }
+    }
+
+    @Test
+    fun `clients create rejects unknown audio presentation`() {
+        RecordingCreateApiServer().use { server ->
+            val output = StringBuilder()
+            val errors = StringBuilder()
+
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "create",
+                        "bot",
+                        "--api",
+                        server.url,
+                        "--version",
+                        "latest-release",
+                        "--loader",
+                        "fabric",
+                        "--audio",
+                        "loud",
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
+
+            assertEquals(2, exit)
+            assertEquals("", output.toString())
+            assertTrue(errors.toString().contains("--audio must be muted or default"))
+            assertEquals(emptyList(), server.createBodies)
+        }
+    }
+
+    @Test
     fun `clients create usage includes loader version option`() {
         val output = StringBuilder()
         val errors = StringBuilder()
@@ -1140,8 +1242,6 @@ class CraftlessCliTest {
                     "alice",
                     "--version",
                     "1.21.6",
-                    "--loader",
-                    "FABRIC",
                 ),
                 stdout = { output.appendLine(it) },
                 stderr = { errors.appendLine(it) },
@@ -1150,6 +1250,8 @@ class CraftlessCliTest {
         assertEquals(2, exit)
         assertEquals("", output.toString())
         assertTrue(errors.toString().contains("[--loader-version <version>]"))
+        assertTrue(errors.toString().contains("[--visible]"))
+        assertTrue(errors.toString().contains("[--audio <muted|default>]"))
     }
 
     @Test

@@ -156,6 +156,9 @@ data class OpenApiMediaType(
 @Serializable
 data class OpenApiSchema(
     val type: String,
+    @SerialName("enum")
+    val enumValues: List<String>? = null,
+    val default: String? = null,
     val properties: Map<String, OpenApiSchema> = emptyMap(),
     val required: List<String> = emptyList(),
     val additionalProperties: Boolean? = null,
@@ -1008,9 +1011,10 @@ private fun clientSchema(): OpenApiSchema =
                         required = listOf("id", "version", "loader", "files"),
                     ),
                 "profile" to profileSchema(),
+                "presentation" to presentationSchema(),
                 "state" to OpenApiSchema(type = "string"),
             ),
-        required = listOf("id", "instance", "profile", "state"),
+        required = listOf("id", "instance", "profile", "presentation", "state"),
     )
 
 private fun createClientRequestBody(): OpenApiRequestBody =
@@ -1026,10 +1030,32 @@ private fun createClientRequestBody(): OpenApiRequestBody =
                             "loader" to OpenApiSchema(type = "string"),
                             "loaderVersion" to OpenApiSchema(type = "string", nullable = true),
                             "profile" to profileSchema(),
+                            "presentation" to presentationSchema(),
                         ),
-                    required = listOf("id", "version", "loader", "profile"),
+                    required = listOf("id", "version", "loader"),
                 ),
             ),
+    )
+
+private fun presentationSchema(): OpenApiSchema =
+    OpenApiSchema(
+        type = "object",
+        properties =
+            mapOf(
+                "window" to
+                    OpenApiSchema(
+                        type = "string",
+                        enumValues = ClientWindowMode.entries.map { it.name },
+                        default = ClientWindowMode.NONE.name,
+                    ),
+                "audio" to
+                    OpenApiSchema(
+                        type = "string",
+                        enumValues = ClientAudioMode.entries.map { it.name },
+                        default = ClientAudioMode.MUTED.name,
+                    ),
+            ),
+        required = listOf("window", "audio"),
     )
 
 private fun cachePrepareRequestBody(): OpenApiRequestBody =

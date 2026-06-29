@@ -27,8 +27,8 @@ gameplay SDK.
 | Events | SSE streams plus JSON-RPC-style HTTP control/query calls |
 | Current Fabric lane | Verified for the compiled lane |
 | Latest and older lanes | Latest/current `26.2` and representative older `1.20.6` packaged lanes are verified through create, attach, connect, generated OpenAPI, projections, SSE, JSON-RPC query/subscription, JSON-RPC invocation, and adaptive CLI invocation |
-| Final gameplay evidence | Historical public API/CLI survival evidence exists; final completion still requires a refreshed run after usability and release gates close |
-| Completion | Still active; see `docs/project-completion-checklist.md` |
+| Final gameplay evidence | Public API/CLI survival evidence passed with server provisioning disabled |
+| Completion | All CL gates are closed; see `docs/project-completion-checklist.md` |
 
 ## Quickstart
 
@@ -67,6 +67,23 @@ craftless --help
 The CLI has a small stable core for daemon lifecycle, client lifecycle, cache,
 runtime, discovery, output, and generic invocation. Gameplay commands and help
 come from each live client's generated OpenAPI document.
+
+Create an API-first automation client with lifecycle defaults:
+
+```sh
+craftless clients create bot --version latest-release --loader fabric --api "$CRAFTLESS"
+```
+
+When `--offline-name` is omitted, Craftless derives a safe offline profile
+from the client id. The default presentation requests no visible window and
+materializes muted Minecraft sound options for API-first automation. Opt into
+a visible, normal-audio client when Craftless should manage a human-facing
+window:
+
+```sh
+craftless clients create robin --version latest-release --loader fabric \
+  --offline-name Robin --visible --audio default --api "$CRAFTLESS"
+```
 
 ## Docker
 
@@ -148,7 +165,8 @@ Set the API URL:
 CRAFTLESS=http://127.0.0.1:8080
 ```
 
-Create a daemon-managed client session:
+Create a daemon-managed client session. This API-first form derives an offline
+profile from `id` and defaults to a non-visible, muted presentation:
 
 ```sh
 curl -sS "$CRAFTLESS/clients" \
@@ -156,10 +174,15 @@ curl -sS "$CRAFTLESS/clients" \
   -d '{
     "id": "alice",
     "version": "latest-release",
-    "loader": "FABRIC",
-    "profile": { "kind": "OFFLINE", "name": "Alice" }
+    "loader": "FABRIC"
   }'
 ```
+
+Set `profile` explicitly when a specific offline name is needed. Set
+`presentation` to `{ "window": "VISIBLE", "audio": "DEFAULT" }` only when a
+visible, normal-audio client is desired. `presentation.window` is lifecycle
+intent; generated per-client OpenAPI remains the gameplay and runtime
+capability authority.
 
 Connect it to a server:
 
@@ -204,6 +227,33 @@ craftless clients alice player chat --help --api "$CRAFTLESS"
 Generated aliases such as `craftless clients alice player chat` are derived
 from the live OpenAPI document. They are not source-maintained gameplay
 commands.
+
+## Two-Client Co-Play Bootstrap
+
+For a simple "let's play" setup, keep lifecycle and gameplay separate:
+
+```sh
+craftless server start --port 8080 --workspace .craftless
+export CRAFTLESS=http://127.0.0.1:8080
+
+craftless clients create bot --version latest-release --loader fabric --api "$CRAFTLESS"
+craftless clients bot connect --host localhost --port 25565 --api "$CRAFTLESS"
+```
+
+If Craftless should also manage the human-facing client window, create it
+explicitly as visible and normal-audio:
+
+```sh
+craftless clients create robin --version latest-release --loader fabric \
+  --offline-name Robin --visible --audio default --api "$CRAFTLESS"
+craftless clients robin connect --host localhost --port 25565 --api "$CRAFTLESS"
+```
+
+If the human is joining with their own launcher, skip the `robin` client and
+let the bot coordinate through Minecraft chat and public Craftless events.
+Before the bot acts, fetch `GET /clients/bot/openapi.json` and use only the
+generated `x-craftless-actions`, schemas, handles, and events as gameplay
+authority.
 
 ## Agent Usage
 
@@ -279,31 +329,8 @@ consumed SSE evidence, collected materials, crafted and equipped a
 `Wooden Sword`, found Cows through `entity.query`, killed a Cow through
 `entity.attack`, and observed `Raw Beef`, `Leather`, and the Cow with
 `alive:false`. That run completed without server-provisioned inventory or
-static survival macro evidence. Final completion still requires a refreshed
-public API/CLI gameplay run after external-user usability and final local
-release gates close.
-
-Still open before the broader project can be called complete:
-
-- broaden Fabric discovery/projection across more Minecraft versions, mods,
-  registries, screens, world/entity/inventory resources, permissions, and
-  installed runtime affordances;
-- turn future gameplay breadth into generic discovery/projection instead of
-  transitional bootstrap bindings;
-- strengthen navigation/pathfinding and building evidence through generated
-  public API/CLI/SSE only;
-- keep the verified latest/current and representative older lanes current while
-  adding additional Fabric client lanes only when cache preparation,
-  Java/runtime selection, loader/API resolution, launch metadata, compatibility
-  matrix, packaged driver manifests, attach evidence, and generated API/CLI
-  smoke evidence prove them;
-- close the active external-user usability gate with fresh install, Docker,
-  adaptive CLI, GitHub Action, agent-skill, and docs evidence before final
-  release and gameplay gates.
-
-Craftless is not considered complete until the active checklist proves every
-remaining generic-discovery, multi-version, transport, CLI, docs, and gameplay
-gate with current Codex-verifiable evidence.
+static survival macro evidence. The active completion checklist is the current
+source of truth for closed gates and any new post-completion usability slices.
 
 ## Comparison
 
@@ -330,14 +357,16 @@ The source of truth is:
 - [docs/roadmap.md](docs/roadmap.md)
 - [docs/final-gameplay-runbook.md](docs/final-gameplay-runbook.md)
 
-Next work focuses on:
+Post-completion work focuses on:
 
-- closing CL-05 with fresh install, Docker runtime, adaptive CLI, GitHub
-  Action, README, and agent skill evidence;
-- running final local release gates after CL-05 closes;
-- replaying final honest survival gameplay through public OpenAPI/CLI/SSE only;
-- keeping future gameplay breadth generated from discovery/projection rather
-  than descriptor/binding catalog growth.
+- keeping the verified latest/current and representative older lanes current;
+- broadening Fabric discovery/projection across more Minecraft versions, mods,
+  registries, screens, world/entity/inventory resources, permissions, and
+  installed runtime affordances;
+- turning future gameplay breadth into generic discovery/projection instead of
+  transitional bootstrap bindings;
+- strengthening navigation/pathfinding and building evidence through generated
+  public API/CLI/SSE only.
 
 ## Development
 
