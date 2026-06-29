@@ -124,6 +124,25 @@ class CraftlessCliTest {
         error("repository root not found")
     }
 
+    private fun fakeWindowlessWrapperEnv(
+        workspace: Path,
+        env: Map<String, String> = emptyMap(),
+    ): Map<String, String> = env + ("CRAFTLESS_WINDOWLESS_WRAPPER" to fakeWindowlessWrapper(workspace).toString())
+
+    private fun fakeWindowlessWrapper(workspace: Path): Path {
+        val wrapper = workspace.resolve("bin/craftless-test-windowless")
+        Files.createDirectories(wrapper.parent)
+        Files.writeString(
+            wrapper,
+            """
+            #!/usr/bin/env sh
+            exec "${'$'}@"
+            """.trimIndent(),
+        )
+        wrapper.toFile().setExecutable(true, true)
+        return wrapper
+    }
+
     @Test
     fun `root help prints stable command overview`() {
         val output = StringBuilder()
@@ -467,8 +486,11 @@ class CraftlessCliTest {
                 listOf("server", "start", "--once", "--workspace", workspace.toString()),
                 stdout = { output.appendLine(it) },
                 env =
-                    mapOf(
-                        "CRAFTLESS_FABRIC_DRIVER_MOD" to driverMod.toString(),
+                    fakeWindowlessWrapperEnv(
+                        workspace,
+                        mapOf(
+                            "CRAFTLESS_FABRIC_DRIVER_MOD" to driverMod.toString(),
+                        ),
                     ),
                 cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
                 afterStart = { metadata ->
@@ -522,7 +544,7 @@ class CraftlessCliTest {
             CraftlessCli.run(
                 listOf("server", "start", "--once", "--workspace", workspace.toString()),
                 stdout = { output.appendLine(it) },
-                env = emptyMap(),
+                env = fakeWindowlessWrapperEnv(workspace),
                 cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
                 distributionRoot = distribution,
                 afterStart = { metadata ->
@@ -593,7 +615,7 @@ class CraftlessCliTest {
             CraftlessCli.run(
                 listOf("server", "start", "--once", "--workspace", workspace.toString()),
                 stdout = { output.appendLine(it) },
-                env = emptyMap(),
+                env = fakeWindowlessWrapperEnv(workspace),
                 cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
                 distributionRoot = distribution,
                 afterStart = { metadata ->
@@ -663,7 +685,7 @@ class CraftlessCliTest {
             CraftlessCli.run(
                 listOf("server", "start", "--once", "--workspace", workspace.toString()),
                 stdout = { output.appendLine(it) },
-                env = emptyMap(),
+                env = fakeWindowlessWrapperEnv(workspace),
                 cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
                 distributionRoot = distribution,
                 afterStart = { metadata ->
@@ -734,7 +756,7 @@ class CraftlessCliTest {
             CraftlessCli.run(
                 listOf("server", "start", "--once", "--workspace", workspace.toString()),
                 stdout = { output.appendLine(it) },
-                env = emptyMap(),
+                env = fakeWindowlessWrapperEnv(workspace),
                 cacheMetadataFetcher = preparedRuntimeMetadataFetcher(),
                 distributionRoot = distribution,
                 afterStart = { metadata ->

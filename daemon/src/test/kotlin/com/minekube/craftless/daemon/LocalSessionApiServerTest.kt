@@ -23,7 +23,10 @@ import com.minekube.craftless.protocol.CachePrepareResult
 import com.minekube.craftless.protocol.CachePrepareStatus
 import com.minekube.craftless.protocol.CachePreparedArtifactKind
 import com.minekube.craftless.protocol.Client
+import com.minekube.craftless.protocol.ClientAudioMode
+import com.minekube.craftless.protocol.ClientPresentation
 import com.minekube.craftless.protocol.ClientState
+import com.minekube.craftless.protocol.ClientWindowMode
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
 import com.minekube.craftless.protocol.InstanceFiles
@@ -1137,8 +1140,23 @@ class LocalSessionApiServerTest {
     fun `process client runtime launcher starts prepared command`() {
         val workspace = Files.createTempDirectory("craftless-process-client-runtime")
         val marker = workspace.resolve("launched.txt")
+        val windowlessMarker = workspace.resolve("windowless.txt")
         val attachClientIdMarker = workspace.resolve("attach-client-id.txt")
         val attachDaemonUrlMarker = workspace.resolve("attach-daemon-url.txt")
+        val windowlessRunner = workspace.resolve("bin/xvfb-run")
+        Files.createDirectories(windowlessRunner.parent)
+        Files.writeString(
+            windowlessRunner,
+            """
+            #!/usr/bin/env sh
+            echo "${'$'}@" > "$windowlessMarker"
+            if [ "${'$'}1" = "-a" ]; then
+              shift
+            fi
+            exec "${'$'}@"
+            """.trimIndent(),
+        )
+        windowlessRunner.toFile().setExecutable(true, true)
         val javaExecutable = workspace.resolve("cache/runtimes/java-runtime-gamma/image/bin/java")
         Files.createDirectories(javaExecutable.parent)
         Files.writeString(
@@ -1185,7 +1203,7 @@ class LocalSessionApiServerTest {
             """.trimIndent(),
         )
         val launch =
-            ProcessClientRuntimeLauncher().launch(
+            ProcessClientRuntimeLauncher(windowlessCommandPrefix = listOf(windowlessRunner.toString(), "-a")).launch(
                 request =
                     CreateClientRequest(
                         id = "alice",
@@ -1226,7 +1244,11 @@ class LocalSessionApiServerTest {
         assertTrue(launch.pid != null)
         val process = requireNotNull(launch.process)
         assertTrue(process.waitFor(2, TimeUnit.SECONDS))
-        assertTrue(launch.command.first().endsWith("/java-runtime-gamma/image/bin/java"))
+        assertEquals(windowlessRunner.toString(), launch.command.first())
+        assertTrue(waitForRegularFile(windowlessMarker))
+        val windowlessInvocation = Files.readString(windowlessMarker)
+        assertTrue(windowlessInvocation.contains("-a"))
+        assertTrue(windowlessInvocation.contains("java-runtime-gamma/image/bin/java"))
         assertTrue(waitForRegularFile(marker))
         val invoked = Files.readString(marker)
         assertTrue(invoked.contains("test.minecraft.Main"))
@@ -1257,6 +1279,90 @@ class LocalSessionApiServerTest {
         assertFalse(invoked.contains("--clientId"))
         assertFalse(invoked.contains("--width"))
         assertFalse(invoked.contains("--height"))
+    }
+
+    @Test
+    fun `process client runtime launcher bypasses windowless wrapper for visible clients`() {
+        val workspace = Files.createTempDirectory("craftless-process-visible-runtime")
+        val marker = workspace.resolve("launched.txt")
+        val windowlessRunner = workspace.resolve("bin/xvfb-run")
+        Files.createDirectories(windowlessRunner.parent)
+        Files.writeString(
+            windowlessRunner,
+            """
+            #!/usr/bin/env sh
+            echo "unexpected" > "${workspace.resolve("windowless.txt")}"
+            exit 1
+            """.trimIndent(),
+        )
+        windowlessRunner.toFile().setExecutable(true, true)
+        val javaExecutable = workspace.resolve("cache/runtimes/java-runtime-gamma/image/bin/java")
+        Files.createDirectories(javaExecutable.parent)
+        Files.writeString(
+            javaExecutable,
+            """
+            #!/usr/bin/env sh
+            echo "${'$'}@" > "$marker"
+            """.trimIndent(),
+        )
+        javaExecutable.toFile().setExecutable(true, true)
+        val arguments = workspace.resolve("cache/prepared/1.21.6-fabric-0.17.2.launch.json")
+        Files.createDirectories(arguments.parent)
+        Files.writeString(
+            arguments,
+            """
+            {
+              "mainClass": "test.minecraft.Main",
+              "jvm": [],
+              "game": ["--gameDir", "{{gameRoot}}", "--username", "{{auth_player_name}}"]
+            }
+            """.trimIndent(),
+        )
+
+        val launch =
+            ProcessClientRuntimeLauncher(windowlessCommandPrefix = listOf(windowlessRunner.toString(), "-a")).launch(
+                request =
+                    CreateClientRequest(
+                        id = "alice",
+                        version = "1.21.6",
+                        loader = Loader.FABRIC,
+                        profile = Profile.offline("Alice"),
+                        presentation =
+                            ClientPresentation(
+                                window = ClientWindowMode.VISIBLE,
+                                audio = ClientAudioMode.DEFAULT,
+                            ),
+                    ),
+                prepared =
+                    CachePrepareResult(
+                        minecraftVersion = "1.21.6",
+                        loader = Loader.FABRIC,
+                        loaderVersion = "0.17.2",
+                        cacheRoot = "cache",
+                        minecraftVersionRoot = "cache/minecraft/versions/1.21.6",
+                        loaderRoot = "cache/loaders/fabric/1.21.6/0.17.2",
+                        runtimeRoot = "cache/runtimes",
+                        manifest = "cache/prepared/1.21.6-fabric-0.17.2.json",
+                        status = CachePrepareStatus.PREPARED,
+                        artifacts = emptyList(),
+                        launch =
+                            CacheLaunchPlan(
+                                classpath = listOf("cache/minecraft/versions/1.21.6/client.jar"),
+                                mods = emptyList(),
+                                javaExecutable = "cache/runtimes/java-runtime-gamma/image/bin/java",
+                                arguments = "cache/prepared/1.21.6-fabric-0.17.2.launch.json",
+                            ),
+                    ),
+                files = InstanceFiles.forInstance("alice-1.21.6-fabric"),
+                workspaceRoot = workspace,
+            )
+
+        assertEquals(ClientRuntimeLaunchStatus.LAUNCHED, launch.status)
+        assertTrue(requireNotNull(launch.process).waitFor(2, TimeUnit.SECONDS))
+        assertTrue(launch.command.first().endsWith("/java-runtime-gamma/image/bin/java"))
+        assertTrue(waitForRegularFile(marker))
+        assertFalse(Files.exists(workspace.resolve("windowless.txt")))
+        assertFalse(Files.exists(workspace.resolve("instances/alice-1.21.6-fabric/minecraft/options.txt")))
     }
 
     @Test

@@ -4,7 +4,7 @@ Phase 188 adds lifecycle-only defaults for small agents:
 
 - `CreateClientRequest.profile` may be omitted.
 - The daemon derives a safe offline profile from the client id.
-- Client requests and responses expose Craftless-owned presentation intent.
+- Client requests and responses expose Craftless-owned presentation defaults.
 - API-first clients default to `window = NONE` and `audio = MUTED`.
 - Daemon-managed muted clients materialize Minecraft sound options at `0.0`.
 - Generated OpenAPI advertises presentation enum values and defaults.

@@ -68,7 +68,7 @@ process. It is not a selector, retry, or reuse operation. Before creating a
 new client in a long-running workspace, list clients and reuse or stop old
 test clients when appropriate.
 
-Create a default headless, muted automation client:
+Create a default windowless, muted automation client:
 
 ```sh
 craftless api /clients --api "$CRAFTLESS" \
@@ -85,8 +85,10 @@ craftless api /clients/bot:connect --api "$CRAFTLESS" \
   -F port=25565
 ```
 
-Create a visible client only when a Craftless-launched human-facing window is
-intentional:
+Default daemon-managed clients launch through a virtual display and mute
+Minecraft sound categories. Docker includes `xvfb-run`; custom runtimes can set
+`CRAFTLESS_WINDOWLESS_WRAPPER` to an executable wrapper. Create a visible client
+only when a Craftless-launched human-facing window is intentional:
 
 ```sh
 craftless api /clients --api "$CRAFTLESS" \

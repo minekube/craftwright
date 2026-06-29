@@ -85,10 +85,12 @@ client or stop an abandoned one with
 timestamped ids for retries leaves multiple Minecraft clients running.
 
 When `--offline-name` is omitted, Craftless derives a safe offline profile
-from the client id. The default presentation requests no visible window and
-materializes muted Minecraft sound options for API-first automation. Opt into
-a visible, normal-audio client when Craftless should manage a human-facing
-window:
+from the client id. The default presentation runs the Minecraft client through
+a virtual display wrapper and materializes muted Minecraft sound options for
+API-first automation. Opt into a visible, normal-audio client when Craftless
+should manage a human-facing window. The Docker image includes `xvfb-run`;
+custom runtimes can set `CRAFTLESS_WINDOWLESS_WRAPPER` to an executable wrapper
+that starts the provided Java command without showing a desktop window:
 
 ```sh
 craftless api /clients --api "$CRAFTLESS" \
@@ -190,11 +192,15 @@ curl -sS "$CRAFTLESS/clients" \
   }'
 ```
 
-Set `profile` explicitly when a specific offline name is needed. Set
-`presentation` to `{ "window": "VISIBLE", "audio": "DEFAULT" }` only when a
-visible, normal-audio client is desired. `presentation.window` is lifecycle
-intent; generated per-client OpenAPI remains the gameplay and runtime
-capability authority.
+Set `profile` explicitly when a specific offline name is needed. By default,
+daemon-managed clients use `presentation.window = NONE` and
+`presentation.audio = MUTED`: launch is wrapped in a virtual display and
+Minecraft sound categories are set to `0.0`. The Docker image includes
+`xvfb-run`; custom runtimes can set `CRAFTLESS_WINDOWLESS_WRAPPER` to an
+executable wrapper. Set `presentation` to
+`{ "window": "VISIBLE", "audio": "DEFAULT" }` only when a visible, normal-audio
+client is desired. Generated per-client OpenAPI remains the gameplay and
+runtime capability authority.
 
 `POST /clients` launches a new daemon-managed real Minecraft Java client
 process. It is not a selector, retry, or reuse operation. In an existing daemon

@@ -178,7 +178,7 @@ Continue with CL-08: rerun focused final guards after the CL-07 edits, then
 commit, push `main`, and verify the worktree is clean.
 Phase 188 is a post-completion usability slice. Client creation now accepts an
 omitted profile, derives a safe offline name from the client id, records
-presentation intent on client responses, defaults API-first clients to
+presentation defaults on client responses, defaults API-first clients to
 non-visible muted presentation, and exposes only concrete lifecycle CLI flags
 such as `--visible` and `--audio`. This does not add gameplay roles, static
 gameplay catalogs, scenario shortcuts, or generated-action alternatives.
@@ -224,3 +224,10 @@ as generated runtime graph resource `media.screenshot` and operation
 `GET /clients/{id}/artifacts/{artifact-id}` with traversal guards. This phase
 uses a deterministic fake-driver path; Fabric capture remains a follow-up
 adapter task.
+Phase 196 makes the default daemon-managed presentation enforceable at process
+launch. `presentation.window = NONE` prefixes the Minecraft client command with
+Craftless's virtual-display wrapper (`xvfb-run` by default), while
+`presentation.window = VISIBLE` bypasses that wrapper. `presentation.audio =
+MUTED` continues to materialize Minecraft sound categories at `0.0`, and
+`DEFAULT` audio leaves options untouched. Evidence:
+`docs/superpowers/evidence/2026-06-29-windowless-muted-defaults.md`.

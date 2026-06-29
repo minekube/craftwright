@@ -18,6 +18,7 @@ import com.minekube.craftless.protocol.CachePreparedArtifactKind
 import com.minekube.craftless.protocol.CachePreparedArtifactStatus
 import com.minekube.craftless.protocol.ClientAudioMode
 import com.minekube.craftless.protocol.ClientState
+import com.minekube.craftless.protocol.ClientWindowMode
 import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.InstanceFiles
 import com.minekube.craftless.protocol.Loader
@@ -344,7 +345,10 @@ data class PreparedClientRuntime(
     val launch: ClientRuntimeLaunch,
 )
 
-class ProcessClientRuntimeLauncher : ClientRuntimeLauncher {
+class ProcessClientRuntimeLauncher(
+    environment: Map<String, String> = System.getenv(),
+    private val windowlessCommandPrefix: List<String> = defaultWindowlessCommandPrefix(environment),
+) : ClientRuntimeLauncher {
     override fun launch(
         request: CreateClientRequest,
         prepared: CachePrepareResult,
@@ -355,11 +359,12 @@ class ProcessClientRuntimeLauncher : ClientRuntimeLauncher {
         materializeLaunchMods(prepared.launch, files, workspaceRoot)
         materializePresentationOptions(request, files, workspaceRoot)
         val command = launchCommand(request, prepared.launch, files, workspaceRoot)
+        val effectiveCommand = command.withPresentationWindow(request.presentation.window)
         val logs = workspaceRoot.resolve(files.logs).normalize()
         Files.createDirectories(logs)
         val log = logs.resolve("client.log")
         val processBuilder =
-            ProcessBuilder(command)
+            ProcessBuilder(effectiveCommand)
                 .directory(workspaceRoot.toFile())
                 .redirectErrorStream(true)
                 .redirectOutput(ProcessBuilder.Redirect.appendTo(log.toFile()))
@@ -371,11 +376,20 @@ class ProcessClientRuntimeLauncher : ClientRuntimeLauncher {
         return ClientRuntimeLaunch(
             status = ClientRuntimeLaunchStatus.LAUNCHED,
             pid = process.pid(),
-            command = command,
+            command = effectiveCommand,
             message = "launched client ${request.id}",
             process = process,
         )
     }
+
+    private fun List<String>.withPresentationWindow(window: ClientWindowMode): List<String> =
+        when (window) {
+            ClientWindowMode.VISIBLE -> this
+            ClientWindowMode.NONE -> {
+                require(windowlessCommandPrefix.isNotEmpty()) { "windowless command prefix is required" }
+                windowlessCommandPrefix + this
+            }
+        }
 
     private fun materializeLaunchMods(
         launch: CacheLaunchPlan,
@@ -426,6 +440,12 @@ class ProcessClientRuntimeLauncher : ClientRuntimeLauncher {
             arguments.game.resolveClientLaunchVariables(variables)
     }
 }
+
+private fun defaultWindowlessCommandPrefix(environment: Map<String, String>): List<String> =
+    environment[CRAFTLESS_WINDOWLESS_WRAPPER]
+        ?.takeIf { it.isNotBlank() }
+        ?.let(::listOf)
+        ?: listOf("xvfb-run", "-a", "--server-args=-screen 0 1280x720x24")
 
 private class PreparedClientRuntimeDriverSession(
     override val clientId: String,
@@ -594,5 +614,6 @@ private val mutedSoundOptionKeys = mutedSoundOptions.keys
 private const val PROCESS_STOP_TIMEOUT_SECONDS = 2L
 private const val CRAFTLESS_CLIENT_ID = "CRAFTLESS_CLIENT_ID"
 private const val CRAFTLESS_DAEMON_URL = "CRAFTLESS_DAEMON_URL"
+private const val CRAFTLESS_WINDOWLESS_WRAPPER = "CRAFTLESS_WINDOWLESS_WRAPPER"
 
 private val CLIENT_LAUNCH_VARIABLE_PATTERN = Regex("""\{\{([^}]+)}}""")
