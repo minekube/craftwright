@@ -206,3 +206,9 @@ description for discovery/version, events, cache, Java runtime resolution,
 client lifecycle, per-client OpenAPI, action/resource projections, generic
 invocation, JSON-RPC, and streams. The coverage test prevents future stable
 routes from appearing without agent-readable OpenAPI guidance.
+Phase 193 adds a static Fumadocs GitHub Pages documentation site. The site is
+built with Bun through mise, exports the supervisor OpenAPI snapshot from the
+protocol route catalog, renders a stable `/docs/api-reference` entrypoint plus
+generated operation pages, and deploys `docs-site/out` via GitHub Pages. A
+FumaPress spike found it useful as preview tooling but less suitable than
+Fumadocs Next static export for this PR.

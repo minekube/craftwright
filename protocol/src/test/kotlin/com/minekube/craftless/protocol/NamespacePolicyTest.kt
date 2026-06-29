@@ -91,7 +91,7 @@ class NamespacePolicyTest {
             Files.walk(root).use { paths ->
                 paths
                     .filter { path -> path.isJavaScriptHelperFile() }
-                    .filter { path -> !root.relativize(path).pathString.startsWith("playwright/") }
+                    .filter { path -> path.isUnexpectedJavaScriptHelper(root) }
                     .map { path -> root.relativize(path).pathString }
                     .sorted()
                     .toList()
@@ -875,7 +875,8 @@ class NamespacePolicyTest {
 
     private fun Path.isScannable(): Boolean {
         if (isDirectory()) return false
-        val ignoredDirectories = setOf("build", ".craftless", ".gradle", ".git", ".kotlin", ".vscode")
+        val ignoredDirectories =
+            setOf("build", ".craftless", ".gradle", ".git", ".kotlin", ".next", ".source", ".vscode", "node_modules", "out")
         if (iterator().asSequence().any { it.name in ignoredDirectories }) return false
         if (pathString.contains("driver-fabric/run/")) return false
         if (pathString.contains("driver-fabric/logs/")) return false
@@ -892,5 +893,10 @@ class NamespacePolicyTest {
             name.endsWith(".js") ||
             name.endsWith(".mjs") ||
             name.endsWith(".cjs")
+    }
+
+    private fun Path.isUnexpectedJavaScriptHelper(root: Path): Boolean {
+        val relativePath = root.relativize(this).pathString
+        return !relativePath.startsWith("playwright/") && !relativePath.startsWith("docs-site/")
     }
 }

@@ -23,6 +23,18 @@ run = "mise exec -- gradle detekt"
 description = "Run the Playwright integration helper tests"
 run = "mise exec -- bun test playwright"
 
+[tasks.docs-site-openapi]
+description = "Generate the supervisor OpenAPI snapshot consumed by the static docs site"
+run = "mise exec -- gradle :protocol:exportSupervisorOpenApi"
+
+[tasks.docs-site-build]
+description = "Build the Fumadocs static site for GitHub Pages"
+run = [
+    "mise run docs-site-openapi",
+    "cd docs-site && mise exec -- bun install --frozen-lockfile",
+    "cd docs-site && mise exec -- bun run build",
+]
+
 [tasks.ci-craftless-smoke]
 description = "Run the packaged Craftless CLI daemon and probe the live API"
 run = [

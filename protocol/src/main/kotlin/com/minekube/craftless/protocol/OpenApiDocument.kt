@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 data class OpenApiDocument(
     val openapi: String = "3.1.0",
     val info: OpenApiInfo = OpenApiInfo(),
+    val tags: List<OpenApiTag> = emptyList(),
     val paths: Map<String, OpenApiPath>,
     @SerialName("x-craftless")
     val extensions: Map<String, String> = emptyMap(),
@@ -78,6 +79,7 @@ data class OpenApiDocument(
                 }
             }
             return OpenApiDocument(
+                tags = catalog.toOpenApiTags(),
                 paths =
                     catalog.routes.groupBy { it.path }.mapValues { (_, routes) ->
                         OpenApiPath(
@@ -118,6 +120,12 @@ data class OpenApiDocument(
 data class OpenApiInfo(
     val title: String = "Craftless Client Session API",
     val version: String = "0.1.0",
+)
+
+@Serializable
+data class OpenApiTag(
+    val name: String,
+    val description: String,
 )
 
 @Serializable
@@ -523,6 +531,35 @@ private fun List<OpenApiAction>.toResourceAvailabilityReasons(): List<String> =
     mapNotNull { it.availabilityReason }
         .distinct()
         .sorted()
+
+private fun ApiRouteCatalog.toOpenApiTags(): List<OpenApiTag> =
+    routes
+        .map { it.tag }
+        .distinct()
+        .sorted()
+        .map { tag ->
+            OpenApiTag(
+                name = tag,
+                description = tag.descriptionForOpenApi(),
+            )
+        }
+
+private fun String.descriptionForOpenApi(): String =
+    when (this) {
+        "openapi" ->
+            "Machine contracts for the stable supervisor API and generated per-client APIs. Agents should fetch these documents before choosing routes, commands, actions, schemas, or stream contracts."
+        "version" ->
+            "Daemon, protocol, platform, and runtime identity. Use these operations to confirm which Craftless supervisor is answering before making live status or compatibility claims."
+        "events" ->
+            "Bounded event history and live Server-Sent Event streams for supervisor and client lifecycle evidence. Use events to correlate launch, attach, connect, discovery, invocation, and stop progress."
+        "cache" ->
+            "Craftless-owned cache preparation, export, and cleanup. These operations resolve Minecraft runtime inputs without exposing launcher internals as public API contracts."
+        "runtimes" ->
+            "Java runtime discovery and resolution for Minecraft launches. Use these operations to explain or select compatible Java runtimes through Craftless-owned surfaces."
+        "clients" ->
+            "Daemon-managed real Minecraft Java clients, including create, inspect, attach, connect, generated per-client OpenAPI, action/resource discovery, generic action invocation, RPC, events, and stop flows."
+        else -> "Craftless-owned API operations for $this."
+    }
 
 private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenApiOperation {
     val route = this

@@ -234,6 +234,49 @@ describe("distribution surface", () => {
     expect(changelog).toContain("Release Please");
   });
 
+  test("Fumadocs site is a static GitHub Pages product surface", () => {
+    const mise = read(".mise.toml");
+    const workflow = read(".github/workflows/docs-pages.yml");
+    const packageJson = JSON.parse(read("docs-site/package.json"));
+    const nextConfig = read("docs-site/next.config.mjs");
+    const openapi = read("docs-site/lib/openapi.ts");
+    const source = read("docs-site/lib/source.ts");
+    const apiPage = read("docs-site/components/api-page.tsx");
+    const page = read("docs-site/app/docs/[[...slug]]/page.tsx");
+    const apiReference = read("docs-site/content/docs/api-reference.mdx");
+    const schema = JSON.parse(read("docs-site/openapi/craftless-supervisor.json"));
+
+    expect(packageJson.scripts.build).toBe("next build");
+    expect(packageJson.scripts["openapi:generate"]).toContain("mise run docs-site-openapi");
+    expect(packageJson.dependencies["fumadocs-openapi"]).toBeDefined();
+    expect(packageJson.dependencies["fumadocs-ui"]).toBeDefined();
+    expect(packageJson.dependencies.next).toBeDefined();
+    expect(nextConfig).toContain("output: 'export'");
+    expect(nextConfig).toContain("trailingSlash: true");
+    expect(nextConfig).toContain("CRAFTLESS_DOCS_BASE_PATH");
+    expect(openapi).toContain("createOpenAPI");
+    expect(openapi).toContain("./openapi/craftless-supervisor.json");
+    expect(source).toContain("openapi.staticSource");
+    expect(source).toContain("openapi.loaderPlugin()");
+    expect(apiPage).toContain("createOpenAPIPage");
+    expect(page).toContain("getOpenAPIPageProps()");
+    expect(schema.openapi).toBe("3.1.0");
+    expect(schema.paths["/openapi.json"].get.description).toContain("stable supervisor API");
+    expect(schema.tags.find((tag: { name: string }) => tag.name === "clients")?.description).toContain(
+      "Daemon-managed real Minecraft Java clients",
+    );
+    expect(apiReference).toContain("Generated operation pages are grouped by Craftless API pillar");
+    expect(mise).toContain("[tasks.docs-site-openapi]");
+    expect(mise).toContain("[tasks.docs-site-build]");
+    expect(mise).toContain("mise exec -- bun install");
+    expect(mise).toContain("mise exec -- bun run build");
+    expect(workflow).toContain("pages: write");
+    expect(workflow).toContain("id-token: write");
+    expect(workflow).toContain("mise run docs-site-build");
+    expect(workflow).toContain("path: docs-site/out");
+    expect(workflow).toContain("CRAFTLESS_DOCS_BASE_PATH: /craftless");
+  });
+
   test("install script installs from minekube/craftless GitHub releases", () => {
     const install = read("install.sh");
 
