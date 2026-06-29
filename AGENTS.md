@@ -69,6 +69,10 @@ CLI command.
   custom HTTP method enums in product code.
 - The CLI binary is `craftless` and must stay adaptive from `/openapi.json`,
   `/clients/{id}/openapi.json`, and `/clients/{id}/actions` for gameplay.
+- Live status claims must be fresh. Before saying a server, daemon, client, or
+  Minecraft process is running, stopped, connected, or broken, re-check the
+  live process/API state in the same turn and treat older agent transcripts,
+  session notes, and process snapshots as stale.
 
 ## Immutable Basics
 

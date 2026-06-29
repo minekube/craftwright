@@ -32,6 +32,31 @@ Forbidden as final gameplay proof:
    fingerprint.
 7. Subscribe to `GET /clients/{id}/events:stream` before acting.
 
+## Fresh State Gate
+
+Before reporting status, diagnosing another agent, or claiming completion,
+refresh live state in the same turn. Do not answer from old Codex transcript
+state, old artifacts, old process ids, or another agent's earlier status
+message without re-checking.
+
+Check at least:
+
+- daemon health with `GET /version`;
+- client inventory with `GET /clients` and `GET /clients/{id}`;
+- relevant client history with `GET /clients/{id}/events`;
+- active streams when the claim depends on events, with
+  `GET /clients/{id}/events:stream`;
+- listener/process state for daemon and server ports with `lsof` and `ps`;
+- server or client logs when the claim depends on join, disconnect, kicked,
+  timeout, combat, pickup, or movement behavior.
+
+Use unique client ids for independent attempts. If old test clients are still
+running, stop them through `POST /clients/{id}:stop` or
+`craftless clients <id> stop --api "$CRAFTLESS"` when they are yours or clearly
+abandoned. Report stale clients by exact id and current observed state. Do not
+say a client is still joining, connected, or opening a window unless the fresh
+API/process check proves it.
+
 ## Adaptive CLI Sequence
 
 The CLI is an adaptive consumer of the same live metadata. Use it when shelling

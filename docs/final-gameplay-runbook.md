@@ -16,6 +16,39 @@ mise run ci
 
 Do not continue to the live gameplay gate until these pass.
 
+## Live State Hygiene
+
+Before starting or resuming a gameplay session, verify the current state instead
+of trusting old Codex output, old artifacts, old process ids, or another
+agent's earlier status message.
+
+Minimum current checks:
+
+```sh
+lsof -nP -iTCP:8080 -sTCP:LISTEN
+lsof -nP -iTCP:25565 -sTCP:LISTEN
+ps -axo pid,ppid,command | rg 'craftless|gradle|java|Minecraft|fabric' || true
+curl -fsS "$CRAFTLESS/version"
+curl -fsS "$CRAFTLESS/clients"
+```
+
+For each active test client, also fetch:
+
+```sh
+curl -fsS "$CRAFTLESS/clients/<id>"
+curl -fsS "$CRAFTLESS/clients/<id>/events"
+```
+
+Stop abandoned clients through the supervisor API before a new attempt:
+
+```sh
+craftless clients <id> stop --api "$CRAFTLESS"
+```
+
+When reporting status, include the fact that these checks were run now. If a
+fresh check disagrees with a previous transcript or subagent report, the fresh
+check wins and the old state must be called stale.
+
 ## Start The Final Gameplay Session
 
 Run:

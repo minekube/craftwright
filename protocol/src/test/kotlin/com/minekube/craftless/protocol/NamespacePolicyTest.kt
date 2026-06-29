@@ -214,6 +214,10 @@ class NamespacePolicyTest {
                 "POST JSON-RPC-style",
                 "GET /clients/{id}/events:stream",
                 "missing-generic-primitive",
+                "Fresh State Gate",
+                "GET /clients/{id}/events",
+                "lsof",
+                "POST /clients/{id}:stop",
                 "public-agent-state.jsonl",
                 "without server-provisioned inventory",
             )
@@ -224,6 +228,42 @@ class NamespacePolicyTest {
             missing.isEmpty(),
             "Public gameplay agent skill is missing generated workflow guidance:\n${missing.joinToString("\n")}",
         )
+    }
+
+    @Test
+    fun `agent governance requires fresh live state before status claims`() {
+        val root = repositoryRoot()
+        val rootAgents = Files.readString(root.resolve("AGENTS.md"))
+        val operatingContract = Files.readString(root.resolve("docs/agent-operating-contract.md"))
+        val runbook = Files.readString(root.resolve("docs/final-gameplay-runbook.md"))
+
+        assertTrue(
+            rootAgents.contains("Live status claims must be fresh"),
+            "Root AGENTS.md must keep the fresh live-status non-negotiable visible.",
+        )
+        listOf(
+            "Live State Freshness",
+            "Treat every previous agent message",
+            "GET /clients/{id}/events:stream",
+            "lsof",
+            "POST /clients/{id}:stop",
+        ).forEach { required ->
+            assertTrue(
+                operatingContract.contains(required),
+                "Agent operating contract must require fresh state evidence: $required",
+            )
+        }
+        listOf(
+            "Live State Hygiene",
+            "lsof -nP -iTCP:8080",
+            "curl -fsS \"\$CRAFTLESS/clients\"",
+            "old state must be called stale",
+        ).forEach { required ->
+            assertTrue(
+                runbook.contains(required),
+                "Final gameplay runbook must include live-state hygiene: $required",
+            )
+        }
     }
 
     @Test

@@ -142,6 +142,35 @@ evidence, but they are not completion evidence unless the same result is
 reproducible from the public generated API without adding new
 scenario-specific Kotlin actions.
 
+## Live State Freshness
+
+Treat every previous agent message, subagent report, session transcript,
+process id, log excerpt, and client list as stale until refreshed. Before
+claiming that a Minecraft server, Craftless daemon, client, or launched process
+is running, stopped, connected, disconnected, blocked, or healthy, re-query the
+live state in the same turn and say what was checked.
+
+For local debugging, the minimum evidence is:
+
+- listener/process state for the relevant ports, usually with `lsof` and `ps`;
+- supervisor API state such as `GET /version`, `GET /clients`, and
+  `GET /clients/{id}`;
+- per-client evidence such as `GET /clients/{id}/events`,
+  `GET /clients/{id}/openapi.json`, and `GET /clients/{id}/events:stream`
+  when a stream claim matters;
+- server/client logs when the claim depends on join, disconnect, kicked,
+  timeout, or game-state behavior.
+
+Include a timestamp or clearly say that the evidence was checked now. If a
+fresh probe disagrees with older transcript state, answer from the fresh probe
+and call the older state stale. Do not tell the user that another agent "is
+still" opening a client, joining a server, or holding a connection unless a
+current process/API check proves it.
+
+Clean up stale Craftless clients through the public supervisor API, usually
+`POST /clients/{id}:stop`, when they are yours or clearly abandoned test
+clients. Do not kill unrelated user processes to make a status report cleaner.
+
 ## HTTP And CLI
 
 - Use Ktor Server for local JVM HTTP, SSE, and only-if-needed WebSocket

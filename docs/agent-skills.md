@@ -12,7 +12,8 @@ should not be installed unless the repository starts using those technologies.
   shortcuts. It also records live co-play rules for navigation schemas,
   stop-command parsing, Minecraft-chat coordination, generic
   `craftless clients <id> run <action>` invocation, POST JSON-RPC-style
-  control/query, SSE observation, and required final gameplay artifacts.
+  control/query, SSE observation, fresh live-state checks before status
+  claims, stale-client cleanup, and required final gameplay artifacts.
 - `.agents/skills/kotlin-jvm-modern-practices` captures Craftless's modern
   Kotlin/JVM defaults: Gradle Kotlin DSL, Ktor Server/Client, structured
   concurrency, JVM tests, Fabric client-thread boundaries, and no old Java HTTP
