@@ -1,9 +1,16 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "craftless-docs",
+  "account_id": "f50820b8641793881fd3006222641c23",
   "compatibility_date": "2026-06-29",
   "compatibility_flags": ["nodejs_compat"],
   "preview_urls": true,
+  "routes": [
+    {
+      "pattern": "craftless.minekube.com",
+      "custom_domain": true
+    }
+  ],
   "assets": {
     "directory": "./out",
     "html_handling": "force-trailing-slash",

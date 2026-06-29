@@ -9,12 +9,22 @@ Build locally from the repository root:
 mise run docs-site-build
 ```
 
+Production is served from Cloudflare Workers at:
+
+```txt
+https://craftless.minekube.com
+```
+
 Deploy from `docs-site/` when authenticated with Cloudflare:
 
 ```sh
 mise exec -- bun run deploy
 ```
 
-Cloudflare Workers Builds should use the repository root as its build root and
-`mise run docs-site-build` as the build command. Non-production branches get
-Worker preview deployments when the Cloudflare project is connected to GitHub.
+The `docs-site` GitHub Actions workflow builds and deploys on pushes to
+`main` when the repository has a `CLOUDFLARE_API_TOKEN` secret with Workers
+Scripts Write and Account Settings Read scoped to the Cloudflare account, plus
+Workers Routes Write and Zone Read scoped to the `minekube.com` zone. Wrangler
+attaches the Worker to `craftless.minekube.com` through the custom domain route
+in `wrangler.jsonc`. Preview URLs remain enabled on the Worker for ad-hoc
+Wrangler version uploads.
