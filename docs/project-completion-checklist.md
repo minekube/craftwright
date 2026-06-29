@@ -38,11 +38,11 @@ Status legend:
 | Field | State |
 | --- | --- |
 | Active gate | All CL gates closed |
-| Current state | All CL gates are closed. Phase 188 is a post-completion usability slice for tiny-agent lifecycle defaults. |
+| Current state | All CL gates are closed. Phase 189 generated supervisor-route CLI and daemon naming is implemented and verified. |
 | Latest product proof | `mise run final-public-gameplay-probe` passed for Minecraft `1.21.6` with server provisioning disabled. Artifacts are under `driver-fabric/build/craftless-final-gameplay/artifacts/`. |
-| Latest CI truth | `mise run ci` passed after Phase 188 tiny-agent lifecycle defaults. |
+| Latest CI truth | `mise run ci` passed after Phase 189 generated route CLI and daemon naming. |
 | Current blocker | None known. |
-| Next commands | For the next post-completion slice, start with a fresh spec, plan, focused tests, and evidence. |
+| Next commands | Commit Phase 189 and push `main`. |
 
 ## Next Work
 
@@ -124,6 +124,8 @@ Required negative proof:
   `docs/superpowers/evidence/2026-06-28-bootstrap-adapter-key-separation.md`,
   `docs/superpowers/evidence/2026-06-28-client-state-operation-discovery.md`,
   `docs/superpowers/evidence/2026-06-28-static-gameplay-guard-closure.md`.
+- Post-completion CLI architecture:
+  `docs/superpowers/evidence/2026-06-29-generated-route-cli-daemon-naming.md`.
 - CL-03:
   `docs/superpowers/evidence/2026-06-28-packaged-official-latest-lane.md`,
   `docs/superpowers/evidence/2026-06-28-official-client-state-world-time-operation.md`,

@@ -186,7 +186,7 @@ class NamespacePolicyTest {
             "CI Craftless daemon smoke script must exist",
         )
         listOf(
-            "server start",
+            "daemon start",
             "/openapi.json",
             "/version",
             "build/docker/craftless/bin/craftless",

@@ -216,7 +216,7 @@ describe("distribution surface", () => {
     expect(action).toContain("version:");
     expect(action).toContain("start:");
     expect(action).toContain("api-url");
-    expect(action).toContain("craftless server start");
+    expect(action).toContain("craftless daemon start");
   });
 
   test("README exposes install, Docker, and GitHub Actions quickstarts", () => {

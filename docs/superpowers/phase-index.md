@@ -71,6 +71,7 @@ not grow with every completed phase.
 - Phase 186: final local release gates.
 - Phase 187: final public gameplay.
 - Phase 188: tiny-agent lifecycle defaults.
+- Phase 189: generated route CLI and daemon naming.
 
 ## Current Direction
 
@@ -181,3 +182,8 @@ presentation intent on client responses, defaults API-first clients to
 non-visible muted presentation, and exposes only concrete lifecycle CLI flags
 such as `--visible` and `--audio`. This does not add gameplay roles, static
 gameplay catalogs, scenario shortcuts, or generated-action alternatives.
+Phase 189 implements the post-completion CLI architecture slice. The CLI now
+has a Craftless OpenAPI route interpreter for supervisor commands, keeps
+per-client gameplay aliases generated from live per-client OpenAPI, and uses
+`daemon start` as the primary local API startup command while preserving
+`server start` as a compatibility alias.

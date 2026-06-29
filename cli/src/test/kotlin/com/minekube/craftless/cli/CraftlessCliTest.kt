@@ -8,12 +8,14 @@ import com.minekube.craftless.driver.api.DriverActionInvocation
 import com.minekube.craftless.driver.api.DriverActionResult
 import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverSession
+import com.minekube.craftless.protocol.ApiRouteCatalog
 import com.minekube.craftless.protocol.CacheCleanupResult
 import com.minekube.craftless.protocol.CacheExportResult
 import com.minekube.craftless.protocol.CachePrepareResult
 import com.minekube.craftless.protocol.FABRIC_META_BASE_URL
 import com.minekube.craftless.protocol.MINECRAFT_JAVA_RUNTIME_INDEX_URL
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
+import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.RuntimeAvailability
 import com.minekube.craftless.protocol.RuntimeCapabilityGraph
 import com.minekube.craftless.protocol.RuntimeOperationNode
@@ -39,6 +41,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -63,6 +66,17 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `cli does not hardcode supervisor api route dispatch branches`() {
+        val source = Files.readString(repositoryRoot().resolve("cli/src/main/kotlin/com/minekube/craftless/cli/Main.kt"))
+
+        assertFalse(source.contains("args.take(2) == listOf(\"clients\", \"create\")"))
+        assertFalse(source.contains("args.take(2) == listOf(\"clients\", \"list\")"))
+        assertFalse(source.contains("args.take(3) == listOf(\"runtimes\", \"java\", \"list\")"))
+        assertFalse(source.contains("args.take(2) == listOf(\"cache\", \"prepare\")"))
+        assertFalse(source.contains("""http.post("${'$'}{api.trimEnd('/')}/clients")"""))
+    }
+
+    @Test
     fun `cli registers first jvm command tree`() {
         val commands = CraftlessCli.registeredCommandPaths()
 
@@ -84,7 +98,8 @@ class CraftlessCliTest {
         assertTrue(commands.contains("cache cleanup"))
         assertTrue(commands.contains("runtimes java list"))
         assertTrue(commands.contains("runtimes java resolve"))
-        assertTrue(commands.contains("server start"))
+        assertTrue(commands.contains("daemon start"))
+        assertFalse(commands.contains("server start"))
         assertTrue("clients api" !in commands)
         assertTrue("versions" !in commands)
         assertTrue("profiles" !in commands)
@@ -129,7 +144,8 @@ class CraftlessCliTest {
         assertEquals("", errors.toString())
         val help = output.toString()
         assertTrue(help.contains("Usage: craftless <command> [args]"))
-        assertTrue(help.contains("server start"))
+        assertTrue(help.contains("daemon start"))
+        assertFalse(help.contains("server start"))
         assertTrue(help.contains("clients <id> <resource...> <action>"))
         assertFalse(help.contains("player chat"))
         assertFalse(help.contains("world block break"))
@@ -193,13 +209,13 @@ class CraftlessCliTest {
     }
 
     @Test
-    fun `server start once prints server metadata and keeps server reachable during callback`() {
+    fun `daemon start once prints server metadata and keeps server reachable during callback`() {
         val output = StringBuilder()
         var versionStatus = 0
 
         val exit =
             CraftlessCli.run(
-                listOf("server", "start", "--once"),
+                listOf("daemon", "start", "--once"),
                 stdout = { output.appendLine(it) },
                 afterStart = { metadata ->
                     kotlinx.coroutines.runBlocking {
@@ -1156,6 +1172,60 @@ class CraftlessCliTest {
             val presentation = requireNotNull(request["presentation"]).jsonObject
             assertEquals("NONE", presentation["window"]?.jsonPrimitive?.content)
             assertEquals("MUTED", presentation["audio"]?.jsonPrimitive?.content)
+        }
+    }
+
+    @Test
+    fun `generated supervisor route creates client from openapi cli metadata`() {
+        RecordingCreateApiServer().use { server ->
+            val output = StringBuilder()
+            val errors = StringBuilder()
+
+            val exit =
+                CraftlessCli.run(
+                    listOf(
+                        "clients",
+                        "create",
+                        "bot",
+                        "--api",
+                        server.url,
+                        "--version",
+                        "latest-release",
+                        "--loader",
+                        "fabric",
+                    ),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
+
+            assertEquals(0, exit, errors.toString())
+            val request = Json.parseToJsonElement(server.createBodies.single()).jsonObject
+            assertEquals("bot", request["id"]?.jsonPrimitive?.content)
+            assertEquals("latest-release", request["version"]?.jsonPrimitive?.content)
+            assertEquals("FABRIC", request["loader"]?.jsonPrimitive?.content)
+        }
+    }
+
+    @Test
+    fun `generated supervisor route help is loaded from supervisor openapi`() {
+        RecordingCreateApiServer().use { server ->
+            val output = StringBuilder()
+            val errors = StringBuilder()
+
+            val exit =
+                CraftlessCli.run(
+                    listOf("clients", "create", "--help", "--api", server.url),
+                    stdout = { output.appendLine(it) },
+                    stderr = { errors.appendLine(it) },
+                )
+
+            assertEquals(0, exit, errors.toString())
+            val help = output.toString()
+            assertTrue(help.contains("Route: POST /clients"))
+            assertTrue(help.contains("Usage: craftless clients create <id>"))
+            assertTrue(help.contains("--version string required"))
+            assertTrue(help.contains("--loader string required"))
+            assertTrue(help.contains("--audio string default=MUTED enum=MUTED|DEFAULT"))
         }
     }
 
@@ -2806,6 +2876,12 @@ class CraftlessCliTest {
         private val server =
             embeddedServer(ServerCIO, host = "127.0.0.1", port = port) {
                 routing {
+                    get("/openapi.json") {
+                        call.respondText(
+                            Json.encodeToString(OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())),
+                            ContentType.Application.Json,
+                        )
+                    }
                     post("/clients") {
                         createBodies += call.receiveText()
                         call.respondText(

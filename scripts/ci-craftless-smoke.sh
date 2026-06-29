@@ -7,7 +7,7 @@ SMOKE_ROOT="${CRAFTLESS_CI_SMOKE_ROOT:-"$ROOT/build/craftless-ci-smoke"}"
 WORKSPACE="$SMOKE_ROOT/workspace"
 ARTIFACTS="$SMOKE_ROOT/artifacts"
 LOG="$ARTIFACTS/craftless-daemon.log"
-METADATA="$ARTIFACTS/server-metadata.json"
+METADATA="$ARTIFACTS/daemon-metadata.json"
 
 rm -rf "$SMOKE_ROOT"
 mkdir -p "$WORKSPACE" "$ARTIFACTS"
@@ -17,15 +17,15 @@ if [ ! -x "$CRAFTLESS_BIN" ]; then
   exit 1
 fi
 
-"$CRAFTLESS_BIN" --help | grep -q "server start"
+"$CRAFTLESS_BIN" --help | grep -q "daemon start"
 
-"$CRAFTLESS_BIN" server start --port 0 --workspace "$WORKSPACE" > "$LOG" 2>&1 &
-SERVER_PID="$!"
+"$CRAFTLESS_BIN" daemon start --port 0 --workspace "$WORKSPACE" > "$LOG" 2>&1 &
+DAEMON_PID="$!"
 
 cleanup() {
-  if kill -0 "$SERVER_PID" 2>/dev/null; then
-    kill "$SERVER_PID" 2>/dev/null || true
-    wait "$SERVER_PID" 2>/dev/null || true
+  if kill -0 "$DAEMON_PID" 2>/dev/null; then
+    kill "$DAEMON_PID" 2>/dev/null || true
+    wait "$DAEMON_PID" 2>/dev/null || true
   fi
 }
 trap cleanup EXIT
@@ -35,7 +35,7 @@ for _ in $(seq 1 120); do
     head -n 1 "$LOG" > "$METADATA"
     break
   fi
-  if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+  if ! kill -0 "$DAEMON_PID" 2>/dev/null; then
     cat "$LOG" >&2 || true
     exit 1
   fi
@@ -43,7 +43,7 @@ for _ in $(seq 1 120); do
 done
 
 if [ ! -s "$METADATA" ]; then
-  echo "Timed out waiting for Craftless server metadata" >&2
+  echo "Timed out waiting for Craftless daemon metadata" >&2
   cat "$LOG" >&2 || true
   exit 1
 fi

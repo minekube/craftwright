@@ -12,10 +12,6 @@ import com.minekube.craftless.daemon.LocalSessionApiServer
 import com.minekube.craftless.protocol.CacheCleanupRequest
 import com.minekube.craftless.protocol.CacheExportRequest
 import com.minekube.craftless.protocol.CachePrepareRequest
-import com.minekube.craftless.protocol.ClientAudioMode
-import com.minekube.craftless.protocol.ClientPresentation
-import com.minekube.craftless.protocol.ClientWindowMode
-import com.minekube.craftless.protocol.CreateClientRequest
 import com.minekube.craftless.protocol.JavaRuntimeResolveRequest
 import com.minekube.craftless.protocol.JsonRpcMethod
 import com.minekube.craftless.protocol.JsonRpcRequest
@@ -26,7 +22,6 @@ import com.minekube.craftless.protocol.OpenApiActionArgument
 import com.minekube.craftless.protocol.OpenApiActionAvailability
 import com.minekube.craftless.protocol.OpenApiDocument
 import com.minekube.craftless.protocol.OpenApiResource
-import com.minekube.craftless.protocol.Profile
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
@@ -91,6 +86,9 @@ object CraftlessCli {
                     LeafCommand("resolve"),
                 ),
             ),
+            GroupCommand("daemon").subcommands(
+                LeafCommand("start"),
+            ),
             GroupCommand("server").subcommands(
                 LeafCommand("start"),
             ),
@@ -116,7 +114,7 @@ object CraftlessCli {
             "cache cleanup",
             "runtimes java list",
             "runtimes java resolve",
-            "server start",
+            "daemon start",
         )
 
     fun run(
@@ -136,38 +134,17 @@ object CraftlessCli {
             stdout(help)
             return 0
         }
-        if (args.take(2) == listOf("server", "start")) {
-            return runServerStart(args.drop(2), stdout, stderr, afterStart, env, cacheMetadataFetcher, distributionRoot)
+        if (args.startsWithCommand("daemon", "start") || args.startsWithCommand("server", "start")) {
+            return runDaemonStart(args.drop(2), stdout, stderr, afterStart, env, cacheMetadataFetcher, distributionRoot)
         }
-        if (args.take(2) == listOf("cache", "prepare")) {
+        if (args.startsWithCommand("cache", "prepare") && args.contains("--workspace")) {
             return prepareCache(args.drop(2), stdout, stderr, cacheMetadataFetcher)
         }
-        if (args.take(2) == listOf("cache", "export")) {
+        if (args.startsWithCommand("cache", "export") && args.contains("--workspace")) {
             return exportCache(args.drop(2), stdout, stderr)
         }
-        if (args.take(2) == listOf("cache", "cleanup")) {
+        if (args.startsWithCommand("cache", "cleanup") && args.contains("--workspace")) {
             return cleanupCache(args.drop(2), stdout, stderr)
-        }
-        if (args.take(3) == listOf("runtimes", "java", "list")) {
-            return listJavaRuntimes(args.drop(3), stdout, stderr, env)
-        }
-        if (args.take(3) == listOf("runtimes", "java", "resolve")) {
-            return resolveJavaRuntime(args.drop(3), stdout, stderr, env)
-        }
-        if (args.take(2) == listOf("clients", "create")) {
-            return createClient(args.drop(2), stdout, stderr, env)
-        }
-        if (args.take(2) == listOf("clients", "list")) {
-            return listClients(args.drop(2), stdout, stderr, env)
-        }
-        if (args.size >= 3 && args[0] == "clients" && args[2] == "get") {
-            return getClient(args.drop(1), stdout, stderr, env)
-        }
-        if (args.size >= 3 && args[0] == "clients" && args[2] == "connect") {
-            return connectClient(args.drop(1), stdout, stderr, env)
-        }
-        if (args.size >= 3 && args[0] == "clients" && args[2] == "stop") {
-            return stopClient(args.drop(1), stdout, stderr, env)
         }
         if (args.size >= 3 && args[0] == "clients" && args[2] == "openapi") {
             return getClientOpenApi(args.drop(1), stdout, stderr, env)
@@ -190,9 +167,12 @@ object CraftlessCli {
         if (args.size >= 4 && args[0] == "clients" && args[2] == "run") {
             return runClientAction(args.drop(1), stdout, stderr, env)
         }
-        if (args.size >= 4 && args[0] == "clients") {
+        if (args.isGeneratedGameplayAlias()) {
             return runGeneratedClientAction(args.drop(1), stdout, stderr, env)
         }
+        GeneratedRouteCli(json) { environment -> apiHttpClient(environment) }
+            .run(args, stdout, stderr, env)
+            ?.let { exit -> return exit }
         if (args.isNotEmpty()) {
             stderr("error: unknown command ${args.joinToString(" ")}")
             return 2
@@ -211,6 +191,7 @@ object CraftlessCli {
             args.isGroupHelp("clients") -> clientsHelp()
             args.isGroupHelp("cache") -> cacheHelp()
             args.isGroupHelp("runtimes") -> runtimesHelp()
+            args.isGroupHelp("daemon") -> daemonHelp()
             args.isGroupHelp("server") -> serverHelp()
             else -> null
         }
@@ -219,6 +200,32 @@ object CraftlessCli {
         this == listOf(group, "--help") ||
             this == listOf(group, "-h") ||
             this == listOf("help", group)
+
+    private fun List<String>.startsWithCommand(vararg tokens: String): Boolean =
+        size >= tokens.size && tokens.indices.all { index -> this[index] == tokens[index] }
+
+    private fun List<String>.isGeneratedGameplayAlias(): Boolean {
+        val command = getOrNull(2) ?: return false
+        val stableClientCommands =
+            setOf(
+                "actions",
+                "attach",
+                "connect",
+                "events",
+                "get",
+                "openapi",
+                "query",
+                "resources",
+                "run",
+                "stop",
+                "tools",
+            )
+        return size >= 4 &&
+            getOrNull(0) == "clients" &&
+            getOrNull(1) !in setOf("create", "list") &&
+            !command.startsWith("--") &&
+            command !in stableClientCommands
+    }
 
     private fun rootHelp(): String =
         buildString {
@@ -281,6 +288,14 @@ object CraftlessCli {
             appendLine("Commands:")
             appendLine("  runtimes java list")
             append("  runtimes java resolve")
+        }
+
+    private fun daemonHelp(): String =
+        buildString {
+            appendLine("Usage: craftless daemon <command> [args]")
+            appendLine()
+            appendLine("Commands:")
+            append("  daemon start")
         }
 
     private fun serverHelp(): String =
@@ -422,71 +437,6 @@ object CraftlessCli {
             }
         }.getOrElse { error ->
             stderr("error: ${error.message ?: "failed to resolve Java runtime"}")
-            2
-        }
-    }
-
-    private fun createClient(
-        args: List<String>,
-        stdout: (String) -> Unit,
-        stderr: (String) -> Unit,
-        env: Map<String, String>,
-    ): Int {
-        val clientId = args.firstOrNull { !it.startsWith("--") }.orEmpty()
-        val version = args.optionValue("--version")
-        val loader =
-            args.optionValue("--loader")?.let { value ->
-                runCatching { Loader.valueOf(value.uppercase()) }.getOrNull()
-            }
-        val loaderVersion = args.optionValue("--loader-version")
-        val profileName = args.optionValue("--offline-name")
-        val audioValue = args.optionValue("--audio")?.lowercase()?.replace('-', '_')
-        val audio =
-            when (audioValue) {
-                null, "muted" -> ClientAudioMode.MUTED
-                "default" -> ClientAudioMode.DEFAULT
-                else -> null
-            }
-        if (clientId.isBlank() || version.isNullOrBlank() || loader == null) {
-            stderr(
-                "error: usage is clients create <id> --version <version> --loader <loader> " +
-                    "[--loader-version <version>] [--offline-name <name>] " +
-                    "[--visible] [--audio <muted|default>] [--api <url>]",
-            )
-            return 2
-        }
-        if (audio == null) {
-            stderr("error: --audio must be muted or default")
-            return 2
-        }
-        val api = args.apiBaseUrl(env)
-        val request =
-            CreateClientRequest(
-                id = clientId,
-                version = version,
-                loader = loader,
-                loaderVersion = loaderVersion,
-                profile = profileName?.let(Profile::offline),
-                presentation =
-                    ClientPresentation(
-                        window = if (args.contains("--visible")) ClientWindowMode.VISIBLE else ClientWindowMode.NONE,
-                        audio = audio,
-                    ),
-            )
-
-        return runCatching {
-            kotlinx.coroutines.runBlocking {
-                apiHttpClient(env).use { http ->
-                    val response =
-                        http.post("${api.trimEnd('/')}/clients") {
-                            contentType(ContentType.Application.Json)
-                            setBody(json.encodeToString(request))
-                        }
-                    response.forwardBody(stdout, stderr)
-                }
-            }
-        }.getOrElse { error ->
-            stderr("error: ${error.message ?: "failed to create client"}")
             2
         }
     }
@@ -974,7 +924,7 @@ object CraftlessCli {
         }
     }
 
-    private fun runServerStart(
+    private fun runDaemonStart(
         args: List<String>,
         stdout: (String) -> Unit,
         stderr: (String) -> Unit,

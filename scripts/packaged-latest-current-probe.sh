@@ -28,7 +28,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-"$CRAFTLESS_BIN" server start --port "$DAEMON_PORT" --workspace "$WORKSPACE" \
+"$CRAFTLESS_BIN" daemon start --port "$DAEMON_PORT" --workspace "$WORKSPACE" \
   > "$ARTIFACTS_DIR/packaged-daemon.log" 2>&1 &
 DAEMON_PID="$!"
 

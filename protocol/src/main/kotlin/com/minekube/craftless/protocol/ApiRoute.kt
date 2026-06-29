@@ -3,6 +3,25 @@ package com.minekube.craftless.protocol
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class ApiRouteCli(
+    val command: List<String>,
+    val aliases: List<List<String>> = emptyList(),
+    val hidden: Boolean = false,
+    val stream: Boolean = false,
+    val body: List<ApiRouteCliBinding> = emptyList(),
+)
+
+@Serializable
+data class ApiRouteCliBinding(
+    val pointer: String,
+    val flag: String? = null,
+    val argument: String? = null,
+    val fixed: String? = null,
+    val type: String = "string",
+    val required: Boolean = false,
+)
+
+@Serializable
 data class ApiRoute(
     val method: String,
     val path: String,
@@ -14,6 +33,7 @@ data class ApiRoute(
     val source: String,
     val returnKind: String = "value",
     val actionId: String? = null,
+    val cli: ApiRouteCli? = null,
 ) {
     init {
         require(method in SUPPORTED_ROUTE_METHODS) { "unsupported route method $method" }
@@ -80,28 +100,270 @@ class ApiRouteCatalog(
         fun sessionDefaults(): ApiRouteCatalog =
             ApiRouteCatalog(
                 listOf(
-                    route("GET", "/openapi.json", "getOpenapiJson", "openapi", "supervisor", "openapi", "route"),
-                    route("GET", "/version", "getVersion", "version", "supervisor", "version", "route"),
-                    route("GET", "/events", "getEvents", "events", "supervisor", "events", "route"),
-                    route("GET", "/events:stream", "streamEvents", "events", "supervisor", "events", "route"),
-                    route("POST", "/cache:prepare", "prepareCache", "cache", "cache", "prepare", "method"),
-                    route("POST", "/cache:export", "exportCache", "cache", "cache", "export", "method"),
-                    route("POST", "/cache:cleanup", "cleanupCache", "cache", "cache", "cleanup", "method"),
-                    route("GET", "/runtimes/java", "listJavaRuntimes", "runtimes", "runtimes", "java", "route"),
-                    route("POST", "/runtimes/java:resolve", "resolveJavaRuntime", "runtimes", "runtimes", "java", "method"),
-                    route("GET", "/clients", "listClients", "clients", "clients", "list", "route"),
-                    route("POST", "/clients", "createClient", "clients", "clients", "create", "route"),
-                    route("GET", "/clients/{id}", "getClient", "clients", "clients", "get", "route"),
-                    route("GET", "/clients/{id}/openapi.json", "getClientOpenapiJson", "clients", "clients", "openapi", "route"),
-                    route("POST", "/clients/{id}:attach", "attachClientDriver", "clients", "clients", "attach", "method"),
-                    route("POST", "/clients/{id}:connect", "clientConnect", "clients", "clients", "connect", "method"),
-                    route("GET", "/clients/{id}/actions", "listClientActions", "clients", "clients", "actions", "action"),
-                    route("GET", "/clients/{id}/resources", "listClientResources", "clients", "clients", "resources", "resource"),
-                    route("POST", "/clients/{id}:run", "runClientAction", "clients", "clients", "run", "action"),
-                    route("POST", "/clients/{id}:stop", "stopClient", "clients", "clients", "stop", "method"),
-                    route("GET", "/clients/{id}/events", "getClientEvents", "clients", "clients", "events", "route"),
-                    route("GET", "/clients/{id}/events:stream", "streamClientEvents", "clients", "clients", "events", "route"),
+                    route("GET", "/openapi.json", "getOpenapiJson", "openapi", "supervisor", "openapi", "route", cli("openapi")),
+                    route("GET", "/version", "getVersion", "version", "supervisor", "version", "route", cli("version")),
+                    route("GET", "/events", "getEvents", "events", "supervisor", "events", "route", cli("events", "list")),
+                    route("GET", "/events:stream", "streamEvents", "events", "supervisor", "events", "route", cli("events", stream = true)),
+                    route(
+                        "POST",
+                        "/cache:prepare",
+                        "prepareCache",
+                        "cache",
+                        "cache",
+                        "prepare",
+                        "method",
+                        cli(
+                            "cache",
+                            "prepare",
+                            body =
+                                listOf(
+                                    bind("/minecraftVersion", flag = "--mc", required = true),
+                                    bind("/loader", flag = "--loader", required = true),
+                                    bind("/loaderVersion", flag = "--loader-version"),
+                                ),
+                        ),
+                    ),
+                    route(
+                        "POST",
+                        "/cache:export",
+                        "exportCache",
+                        "cache",
+                        "cache",
+                        "export",
+                        "method",
+                        cli(
+                            "cache",
+                            "export",
+                            body =
+                                listOf(
+                                    bind("/manifest", flag = "--manifest", required = true),
+                                    bind("/archive", flag = "--archive"),
+                                ),
+                        ),
+                    ),
+                    route(
+                        "POST",
+                        "/cache:cleanup",
+                        "cleanupCache",
+                        "cache",
+                        "cache",
+                        "cleanup",
+                        "method",
+                        cli(
+                            "cache",
+                            "cleanup",
+                            body = listOf(bind("/manifest", flag = "--manifest", required = true)),
+                        ),
+                    ),
+                    route(
+                        "GET",
+                        "/runtimes/java",
+                        "listJavaRuntimes",
+                        "runtimes",
+                        "runtimes",
+                        "java",
+                        "route",
+                        cli("runtimes", "java", "list"),
+                    ),
+                    route(
+                        "POST",
+                        "/runtimes/java:resolve",
+                        "resolveJavaRuntime",
+                        "runtimes",
+                        "runtimes",
+                        "java",
+                        "method",
+                        cli(
+                            "runtimes",
+                            "java",
+                            "resolve",
+                            body = listOf(bind("/minecraftVersion", flag = "--mc", required = true)),
+                        ),
+                    ),
+                    route("GET", "/clients", "listClients", "clients", "clients", "list", "route", cli("clients", "list")),
+                    route(
+                        "POST",
+                        "/clients",
+                        "createClient",
+                        "clients",
+                        "clients",
+                        "create",
+                        "route",
+                        cli(
+                            "clients",
+                            "create",
+                            "{id}",
+                            body =
+                                listOf(
+                                    bind("/id", argument = "id", required = true),
+                                    bind("/version", flag = "--version", required = true),
+                                    bind("/loader", flag = "--loader", required = true),
+                                    bind("/loaderVersion", flag = "--loader-version"),
+                                    bind("/profile/name", flag = "--offline-name"),
+                                    bind("/profile/kind", flag = "--offline-name", fixed = "OFFLINE"),
+                                    bind("/presentation/window", flag = "--visible", fixed = "VISIBLE"),
+                                    bind("/presentation/audio", flag = "--audio"),
+                                ),
+                        ),
+                    ),
+                    route("GET", "/clients/{id}", "getClient", "clients", "clients", "get", "route", cli("clients", "{id}", "get")),
+                    route(
+                        "GET",
+                        "/clients/{id}/openapi.json",
+                        "getClientOpenapiJson",
+                        "clients",
+                        "clients",
+                        "openapi",
+                        "route",
+                        cli("clients", "{id}", "openapi"),
+                    ),
+                    route(
+                        "POST",
+                        "/clients/{id}:attach",
+                        "attachClientDriver",
+                        "clients",
+                        "clients",
+                        "attach",
+                        "method",
+                        cli(
+                            "clients",
+                            "{id}",
+                            "attach",
+                            body = listOf(bind("/endpoint", flag = "--endpoint", required = true)),
+                        ),
+                    ),
+                    route(
+                        "POST",
+                        "/clients/{id}:connect",
+                        "clientConnect",
+                        "clients",
+                        "clients",
+                        "connect",
+                        "method",
+                        cli(
+                            "clients",
+                            "{id}",
+                            "connect",
+                            body =
+                                listOf(
+                                    bind("/host", flag = "--host", required = true),
+                                    bind("/port", flag = "--port", type = "integer", required = true),
+                                ),
+                        ),
+                    ),
+                    route(
+                        "GET",
+                        "/clients/{id}/actions",
+                        "listClientActions",
+                        "clients",
+                        "clients",
+                        "actions",
+                        "action",
+                        cli("clients", "{id}", "actions"),
+                    ),
+                    route(
+                        "GET",
+                        "/clients/{id}/resources",
+                        "listClientResources",
+                        "clients",
+                        "clients",
+                        "resources",
+                        "resource",
+                        cli("clients", "{id}", "resources"),
+                    ),
+                    route(
+                        "POST",
+                        "/clients/{id}:run",
+                        "runClientAction",
+                        "clients",
+                        "clients",
+                        "run",
+                        "action",
+                        cli("clients", "{id}", "run", "{action}"),
+                    ),
+                    route(
+                        "POST",
+                        "/clients/{id}:rpc",
+                        "clientJsonRpc",
+                        "clients",
+                        "clients",
+                        "rpc",
+                        "method",
+                        cli(
+                            "clients",
+                            "{id}",
+                            "query",
+                            "{target}",
+                            body =
+                                listOf(
+                                    bind("/method", fixed = "query"),
+                                    bind("/params/target", argument = "target", required = true),
+                                ),
+                        ),
+                    ),
+                    route(
+                        "POST",
+                        "/clients/{id}:stop",
+                        "stopClient",
+                        "clients",
+                        "clients",
+                        "stop",
+                        "method",
+                        cli("clients", "{id}", "stop"),
+                    ),
+                    route(
+                        "GET",
+                        "/clients/{id}/events",
+                        "getClientEvents",
+                        "clients",
+                        "clients",
+                        "events",
+                        "route",
+                        cli("clients", "{id}", "events", "list"),
+                    ),
+                    route(
+                        "GET",
+                        "/clients/{id}/events:stream",
+                        "streamClientEvents",
+                        "clients",
+                        "clients",
+                        "events",
+                        "route",
+                        cli("clients", "{id}", "events", stream = true),
+                    ),
                 ),
+            )
+
+        private fun cli(
+            vararg command: String,
+            stream: Boolean = false,
+            hidden: Boolean = false,
+            aliases: List<List<String>> = emptyList(),
+            body: List<ApiRouteCliBinding> = emptyList(),
+        ): ApiRouteCli =
+            ApiRouteCli(
+                command = command.toList(),
+                aliases = aliases,
+                hidden = hidden,
+                stream = stream,
+                body = body,
+            )
+
+        private fun bind(
+            pointer: String,
+            flag: String? = null,
+            argument: String? = null,
+            fixed: String? = null,
+            type: String = "string",
+            required: Boolean = false,
+        ): ApiRouteCliBinding =
+            ApiRouteCliBinding(
+                pointer = pointer,
+                flag = flag,
+                argument = argument,
+                fixed = fixed,
+                type = type,
+                required = required,
             )
 
         private fun route(
@@ -112,6 +374,7 @@ class ApiRouteCatalog(
             owner: String,
             member: String,
             source: String,
+            cli: ApiRouteCli? = null,
             returnKind: String = "value",
         ): ApiRoute =
             ApiRoute(
@@ -124,6 +387,7 @@ class ApiRouteCatalog(
                 target = if (source == "action" || source == "resource") "client" else "supervisor",
                 source = source,
                 returnKind = returnKind,
+                cli = cli,
             )
     }
 }

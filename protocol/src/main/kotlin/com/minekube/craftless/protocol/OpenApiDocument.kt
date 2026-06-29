@@ -132,8 +132,34 @@ data class OpenApiOperation(
     val tags: List<String>,
     val responses: Map<String, OpenApiResponse>,
     val requestBody: OpenApiRequestBody? = null,
+    @SerialName("x-craftless-cli")
+    val cli: OpenApiCliOperation? = null,
     @SerialName("x-craftless")
     val extensions: Map<String, String>,
+)
+
+@Serializable
+data class OpenApiCliOperation(
+    val command: List<String>,
+    val aliases: List<List<String>> = emptyList(),
+    val hidden: Boolean = false,
+    val stream: Boolean = false,
+    val body: OpenApiCliBody? = null,
+)
+
+@Serializable
+data class OpenApiCliBody(
+    val bindings: List<OpenApiCliBinding> = emptyList(),
+)
+
+@Serializable
+data class OpenApiCliBinding(
+    val pointer: String,
+    val flag: String? = null,
+    val argument: String? = null,
+    val fixed: String? = null,
+    val type: String = "string",
+    val required: Boolean = false,
 )
 
 @Serializable
@@ -503,6 +529,7 @@ private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenA
         tags = listOf(tag),
         responses = route.responses(actionsById),
         requestBody = route.requestBody(actionsById),
+        cli = route.cli?.toOpenApiCliOperation(),
         extensions =
             buildMap {
                 put("x-craftless-owner", route.owner)
@@ -514,6 +541,28 @@ private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenA
             },
     )
 }
+
+private fun ApiRouteCli.toOpenApiCliOperation(): OpenApiCliOperation =
+    OpenApiCliOperation(
+        command = command,
+        aliases = aliases,
+        hidden = hidden,
+        stream = stream,
+        body =
+            body
+                .takeIf { it.isNotEmpty() }
+                ?.let { bindings -> OpenApiCliBody(bindings.map { binding -> binding.toOpenApiCliBinding() }) },
+    )
+
+private fun ApiRouteCliBinding.toOpenApiCliBinding(): OpenApiCliBinding =
+    OpenApiCliBinding(
+        pointer = pointer,
+        flag = flag,
+        argument = argument,
+        fixed = fixed,
+        type = type,
+        required = required,
+    )
 
 private fun RuntimeOperationNode.toOpenApiAction(): OpenApiAction =
     OpenApiAction(
@@ -640,6 +689,7 @@ private fun ApiRoute.requestBody(actionsById: Map<String, OpenApiAction>): OpenA
         path == "/clients" -> createClientRequestBody()
         path.endsWith(":attach") -> attachDriverRequestBody()
         path.endsWith(":connect") -> connectRequestBody()
+        path.endsWith(":rpc") -> jsonRpcRequestBody()
         path.endsWith(":run") -> genericActionRequestBody()
         else -> null
     }
@@ -697,7 +747,7 @@ private fun versionResponse(): OpenApiResponse =
                     properties =
                         mapOf(
                             "minecraft" to OpenApiSchema(type = "string"),
-                            "loader" to OpenApiSchema(type = "string"),
+                            "loader" to OpenApiSchema(type = "string", enumValues = Loader.entries.map { it.name }),
                             "loaderVersion" to OpenApiSchema(type = "string"),
                             "driver" to OpenApiSchema(type = "string"),
                             "driverVersion" to OpenApiSchema(type = "string"),
@@ -873,7 +923,7 @@ private fun cachePrepareResponse(): OpenApiResponse =
                     properties =
                         mapOf(
                             "minecraftVersion" to OpenApiSchema(type = "string"),
-                            "loader" to OpenApiSchema(type = "string"),
+                            "loader" to OpenApiSchema(type = "string", enumValues = Loader.entries.map { it.name }),
                             "loaderVersion" to OpenApiSchema(type = "string", nullable = true),
                             "cacheRoot" to OpenApiSchema(type = "string"),
                             "minecraftVersionRoot" to OpenApiSchema(type = "string"),
@@ -1027,7 +1077,7 @@ private fun createClientRequestBody(): OpenApiRequestBody =
                         mapOf(
                             "id" to OpenApiSchema(type = "string"),
                             "version" to OpenApiSchema(type = "string"),
-                            "loader" to OpenApiSchema(type = "string"),
+                            "loader" to OpenApiSchema(type = "string", enumValues = Loader.entries.map { it.name }),
                             "loaderVersion" to OpenApiSchema(type = "string", nullable = true),
                             "profile" to profileSchema(),
                             "presentation" to presentationSchema(),
@@ -1067,7 +1117,7 @@ private fun cachePrepareRequestBody(): OpenApiRequestBody =
                     properties =
                         mapOf(
                             "minecraftVersion" to OpenApiSchema(type = "string"),
-                            "loader" to OpenApiSchema(type = "string"),
+                            "loader" to OpenApiSchema(type = "string", enumValues = Loader.entries.map { it.name }),
                             "loaderVersion" to OpenApiSchema(type = "string", nullable = true),
                         ),
                     required = listOf("minecraftVersion", "loader"),
@@ -1133,6 +1183,29 @@ private fun attachDriverRequestBody(): OpenApiRequestBody =
                             "endpoint" to OpenApiSchema(type = "string"),
                         ),
                     required = listOf("endpoint"),
+                ),
+            ),
+    )
+
+private fun jsonRpcRequestBody(): OpenApiRequestBody =
+    OpenApiRequestBody(
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "method" to OpenApiSchema(type = "string", enumValues = JsonRpcMethod.allowed.toList()),
+                            "params" to
+                                OpenApiSchema(
+                                    type = "object",
+                                    properties =
+                                        mapOf(
+                                            "target" to OpenApiSchema(type = "string"),
+                                        ),
+                                ),
+                        ),
+                    required = listOf("method"),
                 ),
             ),
     )

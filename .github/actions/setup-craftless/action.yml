@@ -7,7 +7,7 @@ inputs:
     required: false
     default: latest
   start:
-    description: Start `craftless server start` after installing.
+    description: Start `craftless daemon start` after installing.
     required: false
     default: "false"
   port:
@@ -48,7 +48,7 @@ runs:
       shell: bash
       run: |
         mkdir -p "${{ inputs.workspace }}"
-        nohup craftless server start \
+        nohup craftless daemon start \
           --port "${{ inputs.port }}" \
           --workspace "${{ inputs.workspace }}" \
           > "$RUNNER_TEMP/craftless.log" 2>&1 &

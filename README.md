@@ -36,7 +36,7 @@ Install the released CLI on Linux or macOS:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/minekube/craftless/main/install.sh | sh
-craftless server start --port 8080 --workspace .craftless
+craftless daemon start --port 8080 --workspace .craftless
 ```
 
 Install a specific release:
@@ -53,7 +53,7 @@ Set `CRAFTLESS_INSTALL_DIR` to use another directory.
 The installed CLI distribution carries
 `mods/craftless-driver-fabric.jar`, the representative older
 `mods/fabric-1.20.6/craftless-driver-fabric.jar`, and the latest/current
-`mods/fabric-26.2/craftless-driver-fabric-official.jar` lane. `craftless server
+`mods/fabric-26.2/craftless-driver-fabric-official.jar` lane. `craftless daemon
 start` auto-discovers the packaged driver manifest unless
 `CRAFTLESS_FABRIC_DRIVER_MOD` is set explicitly, so daemon-managed Fabric
 clients do not need extra driver-mod configuration.
@@ -119,7 +119,7 @@ jobs:
 ```
 
 The action installs the released CLI distribution and can optionally start
-`craftless server start` for the job. Fabric driver-mod discovery follows the
+`craftless daemon start` for the job. Fabric driver-mod discovery follows the
 same installed-distribution path as the install script.
 
 ## How Craftless Works
@@ -156,7 +156,7 @@ runtime capability graph and generated per-client OpenAPI.
 Start the supervisor:
 
 ```sh
-craftless server start --port 8080 --workspace .craftless
+craftless daemon start --port 8080 --workspace .craftless
 ```
 
 Set the API URL:
@@ -233,7 +233,7 @@ commands.
 For a simple "let's play" setup, keep lifecycle and gameplay separate:
 
 ```sh
-craftless server start --port 8080 --workspace .craftless
+craftless daemon start --port 8080 --workspace .craftless
 export CRAFTLESS=http://127.0.0.1:8080
 
 craftless clients create bot --version latest-release --loader fabric --api "$CRAFTLESS"
@@ -389,7 +389,7 @@ mise run ci-craftless-smoke
 ```
 
 `ci-craftless-smoke` runs the packaged CLI distribution, starts
-`craftless server start`, and probes the live supervisor API.
+`craftless daemon start`, and probes the live supervisor API.
 
 Docs-only edits must at least pass:
 
