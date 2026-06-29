@@ -536,6 +536,96 @@ class OpenApiGenerationTest {
     }
 
     @Test
+    fun `openapi document projects screenshot capture as generated media capability`() {
+        val graph =
+            RuntimeCapabilityGraph(
+                clientId = "alice",
+                resources =
+                    listOf(
+                        RuntimeResourceNode(
+                            id = "media.screenshot",
+                            availability = RuntimeAvailability.available(),
+                        ),
+                    ),
+                operations =
+                    listOf(
+                        RuntimeOperationNode(
+                            id = "media.screenshot.capture",
+                            resource = "media.screenshot",
+                            adapter = "media.screenshot",
+                            result =
+                                RuntimeSchema(
+                                    type = "object",
+                                    required = true,
+                                    properties =
+                                        mapOf(
+                                            "artifact-id" to RuntimeSchema("string", required = true),
+                                            "media-type" to RuntimeSchema("string", required = true),
+                                            "byte-size" to RuntimeSchema("integer", required = true),
+                                            "sha256" to RuntimeSchema("string", required = true),
+                                            "width" to RuntimeSchema("integer", required = true),
+                                            "height" to RuntimeSchema("integer", required = true),
+                                            "created-at" to RuntimeSchema("string", required = true),
+                                            "download-url" to RuntimeSchema("string", required = true),
+                                        ),
+                                ),
+                            availability = RuntimeAvailability.available(),
+                        ),
+                    ),
+            )
+
+        val document = OpenApiDocument.fromRuntimeGraph(graph)
+
+        assertEquals(listOf("media.screenshot.capture"), document.actions.map { it.id })
+        assertEquals(listOf("media.screenshot"), document.resources.map { it.id })
+        assertEquals(
+            "/clients/{id}/media/screenshot:capture",
+            document.paths.keys.single { it.endsWith("media/screenshot:capture") },
+        )
+        assertTrue(document.paths.keys.none { it == "/clients/{id}/screenshot" })
+        val action = document.actions.single()
+        assertEquals(OpenApiActionSource.RUNTIME_PROBE, action.source)
+        assertEquals(OpenApiActionAvailability.AVAILABLE, action.availability)
+        assertEquals(listOf("action", "status", "data"), action.result.required)
+        val dataSchema = requireNotNull(action.result.properties["data"])
+        assertEquals("object", dataSchema.type)
+        val requiredArtifactFields =
+            listOf(
+                "artifact-id",
+                "media-type",
+                "byte-size",
+                "sha256",
+                "width",
+                "height",
+                "created-at",
+                "download-url",
+            )
+        assertEquals(requiredArtifactFields, dataSchema.properties.keys.toList())
+        assertEquals("string", dataSchema.properties["artifact-id"]?.type)
+        assertEquals("string", dataSchema.properties["media-type"]?.type)
+        assertEquals("integer", dataSchema.properties["byte-size"]?.type)
+        assertEquals("string", dataSchema.properties["sha256"]?.type)
+        assertEquals("integer", dataSchema.properties["width"]?.type)
+        assertEquals("integer", dataSchema.properties["height"]?.type)
+        assertEquals("string", dataSchema.properties["created-at"]?.type)
+        assertEquals("string", dataSchema.properties["download-url"]?.type)
+
+        val aliasDataSchema =
+            requireNotNull(
+                document.paths["/clients/{id}/media/screenshot:capture"]
+                    ?.post
+                    ?.responses
+                    ?.get("200")
+                    ?.content
+                    ?.get("application/json")
+                    ?.schema
+                    ?.properties
+                    ?.get("data"),
+            )
+        assertEquals(requiredArtifactFields, aliasDataSchema.properties.keys.toList())
+    }
+
+    @Test
     fun `openapi document projects navigation and task operations from runtime graph without backend leaks`() {
         val graph =
             RuntimeCapabilityGraph(

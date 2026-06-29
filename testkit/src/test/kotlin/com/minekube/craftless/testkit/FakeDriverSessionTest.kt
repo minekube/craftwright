@@ -8,9 +8,13 @@ import com.minekube.craftless.driver.api.DriverActionStatus
 import com.minekube.craftless.driver.api.DriverEventType
 import com.minekube.craftless.driver.api.DriverSession
 import com.minekube.craftless.protocol.ClientState
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class FakeDriverSessionTest {
@@ -152,5 +156,46 @@ class FakeDriverSessionTest {
         val stopped = session.stop()
         assertEquals(ClientState.STOPPED, stopped.state)
         assertTrue(session.events().any { it.type == DriverEventType.CLIENT_STOPPED })
+    }
+
+    @Test
+    fun `fake driver exposes screenshot capture through runtime graph`() {
+        val session = FakeDriverSession(clientId = "alice")
+        val graph = session.runtimeGraph()
+
+        assertTrue(graph.resources.any { resource -> resource.id == "media.screenshot" })
+        val operation = graph.operations.single { operation -> operation.id == "media.screenshot.capture" }
+        assertEquals("media.screenshot", operation.resource)
+        assertEquals("media.screenshot", operation.adapter)
+        assertEquals("object", operation.result.type)
+        assertEquals(true, operation.result.required)
+        assertEquals("string", operation.result.properties["artifact-id"]?.type)
+        assertEquals("string", operation.result.properties["media-type"]?.type)
+        assertEquals("integer", operation.result.properties["byte-size"]?.type)
+        assertEquals("string", operation.result.properties["sha256"]?.type)
+        assertEquals("integer", operation.result.properties["width"]?.type)
+        assertEquals("integer", operation.result.properties["height"]?.type)
+        assertEquals("string", operation.result.properties["created-at"]?.type)
+        assertEquals("string", operation.result.properties["download-url"]?.type)
+
+        val result =
+            session.invoke(
+                DriverActionInvocation(
+                    action = "media.screenshot.capture",
+                    arguments = emptyMap(),
+                ),
+            )
+
+        assertEquals("media.screenshot.capture", result.action)
+        assertEquals(DriverActionStatus.ACCEPTED, result.status)
+        val data: JsonObject = result.data
+        assertEquals("screenshot-0001.png", data["artifact-id"]?.jsonPrimitive?.content)
+        assertEquals("image/png", data["media-type"]?.jsonPrimitive?.content)
+        assertEquals(68, data["byte-size"]?.jsonPrimitive?.int)
+        assertNotNull(data["sha256"]?.jsonPrimitive?.content)
+        assertEquals(1, data["width"]?.jsonPrimitive?.int)
+        assertEquals(1, data["height"]?.jsonPrimitive?.int)
+        assertEquals("2026-06-29T00:00:00Z", data["created-at"]?.jsonPrimitive?.content)
+        assertEquals("/clients/alice/artifacts/screenshot-0001.png", data["download-url"]?.jsonPrimitive?.content)
     }
 }

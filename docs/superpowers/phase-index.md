@@ -206,3 +206,11 @@ description for discovery/version, events, cache, Java runtime resolution,
 client lifecycle, per-client OpenAPI, action/resource projections, generic
 invocation, JSON-RPC, and streams. The coverage test prevents future stable
 routes from appearing without agent-readable OpenAPI guidance.
+Phase 193 adds the screenshot API product slice. Screenshot capture is exposed
+as generated runtime graph resource `media.screenshot` and operation
+`media.screenshot.capture`, with the generated alias
+`POST /clients/{id}/media/screenshot:capture` and generic fallback
+`POST /clients/{id}:run`. The daemon now serves generic client artifacts from
+`GET /clients/{id}/artifacts/{artifact-id}` with traversal guards. This phase
+uses a deterministic fake-driver path; Fabric capture remains a follow-up
+adapter task.

@@ -270,6 +270,45 @@ class LocalSessionApiServerTest {
         }
 
     @Test
+    fun `server serves client artifacts with traversal guards`() =
+        withHttpClient { http ->
+            val workspace = Files.createTempDirectory("craftless-server-artifacts")
+            fakeLocalSessionApiServer(workspaceRoot = workspace).use { server ->
+                server.start()
+
+                val created =
+                    http.post(server.url("/clients")) {
+                        contentType(ContentType.Application.Json)
+                        setBody(
+                            """
+                            {
+                              "id": "alice",
+                              "version": "1.21.4",
+                              "loader": "FABRIC",
+                              "profile": { "kind": "OFFLINE", "name": "Alice" }
+                            }
+                            """.trimIndent(),
+                        )
+                    }
+                assertEquals(HttpStatusCode.Created, created.status)
+                val client = json.decodeFromString<Client>(created.bodyAsText())
+                val artifact = workspace.resolve(client.instance.files.artifacts).resolve("screenshot-1.png")
+                Files.writeString(artifact, "png-bytes")
+                Files.writeString(workspace.resolve(client.instance.files.runtimeRoot).resolve("secret.txt"), "secret")
+
+                http.get(server.url("/clients/alice/artifacts/screenshot-1.png")).let { response ->
+                    assertEquals(HttpStatusCode.OK, response.status)
+                    assertEquals("png-bytes", response.bodyAsText())
+                }
+
+                http.get(server.url("/clients/alice/artifacts/%2e%2e/secret.txt")).let { response ->
+                    assertEquals(HttpStatusCode.BadRequest, response.status)
+                    assertError(response.bodyAsText(), "INVALID_ARTIFACT_ID", "artifact id must stay under client artifacts")
+                }
+            }
+        }
+
+    @Test
     fun `server prepares cache handles under configured workspace`() =
         withHttpClient { http ->
             val workspace = Files.createTempDirectory("craftless-server-cache")
@@ -2053,7 +2092,7 @@ class LocalSessionApiServerTest {
                     }
 
                 assertEquals(openApiActions, projectedActions)
-                assertEquals(listOf("player.chat", "player.move"), projectedActions.map { it.id })
+                assertEquals(listOf("media.screenshot.capture", "player.chat", "player.move"), projectedActions.map { it.id })
             }
         }
 

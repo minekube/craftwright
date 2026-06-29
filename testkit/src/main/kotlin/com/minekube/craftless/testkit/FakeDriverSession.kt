@@ -53,7 +53,11 @@ class FakeDriverSession(
     override fun runtimeGraph(): RuntimeCapabilityGraph =
         RuntimeCapabilityGraph(
             clientId = clientId,
-            resources = listOf(RuntimeResourceNode("player", RuntimeAvailability.available())),
+            resources =
+                listOf(
+                    RuntimeResourceNode("player", RuntimeAvailability.available()),
+                    RuntimeResourceNode("media.screenshot", RuntimeAvailability.available()),
+                ),
             operations =
                 listOf(
                     RuntimeOperationNode(
@@ -78,6 +82,13 @@ class FakeDriverSession(
                                 "sprint" to RuntimeSchema("boolean"),
                                 "ticks" to RuntimeSchema("integer"),
                             ),
+                        availability = RuntimeAvailability.available(),
+                    ),
+                    RuntimeOperationNode(
+                        id = "media.screenshot.capture",
+                        resource = "media.screenshot",
+                        adapter = "media.screenshot",
+                        result = screenshotResultSchema(),
                         availability = RuntimeAvailability.available(),
                     ),
                 ),
@@ -116,6 +127,24 @@ class FakeDriverSession(
                         message = message,
                     )
                 }
+
+                "media.screenshot.capture" ->
+                    DriverActionResult(
+                        action = invocation.action,
+                        status = DriverActionStatus.ACCEPTED,
+                        message = "captured screenshot for $clientId",
+                        data =
+                            buildJsonObject {
+                                put("artifact-id", "screenshot-0001.png")
+                                put("media-type", "image/png")
+                                put("byte-size", 68)
+                                put("sha256", FAKE_SCREENSHOT_SHA256)
+                                put("width", 1)
+                                put("height", 1)
+                                put("created-at", FAKE_SCREENSHOT_CREATED_AT)
+                                put("download-url", "/clients/$clientId/artifacts/screenshot-0001.png")
+                            },
+                    )
 
                 else ->
                     DriverActionResult(
@@ -170,8 +199,28 @@ private fun actionFailure(
             },
     )
 
+private fun screenshotResultSchema(): RuntimeSchema =
+    RuntimeSchema(
+        type = "object",
+        required = true,
+        properties =
+            mapOf(
+                "artifact-id" to RuntimeSchema("string", required = true),
+                "media-type" to RuntimeSchema("string", required = true),
+                "byte-size" to RuntimeSchema("integer", required = true),
+                "sha256" to RuntimeSchema("string", required = true),
+                "width" to RuntimeSchema("integer", required = true),
+                "height" to RuntimeSchema("integer", required = true),
+                "created-at" to RuntimeSchema("string", required = true),
+                "download-url" to RuntimeSchema("string", required = true),
+            ),
+    )
+
 fun fakeDriverRuntimeMetadata(): DriverRuntimeMetadata =
     DriverRuntimeMetadata(
         driver = "craftless-fake",
         permissionsFingerprint = "local-fake",
     )
+
+private const val FAKE_SCREENSHOT_CREATED_AT = "2026-06-29T00:00:00Z"
+private const val FAKE_SCREENSHOT_SHA256 = "f446dc0d7abccbd4640a14c741a7502983481cb26ad6a3797db49073b3d0fad1"

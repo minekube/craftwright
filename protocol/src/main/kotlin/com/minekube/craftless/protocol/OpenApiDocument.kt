@@ -679,6 +679,7 @@ private fun ApiRoute.errorStatuses(): List<String> =
         path == "/clients/{id}/openapi.json" && method == "GET" -> listOf("404")
         path == "/clients/{id}/actions" && method == "GET" -> listOf("404")
         path == "/clients/{id}/resources" && method == "GET" -> listOf("404")
+        path == "/clients/{id}/artifacts/{artifact-id}" && method == "GET" -> listOf("400", "404")
         path == "/clients/{id}/events" && method == "GET" -> listOf("404")
         else -> emptyList()
     }

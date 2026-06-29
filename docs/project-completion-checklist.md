@@ -152,3 +152,5 @@ Required negative proof:
   `docs/superpowers/evidence/2026-06-29-client-lifecycle-surface-clarity.md`.
 - Phase 192:
   `docs/superpowers/evidence/2026-06-29-core-openapi-descriptions.md`.
+- Phase 193:
+  `docs/superpowers/evidence/2026-06-29-screenshot-api.md`.

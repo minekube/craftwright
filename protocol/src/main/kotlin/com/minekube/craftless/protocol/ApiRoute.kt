@@ -150,6 +150,9 @@ class ApiRouteCatalog(
         private const val CLIENT_RESOURCES_DESCRIPTION =
             "Lists the current resource projection for one client, including discovered resource groups and handles when available. Use it to inspect live affordances before invoking advertised actions."
 
+        private const val CLIENT_ARTIFACT_DESCRIPTION =
+            "Downloads a daemon-owned artifact for one client, such as media produced by a generated action. Artifact ids are resolved under the client's Craftless runtime artifact directory and cannot traverse outside it."
+
         private const val CLIENT_RUN_DESCRIPTION =
             "Invokes one advertised action on an existing client through the generic public execution route. Agents must choose the action id and arguments from the generated live API or projections for that same client."
 
@@ -426,6 +429,18 @@ class ApiRouteCatalog(
                         cli("clients", "{id}", "resources"),
                         summary = "List client resources",
                         description = CLIENT_RESOURCES_DESCRIPTION,
+                    ),
+                    route(
+                        "GET",
+                        "/clients/{id}/artifacts/{artifact-id}",
+                        "getClientArtifact",
+                        "clients",
+                        "clients",
+                        "artifacts",
+                        "route",
+                        cli("clients", "{id}", "artifacts", "{artifact-id}"),
+                        summary = "Download client artifact",
+                        description = CLIENT_ARTIFACT_DESCRIPTION,
                     ),
                     route(
                         "POST",

@@ -380,9 +380,11 @@ class ClientSessionServiceTest {
         )
         assertEquals("1", document.actions.single { it.id == "player.move" }.schemaVersion)
         assertEquals("1", document.actions.single { it.id == "player.chat" }.schemaVersion)
-        assertEquals(listOf("player"), document.resources.map { it.id })
-        assertEquals(listOf("player.chat", "player.move"), document.resources.single().actions)
-        assertEquals(OpenApiResourceAvailability.AVAILABLE, document.resources.single().availability)
+        assertEquals(listOf("player", "media.screenshot"), document.resources.map { it.id })
+        assertEquals(listOf("player.chat", "player.move"), document.resources.single { it.id == "player" }.actions)
+        assertEquals(listOf("media.screenshot.capture"), document.resources.single { it.id == "media.screenshot" }.actions)
+        assertEquals(OpenApiResourceAvailability.AVAILABLE, document.resources.single { it.id == "player" }.availability)
+        assertEquals(OpenApiResourceAvailability.AVAILABLE, document.resources.single { it.id == "media.screenshot" }.availability)
     }
 
     @Test

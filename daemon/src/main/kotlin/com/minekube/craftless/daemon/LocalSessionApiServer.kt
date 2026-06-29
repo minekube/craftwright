@@ -34,6 +34,7 @@ import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.header
+import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -62,6 +63,7 @@ class LocalSessionApiServer private constructor(
     private val cachePreparationService: CachePreparationService?,
     private val workspaceRuntimeFactory: WorkspaceClientRuntimeDriverFactory?,
     private val javaRuntimeService: JavaRuntimeService?,
+    private val artifactStore: ClientArtifactStore?,
     private val host: String,
     requestedPort: Int,
 ) : AutoCloseable {
@@ -291,6 +293,23 @@ class LocalSessionApiServer private constructor(
                     call.respondLiveClientProjection(openApi, openApi.resources)
                 }.getOrElse { error ->
                     call.respondMissingClient(error)
+                }
+            }
+            get(Regex("/clients/(?<id>[^/]+)/artifacts/(?<artifactId>.+)")) {
+                val clientId = requireNotNull(call.parameters["id"]) { "client id is required" }
+                val artifactId = requireNotNull(call.parameters["artifactId"]) { "artifact id is required" }
+                runCatching {
+                    val store = artifactStore ?: throw MissingArtifact("artifact store is not configured")
+                    val artifact =
+                        store.read(service.requireKnownClient(clientId), artifactId)
+                            ?: throw MissingArtifact("artifact $artifactId not found for client $clientId")
+                    call.respondBytes(artifact.bytes, artifact.contentType, HttpStatusCode.OK)
+                }.getOrElse { error ->
+                    when (error) {
+                        is RouteFailure -> call.respondRouteFailure(error)
+                        is IllegalArgumentException -> call.respondRouteFailure(InvalidArtifactId(error.message ?: "invalid artifact id"))
+                        else -> call.respondMissingClient(error)
+                    }
                 }
             }
             post("/clients/{id}:run") {
@@ -562,6 +581,7 @@ class LocalSessionApiServer private constructor(
                 cachePreparationService = workspaceRoot?.let { CachePreparationService(it, cacheMetadataFetcher) },
                 workspaceRuntimeFactory = workspaceRuntimeFactory,
                 javaRuntimeService = workspaceRoot?.let { JavaRuntimeService(it, cacheMetadataFetcher) },
+                artifactStore = workspaceRoot?.let(::ClientArtifactStore),
                 host = host,
                 requestedPort = port,
             )
@@ -650,6 +670,11 @@ private fun ClientSessionService.requireActiveClient(clientId: String): Client {
     }
     return client
 }
+
+private fun ClientSessionService.requireKnownClient(clientId: String): Client =
+    runCatching { client(clientId) }.getOrElse { error ->
+        throw MissingClient(error.message ?: "client $clientId not found")
+    }
 
 private fun ClientSessionService.requireActiveDriver(clientId: String): DriverSession {
     requireActiveClient(clientId)
@@ -827,6 +852,14 @@ private sealed class RouteFailure(
 private class MissingClient(
     message: String,
 ) : RouteFailure(HttpStatusCode.NotFound, "MISSING_CLIENT", message)
+
+private class MissingArtifact(
+    message: String,
+) : RouteFailure(HttpStatusCode.NotFound, "MISSING_ARTIFACT", message)
+
+private class InvalidArtifactId(
+    message: String,
+) : RouteFailure(HttpStatusCode.BadRequest, "INVALID_ARTIFACT_ID", message)
 
 private class UnsupportedAction(
     message: String,
