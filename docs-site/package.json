@@ -4,8 +4,10 @@
   "type": "module",
   "scripts": {
     "build": "next build",
+    "deploy": "wrangler deploy",
     "dev": "next dev",
     "openapi:generate": "mise run docs-site-openapi",
+    "preview:upload": "wrangler versions upload --preview-alias preview",
     "typecheck": "fumadocs-mdx && tsc --noEmit"
   },
   "dependencies": {
@@ -26,6 +28,7 @@
     "@types/react-dom": "19.2.3",
     "postcss": "8.5.15",
     "tailwindcss": "4.3.1",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "wrangler": "^4.105.0"
   }
 }

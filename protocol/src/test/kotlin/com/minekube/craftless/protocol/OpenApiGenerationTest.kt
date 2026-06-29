@@ -1,6 +1,8 @@
 package com.minekube.craftless.protocol
 
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -9,6 +11,20 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class OpenApiGenerationTest {
+    @Test
+    fun `openapi json omits nulls and default empty sections`() {
+        val encoded = PrettyOpenApiJson.encodeToString(OpenApiDocument.from(ApiRouteCatalog.sessionDefaults()))
+        val root = Json.parseToJsonElement(encoded).jsonObject
+
+        assertTrue(encoded.contains("\"openapi\""))
+        assertTrue(encoded.contains("\"info\""))
+        assertFalse(encoded.contains(": null"))
+        assertFalse("x-craftless-actions" in root)
+        assertFalse("x-craftless-handles" in root)
+        assertFalse("x-craftless-events" in root)
+        assertFalse("post" in requireNotNull(root["paths"]).jsonObject.getValue("/openapi.json").jsonObject)
+    }
+
     @Test
     fun `openapi document includes craftless metadata for generic action route`() {
         val document =

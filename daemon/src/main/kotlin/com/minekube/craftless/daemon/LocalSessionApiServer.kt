@@ -23,6 +23,7 @@ import com.minekube.craftless.protocol.OpenApiAction
 import com.minekube.craftless.protocol.OpenApiActionArgument
 import com.minekube.craftless.protocol.OpenApiActionAvailability
 import com.minekube.craftless.protocol.OpenApiDocument
+import com.minekube.craftless.protocol.OpenApiJson
 import com.minekube.craftless.protocol.isCraftlessActionId
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -96,7 +97,7 @@ class LocalSessionApiServer private constructor(
                 call.respondJson(HttpStatusCode.OK, RuntimeVersion.current())
             }
             get("/openapi.json") {
-                call.respondJson(HttpStatusCode.OK, OpenApiDocument.from(ApiRouteCatalog.sessionDefaults()))
+                call.respondOpenApi(HttpStatusCode.OK, OpenApiDocument.from(ApiRouteCatalog.sessionDefaults()))
             }
             get("/events") {
                 call.respondJson(HttpStatusCode.OK, events)
@@ -575,11 +576,18 @@ class LocalSessionApiServer private constructor(
         respondText(json.encodeToString(value), ContentType.Application.Json, status)
     }
 
+    private suspend fun io.ktor.server.application.ApplicationCall.respondOpenApi(
+        status: HttpStatusCode,
+        value: OpenApiDocument,
+    ) {
+        respondText(OpenApiJson.encodeToString(value), ContentType.Application.Json, status)
+    }
+
     private suspend fun ApplicationCall.respondClientOpenApi(document: OpenApiDocument) {
         if (respondNotModifiedWhenFingerprintMatches(document)) {
             return
         }
-        respondJson(HttpStatusCode.OK, document)
+        respondOpenApi(HttpStatusCode.OK, document)
     }
 
     private suspend inline fun <reified T> ApplicationCall.respondLiveClientProjection(

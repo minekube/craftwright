@@ -1,11 +1,14 @@
 package com.minekube.craftless.protocol
 
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class OpenApiDocument(
+    @EncodeDefault
     val openapi: String = "3.1.0",
+    @EncodeDefault
     val info: OpenApiInfo = OpenApiInfo(),
     val tags: List<OpenApiTag> = emptyList(),
     val paths: Map<String, OpenApiPath>,
@@ -118,7 +121,9 @@ data class OpenApiDocument(
 
 @Serializable
 data class OpenApiInfo(
+    @EncodeDefault
     val title: String = "Craftless Client Session API",
+    @EncodeDefault
     val version: String = "0.1.0",
 )
 

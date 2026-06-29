@@ -234,10 +234,10 @@ describe("distribution surface", () => {
     expect(changelog).toContain("Release Please");
   });
 
-  test("Fumadocs site is a static GitHub Pages product surface", () => {
+  test("Fumadocs site is a Cloudflare Workers product surface with previews", () => {
     const mise = read(".mise.toml");
-    const workflow = read(".github/workflows/docs-pages.yml");
     const packageJson = JSON.parse(read("docs-site/package.json"));
+    const wrangler = read("docs-site/wrangler.jsonc");
     const nextConfig = read("docs-site/next.config.mjs");
     const openapi = read("docs-site/lib/openapi.ts");
     const source = read("docs-site/lib/source.ts");
@@ -247,13 +247,15 @@ describe("distribution surface", () => {
     const schema = JSON.parse(read("docs-site/openapi/craftless-supervisor.json"));
 
     expect(packageJson.scripts.build).toBe("next build");
+    expect(packageJson.scripts.deploy).toBe("wrangler deploy");
+    expect(packageJson.scripts["preview:upload"]).toContain("wrangler versions upload");
     expect(packageJson.scripts["openapi:generate"]).toContain("mise run docs-site-openapi");
     expect(packageJson.dependencies["fumadocs-openapi"]).toBeDefined();
     expect(packageJson.dependencies["fumadocs-ui"]).toBeDefined();
     expect(packageJson.dependencies.next).toBeDefined();
+    expect(packageJson.devDependencies.wrangler).toBeDefined();
     expect(nextConfig).toContain("output: 'export'");
     expect(nextConfig).toContain("trailingSlash: true");
-    expect(nextConfig).toContain("CRAFTLESS_DOCS_BASE_PATH");
     expect(openapi).toContain("createOpenAPI");
     expect(openapi).toContain("./openapi/craftless-supervisor.json");
     expect(source).toContain("openapi.staticSource");
@@ -270,11 +272,11 @@ describe("distribution surface", () => {
     expect(mise).toContain("[tasks.docs-site-build]");
     expect(mise).toContain("mise exec -- bun install");
     expect(mise).toContain("mise exec -- bun run build");
-    expect(workflow).toContain("pages: write");
-    expect(workflow).toContain("id-token: write");
-    expect(workflow).toContain("mise run docs-site-build");
-    expect(workflow).toContain("path: docs-site/out");
-    expect(workflow).toContain("CRAFTLESS_DOCS_BASE_PATH: /craftless");
+    expect(wrangler).toContain('"name": "craftless-docs"');
+    expect(wrangler).toContain('"preview_urls": true');
+    expect(wrangler).toContain('"directory": "./out"');
+    expect(wrangler).toContain('"not_found_handling": "404-page"');
+    expect(exists(".github/workflows/docs-pages.yml")).toBe(false);
   });
 
   test("install script installs from minekube/craftless GitHub releases", () => {
