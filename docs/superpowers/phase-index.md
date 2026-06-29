@@ -193,3 +193,10 @@ changes since the latest `v*` tag, rooted at the existing `v0.1.2` manifest.
 Merging the release PR creates the next `vX.Y.Z` tag, and the existing release
 workflow remains responsible for CI, CLI archives, checksums, Docker image
 publishing, and generated GitHub release notes.
+Phase 191 fixes the client lifecycle misunderstanding found in Codex session
+`019f121c-6725-7aa3-85b2-c7bbe08ccd40`. Supervisor OpenAPI route metadata now
+makes `POST /clients` explicit as a new real-client process launch, generated
+CLI route help prints that metadata, and README plus the public gameplay-agent
+skill now tell agents to list/get/reuse or stop old clients before creating
+another. Fresh timestamped ids are documented as valid only for deliberate
+independent clients, not retries.

@@ -74,6 +74,14 @@ Create an API-first automation client with lifecycle defaults:
 craftless clients create bot --version latest-release --loader fabric --api "$CRAFTLESS"
 ```
 
+`craftless clients create` launches a new daemon-managed real Minecraft Java
+client process. It is not a selector, retry, or reuse operation. In an existing
+daemon or workspace, run `craftless clients list --api "$CRAFTLESS"` and
+`craftless clients <id> get --api "$CRAFTLESS"` first, then reuse a suitable
+client or stop an abandoned one with
+`craftless clients <id> stop --api "$CRAFTLESS"`. Creating fresh timestamped
+ids for retries leaves multiple Minecraft clients running.
+
 When `--offline-name` is omitted, Craftless derives a safe offline profile
 from the client id. The default presentation requests no visible window and
 materializes muted Minecraft sound options for API-first automation. Opt into
@@ -184,6 +192,13 @@ visible, normal-audio client is desired. `presentation.window` is lifecycle
 intent; generated per-client OpenAPI remains the gameplay and runtime
 capability authority.
 
+`POST /clients` launches a new daemon-managed real Minecraft Java client
+process. It is not a selector, retry, or reuse operation. In an existing daemon
+or workspace, call `GET /clients` and `GET /clients/{id}` first, then reuse a
+suitable client or stop an abandoned one with `POST /clients/{id}:stop`.
+Creating fresh timestamped ids for retries leaves multiple Minecraft clients
+running.
+
 Connect it to a server:
 
 ```sh
@@ -260,7 +275,8 @@ authority.
 Agents should behave like external Craftless users:
 
 1. Fetch the supervisor spec with `GET /openapi.json`.
-2. Create or select a client.
+2. List existing clients with `GET /clients`; select or stop abandoned clients
+   before calling `POST /clients`.
 3. Fetch `GET /clients/{id}/openapi.json`.
 4. Treat `x-craftless-actions`, `x-craftless-resources`, route metadata,
    schemas, availability, and fingerprints in that document as the authority.

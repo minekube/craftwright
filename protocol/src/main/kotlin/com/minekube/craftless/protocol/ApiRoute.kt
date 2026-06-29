@@ -34,6 +34,8 @@ data class ApiRoute(
     val returnKind: String = "value",
     val actionId: String? = null,
     val cli: ApiRouteCli? = null,
+    val summary: String? = null,
+    val description: String? = null,
 ) {
     init {
         require(method in SUPPORTED_ROUTE_METHODS) { "unsupported route method $method" }
@@ -97,6 +99,21 @@ class ApiRouteCatalog(
     ): ApiRoute = byMethodAndPath[method to path] ?: error("route not found: $method $path")
 
     companion object {
+        private const val CLIENT_LIST_DESCRIPTION =
+            "Lists daemon-managed client processes. Use this before creating another client in an existing daemon or workspace so agents can reuse or stop prior attempts instead of launching duplicates."
+
+        private const val CLIENT_CREATE_DESCRIPTION =
+            "This operation launches a new daemon-managed real Minecraft Java client process. This is not a selector, retry, or reuse operation. Before calling it in an existing daemon or workspace, call GET /clients and GET /clients/{id} to reuse a suitable client. If replacing a failed attempt, stop the old client with POST /clients/{id}:stop first. Creating fresh timestamped ids for retries leaves multiple Minecraft clients running."
+
+        private const val CLIENT_GET_DESCRIPTION =
+            "Inspects one existing daemon-managed client process. Prefer this when a client id is already known; it does not launch a new client."
+
+        private const val CLIENT_CONNECT_DESCRIPTION =
+            "Connects an existing client process to a Minecraft server. This does not create or replace a client."
+
+        private const val CLIENT_STOP_DESCRIPTION =
+            "Stops and releases one daemon-managed client process. Use this before replacing or retrying a failed client launch."
+
         fun sessionDefaults(): ApiRouteCatalog =
             ApiRouteCatalog(
                 listOf(
@@ -180,7 +197,18 @@ class ApiRouteCatalog(
                             body = listOf(bind("/minecraftVersion", flag = "--mc", required = true)),
                         ),
                     ),
-                    route("GET", "/clients", "listClients", "clients", "clients", "list", "route", cli("clients", "list")),
+                    route(
+                        "GET",
+                        "/clients",
+                        "listClients",
+                        "clients",
+                        "clients",
+                        "list",
+                        "route",
+                        cli("clients", "list"),
+                        summary = "List client processes",
+                        description = CLIENT_LIST_DESCRIPTION,
+                    ),
                     route(
                         "POST",
                         "/clients",
@@ -205,8 +233,21 @@ class ApiRouteCatalog(
                                     bind("/presentation/audio", flag = "--audio"),
                                 ),
                         ),
+                        summary = "Launch a new client process",
+                        description = CLIENT_CREATE_DESCRIPTION,
                     ),
-                    route("GET", "/clients/{id}", "getClient", "clients", "clients", "get", "route", cli("clients", "{id}", "get")),
+                    route(
+                        "GET",
+                        "/clients/{id}",
+                        "getClient",
+                        "clients",
+                        "clients",
+                        "get",
+                        "route",
+                        cli("clients", "{id}", "get"),
+                        summary = "Inspect a client process",
+                        description = CLIENT_GET_DESCRIPTION,
+                    ),
                     route(
                         "GET",
                         "/clients/{id}/openapi.json",
@@ -250,6 +291,8 @@ class ApiRouteCatalog(
                                     bind("/port", flag = "--port", type = "integer", required = true),
                                 ),
                         ),
+                        summary = "Connect an existing client",
+                        description = CLIENT_CONNECT_DESCRIPTION,
                     ),
                     route(
                         "GET",
@@ -310,6 +353,8 @@ class ApiRouteCatalog(
                         "stop",
                         "method",
                         cli("clients", "{id}", "stop"),
+                        summary = "Stop a client process",
+                        description = CLIENT_STOP_DESCRIPTION,
                     ),
                     route(
                         "GET",
@@ -376,12 +421,16 @@ class ApiRouteCatalog(
             source: String,
             cli: ApiRouteCli? = null,
             returnKind: String = "value",
+            summary: String? = null,
+            description: String? = null,
         ): ApiRoute =
             ApiRoute(
                 method = method,
                 path = path,
                 operationId = operationId,
                 tag = tag,
+                summary = summary,
+                description = description,
                 owner = owner,
                 member = member,
                 target = if (source == "action" || source == "resource") "client" else "supervisor",

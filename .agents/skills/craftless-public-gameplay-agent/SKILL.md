@@ -32,6 +32,22 @@ Forbidden as final gameplay proof:
    fingerprint.
 7. Subscribe to `GET /clients/{id}/events:stream` before acting.
 
+## Client Lifecycle Discipline
+
+`craftless clients create` launches a new daemon-managed real Minecraft Java
+client process, and `POST /clients` has the same lifecycle effect. They are
+not a selector, retry, or reuse operation. Before creating in an existing
+daemon or workspace, list clients with `GET /clients` or
+`craftless clients list --api "$CRAFTLESS"`, then inspect likely matches with
+`GET /clients/{id}` or
+`craftless clients <id> get --api "$CRAFTLESS"`.
+
+Reuse a suitable existing client when possible. If a previous attempt is yours
+or clearly abandoned, stop it first with `POST /clients/{id}:stop` or
+`craftless clients <id> stop --api "$CRAFTLESS"`. Creating fresh timestamped
+ids for retries leaves multiple Minecraft clients running. Use fresh unique
+ids only for deliberate independent clients, such as a two-client co-play test.
+
 ## Tiny-Agent Bootstrap
 
 Use the smallest lifecycle request that can create an API-first automation
@@ -77,8 +93,8 @@ Check at least:
 - server or client logs when the claim depends on join, disconnect, kicked,
   timeout, combat, pickup, or movement behavior.
 
-Use unique client ids for independent attempts. If old test clients are still
-running, stop them through `POST /clients/{id}:stop` or
+Use fresh unique client ids only for deliberate independent clients. If old
+test clients are still running, stop them through `POST /clients/{id}:stop` or
 `craftless clients <id> stop --api "$CRAFTLESS"` when they are yours or clearly
 abandoned. Report stale clients by exact id and current observed state. Do not
 say a client is still joining, connected, or opening a window unless the fresh

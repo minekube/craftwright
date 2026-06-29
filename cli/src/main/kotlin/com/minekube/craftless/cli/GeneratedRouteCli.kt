@@ -233,6 +233,8 @@ internal class GeneratedRouteCli(
     private fun GeneratedRouteMatch.help(): String =
         buildString {
             appendLine("Route: ${operation.method} ${operation.path}")
+            operation.operation.summary?.let { appendLine(it) }
+            operation.operation.description?.let { appendLine(it) }
             val cli = operation.operation.cli
             val bindings = cli?.body?.bindings.orEmpty()
             val schema = operation.operation.requestBody?.jsonSchema()

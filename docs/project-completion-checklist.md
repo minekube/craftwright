@@ -144,3 +144,9 @@ Required negative proof:
   `docs/superpowers/evidence/2026-06-28-final-completion.md`.
 - Phase 188:
   `docs/superpowers/evidence/2026-06-29-tiny-agent-lifecycle-defaults.md`.
+- Phase 189:
+  `docs/superpowers/evidence/2026-06-29-generated-route-cli-daemon-naming.md`.
+- Phase 190:
+  Release Please automation is indexed in `docs/superpowers/phase-index.md`.
+- Phase 191:
+  `docs/superpowers/evidence/2026-06-29-client-lifecycle-surface-clarity.md`.

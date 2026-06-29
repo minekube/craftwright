@@ -221,6 +221,26 @@ class OpenApiGenerationTest {
     }
 
     @Test
+    fun `stable supervisor openapi makes client creation lifecycle explicit`() {
+        val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
+
+        val createOperation = requireNotNull(document.paths["/clients"]?.post)
+        val createDescription = requireNotNull(createOperation.description)
+
+        assertTrue(createDescription.contains("launches a new daemon-managed real Minecraft Java client process"))
+        assertTrue(createDescription.contains("is not a selector, retry, or reuse operation"))
+        assertTrue(createDescription.contains("GET /clients"))
+        assertTrue(createDescription.contains("POST /clients/{id}:stop"))
+        assertTrue(createDescription.contains("Creating fresh timestamped ids for retries leaves multiple Minecraft clients running"))
+
+        val listOperation = requireNotNull(document.paths["/clients"]?.get)
+        assertTrue(requireNotNull(listOperation.description).contains("before creating another client"))
+
+        val stopOperation = requireNotNull(document.paths["/clients/{id}:stop"]?.post)
+        assertTrue(requireNotNull(stopOperation.description).contains("before replacing or retrying"))
+    }
+
+    @Test
     fun `stable supervisor openapi describes cache export and cleanup`() {
         val document = OpenApiDocument.from(ApiRouteCatalog.sessionDefaults())
 

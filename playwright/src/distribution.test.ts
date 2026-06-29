@@ -178,6 +178,18 @@ describe("distribution surface", () => {
     expect(script).not.toContain("/give");
   });
 
+  test("public docs make client creation lifecycle explicit", () => {
+    const readme = read("README.md");
+    const skill = read(".agents/skills/craftless-public-gameplay-agent/SKILL.md");
+
+    for (const surface of [readme, skill].map((text) => text.replace(/\s+/g, " "))) {
+      expect(surface).toContain("launches a new daemon-managed real Minecraft Java client process");
+      expect(surface).toContain("not a selector, retry, or reuse operation");
+      expect(surface).toContain("Creating fresh timestamped ids for retries leaves multiple Minecraft clients running");
+      expect(surface).toContain("craftless clients <id> stop --api \"$CRAFTLESS\"");
+    }
+  });
+
   test("Dockerfile copies a built CLI distribution instead of building Craftless", () => {
     const dockerfile = read("Dockerfile");
 

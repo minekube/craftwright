@@ -171,6 +171,16 @@ Clean up stale Craftless clients through the public supervisor API, usually
 `POST /clients/{id}:stop`, when they are yours or clearly abandoned test
 clients. Do not kill unrelated user processes to make a status report cleaner.
 
+Before creating a client in an existing daemon or workspace, call
+`GET /clients` and `GET /clients/{id}` to reuse a suitable client or identify
+abandoned attempts. `POST /clients` launches a new daemon-managed real
+Minecraft Java client process; it is not a selector, retry, or reuse operation.
+If replacing a failed attempt, stop the old client with
+`POST /clients/{id}:stop` first. Creating fresh timestamped ids for retries
+leaves multiple Minecraft clients running. Use fresh unique ids only for
+deliberate independent clients, such as multi-client co-play or concurrency
+tests.
+
 ## HTTP And CLI
 
 - Use Ktor Server for local JVM HTTP, SSE, and only-if-needed WebSocket

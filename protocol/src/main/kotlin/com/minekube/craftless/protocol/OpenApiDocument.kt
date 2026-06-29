@@ -130,6 +130,8 @@ data class OpenApiPath(
 data class OpenApiOperation(
     val operationId: String,
     val tags: List<String>,
+    val summary: String? = null,
+    val description: String? = null,
     val responses: Map<String, OpenApiResponse>,
     val requestBody: OpenApiRequestBody? = null,
     @SerialName("x-craftless-cli")
@@ -527,6 +529,8 @@ private fun ApiRoute.toOperation(actionsById: Map<String, OpenApiAction>): OpenA
     return OpenApiOperation(
         operationId = operationId,
         tags = listOf(tag),
+        summary = summary,
+        description = description,
         responses = route.responses(actionsById),
         requestBody = route.requestBody(actionsById),
         cli = route.cli?.toOpenApiCliOperation(),
