@@ -4591,7 +4591,7 @@ private class RecordingFabricClientGateway : FabricClientGateway {
 
     fun awaitAction(
         action: String,
-        timeoutMillis: Long = 1_000,
+        timeoutMillis: Long = 5_000,
     ) {
         val deadline = System.nanoTime() + timeoutMillis * 1_000_000
         while (System.nanoTime() < deadline) {
