@@ -607,6 +607,136 @@
         }
       }
     },
+    "/versions/support-targets": {
+      "get": {
+        "operationId": "listSupportTargets",
+        "tags": [
+          "versions"
+        ],
+        "summary": "List support targets",
+        "description": "Lists every Fabric Minecraft target known to Fabric metadata with Craftless support status from the configured driver mod lanes. Use this before creating clients to distinguish supported targets from unsupported targets that have no compatible driver lane.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "targets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "minecraftVersion": {
+                            "type": "string"
+                          },
+                          "stable": {
+                            "type": "boolean"
+                          },
+                          "loader": {
+                            "type": "string",
+                            "enum": [
+                              "FABRIC",
+                              "VANILLA",
+                              "NEOFORGE",
+                              "FORGE",
+                              "QUILT"
+                            ]
+                          },
+                          "supported": {
+                            "type": "boolean"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "enum": [
+                              "NO_DRIVER_MOD"
+                            ],
+                            "nullable": true
+                          },
+                          "driverMods": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "loader": {
+                                  "type": "string",
+                                  "enum": [
+                                    "FABRIC",
+                                    "VANILLA",
+                                    "NEOFORGE",
+                                    "FORGE",
+                                    "QUILT"
+                                  ]
+                                },
+                                "minecraftVersion": {
+                                  "type": "string"
+                                },
+                                "loaderVersion": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "fabricApiVersion": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "javaMajorVersion": {
+                                  "type": "integer",
+                                  "nullable": true
+                                },
+                                "mappingsFingerprint": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "path": {
+                                  "type": "string"
+                                },
+                                "runtimeMods": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "loader",
+                                "minecraftVersion",
+                                "path",
+                                "runtimeMods"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "minecraftVersion",
+                          "stable",
+                          "loader",
+                          "supported",
+                          "driverMods"
+                        ]
+                      }
+                    },
+                    "source": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "targets"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-craftless": {
+          "x-craftless-owner": "versions",
+          "x-craftless-member": "support-targets",
+          "x-craftless-target": "supervisor",
+          "x-craftless-return": "value",
+          "x-craftless-source": "route"
+        }
+      }
+    },
     "/cache:prepare": {
       "post": {
         "operationId": "prepareCache",

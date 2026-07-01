@@ -645,6 +645,7 @@ private fun ApiRoute.responses(actionsById: Map<String, OpenApiAction>): Map<Str
                 path == "/versions/loader-targets" && method == "GET" -> fabricGameVersionListResponse()
                 path == "/versions/loaders" && method == "GET" -> fabricLoaderVersionListResponse()
                 path == "/versions/driver-mods" && method == "GET" -> driverModVersionListResponse()
+                path == "/versions/support-targets" && method == "GET" -> fabricSupportTargetListResponse()
                 path.endsWith("/actions") && method == "GET" -> actionListResponse()
                 path.endsWith("/resources") && method == "GET" -> resourceListResponse()
                 path == "/cache:prepare" && method == "POST" -> cachePrepareResponse()
@@ -904,32 +905,83 @@ private fun driverModVersionListResponse(): OpenApiResponse =
                             "entries" to
                                 OpenApiSchema(
                                     type = "array",
-                                    items =
-                                        OpenApiSchema(
-                                            type = "object",
-                                            properties =
-                                                mapOf(
-                                                    "loader" to OpenApiSchema(type = "string", enumValues = Loader.entries.map { it.name }),
-                                                    "minecraftVersion" to OpenApiSchema(type = "string"),
-                                                    "loaderVersion" to OpenApiSchema(type = "string", nullable = true),
-                                                    "fabricApiVersion" to OpenApiSchema(type = "string", nullable = true),
-                                                    "javaMajorVersion" to OpenApiSchema(type = "integer", nullable = true),
-                                                    "mappingsFingerprint" to OpenApiSchema(type = "string", nullable = true),
-                                                    "path" to OpenApiSchema(type = "string"),
-                                                    "runtimeMods" to
-                                                        OpenApiSchema(
-                                                            type = "array",
-                                                            items = OpenApiSchema(type = "string"),
-                                                        ),
-                                                ),
-                                            required = listOf("loader", "minecraftVersion", "path", "runtimeMods"),
-                                        ),
+                                    items = driverModVersionDescriptorSchema(),
                                 ),
                             "source" to OpenApiSchema(type = "string", nullable = true),
                         ),
                     required = listOf("entries"),
                 ),
             ),
+    )
+
+private fun fabricSupportTargetListResponse(): OpenApiResponse =
+    OpenApiResponse(
+        content =
+            jsonContent(
+                OpenApiSchema(
+                    type = "object",
+                    properties =
+                        mapOf(
+                            "targets" to
+                                OpenApiSchema(
+                                    type = "array",
+                                    items =
+                                        OpenApiSchema(
+                                            type = "object",
+                                            properties =
+                                                mapOf(
+                                                    "minecraftVersion" to OpenApiSchema(type = "string"),
+                                                    "stable" to OpenApiSchema(type = "boolean"),
+                                                    "loader" to OpenApiSchema(type = "string", enumValues = Loader.entries.map { it.name }),
+                                                    "supported" to OpenApiSchema(type = "boolean"),
+                                                    "reason" to
+                                                        OpenApiSchema(
+                                                            type = "string",
+                                                            enumValues = FabricSupportReason.entries.map { it.name },
+                                                            nullable = true,
+                                                        ),
+                                                    "driverMods" to
+                                                        OpenApiSchema(
+                                                            type = "array",
+                                                            items = driverModVersionDescriptorSchema(),
+                                                        ),
+                                                ),
+                                            required =
+                                                listOf(
+                                                    "minecraftVersion",
+                                                    "stable",
+                                                    "loader",
+                                                    "supported",
+                                                    "driverMods",
+                                                ),
+                                        ),
+                                ),
+                            "source" to OpenApiSchema(type = "string", nullable = true),
+                        ),
+                    required = listOf("targets"),
+                ),
+            ),
+    )
+
+private fun driverModVersionDescriptorSchema(): OpenApiSchema =
+    OpenApiSchema(
+        type = "object",
+        properties =
+            mapOf(
+                "loader" to OpenApiSchema(type = "string", enumValues = Loader.entries.map { it.name }),
+                "minecraftVersion" to OpenApiSchema(type = "string"),
+                "loaderVersion" to OpenApiSchema(type = "string", nullable = true),
+                "fabricApiVersion" to OpenApiSchema(type = "string", nullable = true),
+                "javaMajorVersion" to OpenApiSchema(type = "integer", nullable = true),
+                "mappingsFingerprint" to OpenApiSchema(type = "string", nullable = true),
+                "path" to OpenApiSchema(type = "string"),
+                "runtimeMods" to
+                    OpenApiSchema(
+                        type = "array",
+                        items = OpenApiSchema(type = "string"),
+                    ),
+            ),
+        required = listOf("loader", "minecraftVersion", "path", "runtimeMods"),
     )
 
 private fun actionListResponse(): OpenApiResponse =

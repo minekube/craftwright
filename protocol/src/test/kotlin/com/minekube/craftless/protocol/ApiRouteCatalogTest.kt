@@ -18,6 +18,7 @@ class ApiRouteCatalogTest {
         assertEquals("GET", catalog.route("/versions/loader-targets").method)
         assertEquals("GET", catalog.route("/versions/loaders").method)
         assertEquals("GET", catalog.route("/versions/driver-mods").method)
+        assertEquals("GET", catalog.route("/versions/support-targets").method)
         assertEquals("POST", catalog.route("/cache:prepare").method)
         assertEquals("POST", catalog.route("/cache:export").method)
         assertEquals("POST", catalog.route("/cache:cleanup").method)

@@ -242,3 +242,11 @@ visible Minecraft window. The HeadlessMC research note keeps the durable lesson:
 valid no-window strategies are a virtual display or LWJGL/offscreen
 instrumentation, not a normal client launch. Evidence:
 `docs/superpowers/evidence/2026-07-01-headless-presentation-truth.md`.
+Phase 198 starts the all-Fabric-version support coverage goal by adding a
+supervisor compatibility matrix at `GET /versions/support-targets`. The route
+composes Fabric's live Minecraft target metadata with the configured Craftless
+driver mod manifest and marks every discovered target as either supported by
+one or more packaged driver lanes or unsupported with `NO_DRIVER_MOD`. This is
+reporting and rejection clarity, not a claim that unlisted targets launch.
+Evidence:
+`docs/superpowers/evidence/2026-07-01-fabric-support-targets.md`.

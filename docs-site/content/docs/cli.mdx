@@ -86,7 +86,12 @@ the version discovery routes when a run should be pinned or explained:
 craftless api /versions/runtime-targets --api "$CRAFTLESS"
 craftless api /versions/loaders --api "$CRAFTLESS"
 craftless api /versions/driver-mods --api "$CRAFTLESS"
+craftless api /versions/support-targets --api "$CRAFTLESS"
 ```
+
+Use `support-targets` when an agent needs the honest support matrix: every
+Fabric-tracked Minecraft target is marked as supported by packaged driver mods
+or unsupported with a reason.
 
 Connect it to a Minecraft server:
 

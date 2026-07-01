@@ -351,6 +351,20 @@ class LocalSessionApiServerTest {
                     assertEquals("0.19.3", entry?.get("loaderVersion")?.jsonPrimitive?.content)
                     assertEquals("craftless-fabric-official-26-2", entry?.get("mappingsFingerprint")?.jsonPrimitive?.content)
                 }
+
+                http.get(server.url("/versions/support-targets")).let { response ->
+                    val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+                    val targets = body["targets"]?.jsonArray?.map { it.jsonObject }.orEmpty()
+                    val supported = targets.single { it["minecraftVersion"]?.jsonPrimitive?.content == "26.2" }
+                    val unsupported = targets.single { it["minecraftVersion"]?.jsonPrimitive?.content == "26.3-snapshot-1" }
+                    assertEquals(HttpStatusCode.OK, response.status)
+                    assertEquals("manifest", body["source"]?.jsonPrimitive?.content)
+                    assertEquals(true, supported["supported"]?.jsonPrimitive?.boolean)
+                    val driverMod = supported["driverMods"]?.jsonArray?.single()?.jsonObject
+                    assertEquals("0.19.3", driverMod?.get("loaderVersion")?.jsonPrimitive?.content)
+                    assertEquals(false, unsupported["supported"]?.jsonPrimitive?.boolean)
+                    assertEquals("NO_DRIVER_MOD", unsupported["reason"]?.jsonPrimitive?.content)
+                }
             }
         }
 

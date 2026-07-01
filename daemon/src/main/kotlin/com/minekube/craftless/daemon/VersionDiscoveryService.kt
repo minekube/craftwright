@@ -6,6 +6,10 @@ import com.minekube.craftless.protocol.FabricGameVersionDescriptor
 import com.minekube.craftless.protocol.FabricGameVersionListResult
 import com.minekube.craftless.protocol.FabricLoaderVersionDescriptor
 import com.minekube.craftless.protocol.FabricLoaderVersionListResult
+import com.minekube.craftless.protocol.FabricSupportReason
+import com.minekube.craftless.protocol.FabricSupportTargetDescriptor
+import com.minekube.craftless.protocol.FabricSupportTargetListResult
+import com.minekube.craftless.protocol.Loader
 import com.minekube.craftless.protocol.MINECRAFT_VERSION_INDEX_URL
 import com.minekube.craftless.protocol.MinecraftVersionListResult
 import com.minekube.craftless.protocol.minecraftVersionList
@@ -41,6 +45,30 @@ class VersionDiscoveryService(
         )
 
     fun listDriverModVersions(): DriverModVersionListResult = driverModProvider.driverModVersions()
+
+    suspend fun listFabricSupportTargets(): FabricSupportTargetListResult {
+        val gameVersions = listFabricGameVersions().versions
+        val driverMods = listDriverModVersions()
+        val fabricDriverModsByMinecraftVersion =
+            driverMods
+                .entries
+                .filter { entry -> entry.loader == Loader.FABRIC }
+                .groupBy { entry -> entry.minecraftVersion }
+        return FabricSupportTargetListResult(
+            source = driverMods.source,
+            targets =
+                gameVersions.map { version ->
+                    val matches = fabricDriverModsByMinecraftVersion[version.version].orEmpty()
+                    FabricSupportTargetDescriptor(
+                        minecraftVersion = version.version,
+                        stable = version.stable,
+                        supported = matches.isNotEmpty(),
+                        reason = if (matches.isEmpty()) FabricSupportReason.NO_DRIVER_MOD else null,
+                        driverMods = matches,
+                    )
+                },
+        )
+    }
 }
 
 private fun String.parseFabricGameVersions(): List<FabricGameVersionDescriptor> =

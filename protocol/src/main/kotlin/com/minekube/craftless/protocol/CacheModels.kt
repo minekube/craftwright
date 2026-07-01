@@ -222,6 +222,27 @@ data class DriverModVersionDescriptor(
 )
 
 @Serializable
+data class FabricSupportTargetListResult(
+    val targets: List<FabricSupportTargetDescriptor>,
+    val source: String? = null,
+)
+
+@Serializable
+data class FabricSupportTargetDescriptor(
+    val minecraftVersion: String,
+    val stable: Boolean,
+    val loader: Loader = Loader.FABRIC,
+    val supported: Boolean,
+    val reason: FabricSupportReason? = null,
+    val driverMods: List<DriverModVersionDescriptor> = emptyList(),
+)
+
+@Serializable
+enum class FabricSupportReason {
+    NO_DRIVER_MOD,
+}
+
+@Serializable
 enum class JavaRuntimeProviderKind {
     CONFIGURED,
     MANAGED,

@@ -316,6 +316,7 @@ class OpenApiGenerationTest {
         assertTrue(requireNotNull(document.paths["/versions/runtime-targets"]?.get?.description).contains("latest-release"))
         assertTrue(requireNotNull(document.paths["/versions/loaders"]?.get?.description).contains("Fabric Loader"))
         assertTrue(requireNotNull(document.paths["/versions/driver-mods"]?.get?.description).contains("driver mod runtime lanes"))
+        assertTrue(requireNotNull(document.paths["/versions/support-targets"]?.get?.description).contains("unsupported"))
         assertTrue(requireNotNull(document.paths["/cache:prepare"]?.post?.description).contains("Minecraft"))
         assertTrue(requireNotNull(document.paths["/runtimes/java:resolve"]?.post?.description).contains("Java runtime"))
         assertTrue(requireNotNull(document.paths["/clients/{id}/openapi.json"]?.get?.description).contains("generated live API"))
@@ -355,6 +356,10 @@ class OpenApiGenerationTest {
         val driverModsSchema = requireNotNull(document.paths["/versions/driver-mods"]?.get?.okSchema())
         assertEquals(listOf("entries"), driverModsSchema.required)
         assertEquals("array", driverModsSchema.properties["entries"]?.type)
+
+        val supportSchema = requireNotNull(document.paths["/versions/support-targets"]?.get?.okSchema())
+        assertEquals(listOf("targets"), supportSchema.required)
+        assertEquals("array", supportSchema.properties["targets"]?.type)
     }
 
     @Test

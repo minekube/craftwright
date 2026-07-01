@@ -132,6 +132,13 @@ class LocalSessionApiServer private constructor(
             get("/versions/driver-mods") {
                 call.respondJson(HttpStatusCode.OK, versionDiscoveryService.listDriverModVersions())
             }
+            get("/versions/support-targets") {
+                runCatching {
+                    call.respondJson(HttpStatusCode.OK, versionDiscoveryService.listFabricSupportTargets())
+                }.getOrElse { error ->
+                    call.respondJson(HttpStatusCode.BadRequest, ErrorResponse("BAD_REQUEST", error.message ?: "bad request"))
+                }
+            }
             post("/cache:prepare") {
                 runCatching {
                     val preparer = cachePreparationService ?: error("cache workspace is not configured")
