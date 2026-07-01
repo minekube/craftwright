@@ -72,6 +72,18 @@ policy scanner was hardened to ignore the existing local
 `.craftless-connect-debug`, so local CI can run without deleting user/debug
 artifacts.
 
+```sh
+gh workflow run fabric-support-matrix.yml --repo minekube/craftless --ref main
+gh run watch 28548727608 --repo minekube/craftless --exit-status
+```
+
+Result: passed. The `fabric support matrix` workflow completed successfully on
+commit `6511765d36bd35594b24d2159971c000dd244a89` at
+<https://github.com/minekube/craftless/actions/runs/28548727608>. It uploaded
+the `fabric-support-matrix-reports` artifact as artifact ID `8023189487`
+(`348233358` bytes), preserving the packaged support-target reports from the
+runner.
+
 ## Current Scope
 
 This phase does not claim every Fabric Loader version works for every Fabric
