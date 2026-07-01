@@ -189,6 +189,7 @@ data class OpenApiAction(
     val arguments: Map<String, OpenApiActionArgument> = emptyMap(),
     val result: OpenApiActionResult = OpenApiActionResult(),
     val source: OpenApiActionSource = OpenApiActionSource.BINDING,
+    @EncodeDefault
     val availability: OpenApiActionAvailability = OpenApiActionAvailability.AVAILABLE,
     val availabilityReason: String? = null,
 ) {
@@ -241,6 +242,7 @@ data class OpenApiResource(
 data class OpenApiEvent(
     val id: String,
     val payload: OpenApiActionSchema,
+    @EncodeDefault
     val availability: OpenApiActionAvailability = OpenApiActionAvailability.AVAILABLE,
     val availabilityReason: String? = null,
 ) {
@@ -262,6 +264,7 @@ data class OpenApiHandle(
     val id: String,
     val resource: String,
     val schema: OpenApiActionSchema,
+    @EncodeDefault
     val availability: OpenApiActionAvailability = OpenApiActionAvailability.AVAILABLE,
     val availabilityReason: String? = null,
 ) {
@@ -288,6 +291,7 @@ data class OpenApiResourceActionDescriptor(
     val arguments: Map<String, OpenApiActionArgument> = emptyMap(),
     val result: OpenApiActionResult = OpenApiActionResult(),
     val source: OpenApiActionSource = OpenApiActionSource.BINDING,
+    @EncodeDefault
     val availability: OpenApiActionAvailability = OpenApiActionAvailability.AVAILABLE,
     val availabilityReason: String? = null,
 ) {

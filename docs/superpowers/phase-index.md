@@ -229,8 +229,10 @@ uses a deterministic fake-driver path; Fabric capture remains a follow-up
 adapter task.
 Phase 196 makes the default daemon-managed presentation enforceable at process
 launch. `presentation.window = NONE` prefixes the Minecraft client command with
-Craftless's virtual-display wrapper (`xvfb-run` by default), while
-`presentation.window = VISIBLE` bypasses that wrapper. `presentation.audio =
+Craftless's virtual-display wrapper when one is configured or when Linux
+`xvfb-run` is available; hosts without an available wrapper launch directly
+instead of failing before Minecraft starts. `presentation.window = VISIBLE`
+bypasses any wrapper. `presentation.audio =
 MUTED` continues to materialize Minecraft sound categories at `0.0`, and
 `DEFAULT` audio leaves options untouched. Evidence:
 `docs/superpowers/evidence/2026-06-29-windowless-muted-defaults.md`.

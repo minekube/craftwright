@@ -26,6 +26,38 @@ class OpenApiGenerationTest {
     }
 
     @Test
+    fun `openapi json keeps available availability while omitting null reasons`() {
+        val encodedAction =
+            OpenApiJson.encodeToString(
+                OpenApiAction(
+                    id = "world.time.query",
+                    schemaVersion = "1",
+                    source = OpenApiActionSource.RUNTIME_PROBE,
+                ),
+            )
+        val encodedEvent =
+            OpenApiJson.encodeToString(
+                OpenApiEvent(
+                    id = "world.time.query",
+                    payload = OpenApiActionSchema("object"),
+                ),
+            )
+        val encodedHandle =
+            OpenApiJson.encodeToString(
+                OpenApiHandle(
+                    id = "world.block.handle",
+                    resource = "world.block",
+                    schema = OpenApiActionSchema("object"),
+                ),
+            )
+
+        listOf(encodedAction, encodedEvent, encodedHandle).forEach { encoded ->
+            assertTrue(encoded.contains("\"availability\":\"available\""))
+            assertFalse(encoded.contains("availabilityReason"))
+        }
+    }
+
+    @Test
     fun `openapi document includes craftless metadata for generic action route`() {
         val document =
             OpenApiDocument.from(

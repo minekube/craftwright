@@ -1393,6 +1393,103 @@ class LocalSessionApiServerTest {
     }
 
     @Test
+    fun `default windowless wrapper only selects available linux xvfb wrapper`() {
+        val workspace = Files.createTempDirectory("craftless-default-windowless-wrapper")
+        val bin = workspace.resolve("bin")
+        Files.createDirectories(bin)
+        val wrapper = bin.resolve("xvfb-run")
+        Files.writeString(wrapper, "#!/usr/bin/env sh\n")
+        wrapper.toFile().setExecutable(true, true)
+
+        assertEquals(
+            listOf("xvfb-run", "-a", "--server-args=-screen 0 1280x720x24"),
+            defaultWindowlessCommandPrefix(mapOf("PATH" to bin.toString()), osName = "Linux"),
+        )
+        assertEquals(emptyList(), defaultWindowlessCommandPrefix(mapOf("PATH" to bin.toString()), osName = "Mac OS X"))
+        assertEquals(emptyList(), defaultWindowlessCommandPrefix(mapOf("PATH" to ""), osName = "Linux"))
+        assertEquals(
+            listOf(wrapper.toString()),
+            defaultWindowlessCommandPrefix(
+                mapOf("CRAFTLESS_WINDOWLESS_WRAPPER" to wrapper.toString()),
+                osName = "Mac OS X",
+            ),
+        )
+        assertEquals(
+            emptyList(),
+            defaultWindowlessCommandPrefix(mapOf("CRAFTLESS_WINDOWLESS_WRAPPER" to "none"), osName = "Linux"),
+        )
+    }
+
+    @Test
+    fun `process client runtime launcher runs directly when no windowless wrapper is available`() {
+        val workspace = Files.createTempDirectory("craftless-process-direct-windowless-runtime")
+        val marker = workspace.resolve("launched.txt")
+        val javaExecutable = workspace.resolve("cache/runtimes/java-runtime-gamma/image/bin/java")
+        Files.createDirectories(javaExecutable.parent)
+        Files.writeString(
+            javaExecutable,
+            """
+            #!/usr/bin/env sh
+            echo "${'$'}@" > "$marker"
+            """.trimIndent(),
+        )
+        javaExecutable.toFile().setExecutable(true, true)
+        val arguments = workspace.resolve("cache/prepared/1.21.6-fabric-0.17.2.launch.json")
+        Files.createDirectories(arguments.parent)
+        Files.writeString(
+            arguments,
+            """
+            {
+              "mainClass": "test.minecraft.Main",
+              "jvm": [],
+              "game": ["--gameDir", "{{gameRoot}}", "--username", "{{auth_player_name}}"]
+            }
+            """.trimIndent(),
+        )
+
+        val launch =
+            ProcessClientRuntimeLauncher(windowlessCommandPrefix = emptyList()).launch(
+                request =
+                    CreateClientRequest(
+                        id = "alice",
+                        version = "1.21.6",
+                        loader = Loader.FABRIC,
+                        profile = Profile.offline("Alice"),
+                    ),
+                prepared =
+                    CachePrepareResult(
+                        minecraftVersion = "1.21.6",
+                        loader = Loader.FABRIC,
+                        loaderVersion = "0.17.2",
+                        cacheRoot = "cache",
+                        minecraftVersionRoot = "cache/minecraft/versions/1.21.6",
+                        loaderRoot = "cache/loaders/fabric/1.21.6/0.17.2",
+                        runtimeRoot = "cache/runtimes",
+                        manifest = "cache/prepared/1.21.6-fabric-0.17.2.json",
+                        status = CachePrepareStatus.PREPARED,
+                        artifacts = emptyList(),
+                        launch =
+                            CacheLaunchPlan(
+                                classpath = listOf("cache/minecraft/versions/1.21.6/client.jar"),
+                                mods = emptyList(),
+                                javaExecutable = "cache/runtimes/java-runtime-gamma/image/bin/java",
+                                arguments = "cache/prepared/1.21.6-fabric-0.17.2.launch.json",
+                            ),
+                    ),
+                files = InstanceFiles.forInstance("alice-1.21.6-fabric"),
+                workspaceRoot = workspace,
+            )
+
+        assertEquals(ClientRuntimeLaunchStatus.LAUNCHED, launch.status)
+        assertTrue(requireNotNull(launch.process).waitFor(2, TimeUnit.SECONDS))
+        assertTrue(launch.command.first().endsWith("/java-runtime-gamma/image/bin/java"))
+        assertTrue(waitForRegularFile(marker))
+        val invoked = Files.readString(marker)
+        assertTrue(invoked.contains("test.minecraft.Main"))
+        assertTrue(invoked.contains("--username Alice"))
+    }
+
+    @Test
     fun `process client runtime launcher bypasses windowless wrapper for visible clients`() {
         val workspace = Files.createTempDirectory("craftless-process-visible-runtime")
         val marker = workspace.resolve("launched.txt")

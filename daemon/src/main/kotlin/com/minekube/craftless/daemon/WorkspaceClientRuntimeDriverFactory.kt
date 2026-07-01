@@ -416,10 +416,7 @@ class ProcessClientRuntimeLauncher(
     private fun List<String>.withPresentationWindow(window: ClientWindowMode): List<String> =
         when (window) {
             ClientWindowMode.VISIBLE -> this
-            ClientWindowMode.NONE -> {
-                require(windowlessCommandPrefix.isNotEmpty()) { "windowless command prefix is required" }
-                windowlessCommandPrefix + this
-            }
+            ClientWindowMode.NONE -> windowlessCommandPrefix + this
         }
 
     private fun materializeLaunchMods(
@@ -472,11 +469,34 @@ class ProcessClientRuntimeLauncher(
     }
 }
 
-private fun defaultWindowlessCommandPrefix(environment: Map<String, String>): List<String> =
-    environment[CRAFTLESS_WINDOWLESS_WRAPPER]
-        ?.takeIf { it.isNotBlank() }
-        ?.let(::listOf)
-        ?: listOf("xvfb-run", "-a", "--server-args=-screen 0 1280x720x24")
+internal fun defaultWindowlessCommandPrefix(
+    environment: Map<String, String>,
+    osName: String = System.getProperty("os.name"),
+): List<String> {
+    if (environment.containsKey(CRAFTLESS_WINDOWLESS_WRAPPER)) {
+        val configured = environment[CRAFTLESS_WINDOWLESS_WRAPPER].orEmpty().trim()
+        return configured
+            .takeUnless { it.isBlank() || it.equals("none", ignoreCase = true) || it.equals("disabled", ignoreCase = true) }
+            ?.let(::listOf)
+            .orEmpty()
+    }
+    if (!osName.contains("linux", ignoreCase = true)) return emptyList()
+    if (!commandAvailable("xvfb-run", environment)) return emptyList()
+    return listOf("xvfb-run", "-a", "--server-args=-screen 0 1280x720x24")
+}
+
+private fun commandAvailable(command: String, environment: Map<String, String>): Boolean =
+    runCatching {
+        val path = Path.of(command)
+        if (path.isAbsolute || command.contains("/")) {
+            return@runCatching Files.isExecutable(path)
+        }
+        environment["PATH"]
+            .orEmpty()
+            .split(System.getProperty("path.separator"))
+            .filter { it.isNotBlank() }
+            .any { directory -> Files.isExecutable(Path.of(directory).resolve(command)) }
+    }.getOrDefault(false)
 
 private class PreparedClientRuntimeDriverSession(
     override val clientId: String,
