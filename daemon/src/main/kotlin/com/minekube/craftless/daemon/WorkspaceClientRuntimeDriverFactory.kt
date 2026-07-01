@@ -491,7 +491,10 @@ internal fun defaultWindowlessCommandPrefix(
     return listOf("xvfb-run", "-a", "--server-args=-screen 0 1280x720x24")
 }
 
-private fun commandAvailable(command: String, environment: Map<String, String>): Boolean =
+private fun commandAvailable(
+    command: String,
+    environment: Map<String, String>,
+): Boolean =
     runCatching {
         val path = Path.of(command)
         if (path.isAbsolute || command.contains("/")) {

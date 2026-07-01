@@ -876,7 +876,19 @@ class NamespacePolicyTest {
     private fun Path.isScannable(): Boolean {
         if (isDirectory()) return false
         val ignoredDirectories =
-            setOf("build", ".craftless", ".gradle", ".git", ".kotlin", ".next", ".source", ".vscode", "node_modules", "out")
+            setOf(
+                "build",
+                ".craftless",
+                ".craftless-connect-debug",
+                ".gradle",
+                ".git",
+                ".kotlin",
+                ".next",
+                ".source",
+                ".vscode",
+                "node_modules",
+                "out",
+            )
         if (iterator().asSequence().any { it.name in ignoredDirectories }) return false
         if (pathString.contains("driver-fabric/run/")) return false
         if (pathString.contains("driver-fabric/logs/")) return false
