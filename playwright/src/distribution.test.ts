@@ -165,6 +165,7 @@ describe("distribution surface", () => {
     expect(script).toContain("CRAFTLESS_PACKAGED_FABRIC_VERSION is required");
     expect(script).toContain("CRAFTLESS_PACKAGED_FABRIC_LOADER_VERSION");
     expect(script).toContain("supervisor-openapi.json");
+    expect(script).toContain('PROFILE_NAME="Cf${PROFILE_SUFFIX:0:14}"');
     expect(script).toContain("client-openapi-connected.json");
     expect(script).toContain("client-rpc-invoke-generated.json");
     expect(script).toContain("client-cli-invoke-generated.log");
