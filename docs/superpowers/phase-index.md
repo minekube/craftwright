@@ -287,3 +287,11 @@ callers can distinguish unsupported Minecraft targets from unsupported loader
 runtime identities.
 Evidence:
 `docs/superpowers/evidence/2026-07-02-runtime-target-create-rejection.md`.
+Phase 203 aligns wildcard Fabric driver lanes with the support matrix. Driver
+manifest rows that omit `loaderVersion` already match explicit loader requests
+in the create-client path; `/versions/support-targets` now projects those
+wildcard rows onto each discovered Fabric Loader runtime identity instead of
+emitting an extra null-loader supported row and marking concrete loaders
+unsupported.
+Evidence:
+`docs/superpowers/evidence/2026-07-02-wildcard-fabric-loader-matrix.md`.

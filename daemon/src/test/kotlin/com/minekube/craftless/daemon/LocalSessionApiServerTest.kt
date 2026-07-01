@@ -68,6 +68,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
@@ -390,6 +391,102 @@ class LocalSessionApiServerTest {
                         assertEquals("FABRIC", unsupportedRuntimeTarget["loader"]?.jsonPrimitive?.content)
                     }
                 }
+            }
+        }
+
+    @Test
+    fun `support targets project wildcard Fabric driver lane onto discovered loader versions`() =
+        withHttpClient { http ->
+            val root = Files.createTempDirectory("craftless-version-discovery-wildcard-loader")
+            val manifest = root.resolve("driver-mods.json")
+            Files.writeString(
+                manifest,
+                """
+                {
+                  "entries": [
+                    {
+                      "loader": "FABRIC",
+                      "minecraftVersion": "1.21.6",
+                      "javaMajorVersion": 21,
+                      "mappingsFingerprint": "craftless-fabric-wildcard",
+                      "path": "mods/fabric-1.21.6/craftless-driver-fabric.jar"
+                    }
+                  ]
+                }
+                """.trimIndent(),
+            )
+            val metadataFetcher =
+                ServerStaticCacheMetadataFetcher(
+                    mapOf(
+                        MINECRAFT_VERSION_INDEX_URL to
+                            """
+                            {
+                              "latest": {
+                                "release": "1.21.6",
+                                "snapshot": "26.3-snapshot-1"
+                              },
+                              "versions": [
+                                {
+                                  "id": "1.21.6",
+                                  "type": "release",
+                                  "url": "https://metadata.test/1.21.6.json"
+                                }
+                              ]
+                            }
+                            """.trimIndent(),
+                        "$FABRIC_META_BASE_URL/versions/game" to
+                            """
+                            [
+                              { "version": "1.21.6", "stable": true }
+                            ]
+                            """.trimIndent(),
+                        "$FABRIC_META_BASE_URL/versions/loader" to
+                            """
+                            [
+                              { "loader": { "version": "0.17.2", "stable": true } },
+                              { "loader": { "version": "0.16.14", "stable": true } }
+                            ]
+                            """.trimIndent(),
+                    ),
+                )
+            fakeLocalSessionApiServer(
+                cacheMetadataFetcher = metadataFetcher,
+                clientRuntimeDriverModProvider =
+                    ConfiguredClientRuntimeDriverModProvider(
+                        environment =
+                            mapOf(
+                                ConfiguredClientRuntimeDriverModProvider.CRAFTLESS_DRIVER_MOD_MANIFEST to manifest.toString(),
+                            ),
+                    ),
+            ).use { server ->
+                server.start()
+
+                val response = http.get(server.url("/versions/support-targets"))
+                val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+                val target = body["targets"]?.jsonArray?.single()?.jsonObject
+                val runtimeTargets =
+                    target
+                        ?.get("runtimeTargets")
+                        ?.jsonArray
+                        ?.map { it.jsonObject }
+                        .orEmpty()
+
+                assertEquals(HttpStatusCode.OK, response.status)
+                assertEquals(true, target?.get("supported")?.jsonPrimitive?.boolean)
+                assertEquals(2, runtimeTargets.size)
+                runtimeTargets.forEach { runtimeTarget ->
+                    assertEquals(true, runtimeTarget["supported"]?.jsonPrimitive?.boolean)
+                    assertTrue(runtimeTarget["reason"] == null || runtimeTarget["reason"] is JsonNull)
+                    assertEquals("FABRIC", runtimeTarget["loader"]?.jsonPrimitive?.content)
+                    assertEquals(21, runtimeTarget["javaMajorVersion"]?.jsonPrimitive?.int)
+                    assertEquals("craftless-fabric-wildcard", runtimeTarget["mappingsFingerprint"]?.jsonPrimitive?.content)
+                    val driverModLoaderVersion = runtimeTarget["driverMod"]?.jsonObject?.get("loaderVersion")
+                    assertTrue(driverModLoaderVersion == null || driverModLoaderVersion is JsonNull)
+                }
+                assertEquals(
+                    setOf("0.17.2", "0.16.14"),
+                    runtimeTargets.map { runtimeTarget -> runtimeTarget["loaderVersion"]?.jsonPrimitive?.content }.toSet(),
+                )
             }
         }
 

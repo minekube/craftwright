@@ -79,10 +79,12 @@ class VersionDiscoveryService(
 private fun List<DriverModVersionDescriptor>.runtimeTargets(
     loaderVersions: List<FabricLoaderVersionDescriptor>,
 ): List<FabricSupportRuntimeTargetDescriptor> {
-    val driverModsByLoaderVersion = filter { driverMod -> driverMod.loader == Loader.FABRIC }.groupBy { it.loaderVersion }
+    val fabricDriverMods = filter { driverMod -> driverMod.loader == Loader.FABRIC }
+    val driverModsByLoaderVersion = fabricDriverMods.groupBy { it.loaderVersion }
+    val wildcardDriverMods = driverModsByLoaderVersion[null].orEmpty()
     val runtimeTargets =
         loaderVersions.map { loaderVersion ->
-            val driverMod = driverModsByLoaderVersion[loaderVersion.version].orEmpty().firstOrNull()
+            val driverMod = driverModsByLoaderVersion[loaderVersion.version].orEmpty().firstOrNull() ?: wildcardDriverMods.firstOrNull()
             if (driverMod == null) {
                 return@map FabricSupportRuntimeTargetDescriptor(
                     loaderVersion = loaderVersion.version,
@@ -93,7 +95,7 @@ private fun List<DriverModVersionDescriptor>.runtimeTargets(
             }
             FabricSupportRuntimeTargetDescriptor(
                 loader = driverMod.loader,
-                loaderVersion = driverMod.loaderVersion,
+                loaderVersion = loaderVersion.version,
                 loaderStable = loaderVersion.stable,
                 javaMajorVersion = driverMod.javaMajorVersion,
                 mappingsFingerprint = driverMod.mappingsFingerprint,
@@ -103,7 +105,8 @@ private fun List<DriverModVersionDescriptor>.runtimeTargets(
         }
     val loaderVersionSet = loaderVersions.map { it.version }.toSet()
     val manifestOnlyTargets =
-        filter { driverMod -> driverMod.loaderVersion !in loaderVersionSet }
+        fabricDriverMods
+            .filter { driverMod -> driverMod.loaderVersion != null && driverMod.loaderVersion !in loaderVersionSet }
             .map { driverMod ->
                 FabricSupportRuntimeTargetDescriptor(
                     loader = driverMod.loader,
