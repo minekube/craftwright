@@ -150,6 +150,9 @@ describe("distribution surface", () => {
     const workflow = read(".github/workflows/fabric-support-matrix.yml");
 
     expect(mise).toContain("[tasks.packaged-current-lane-probe]");
+    expect(mise).toContain("CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT=$PWD/build/craftless-packaged-latest-current-probe");
+    expect(mise).toContain("CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT=$PWD/build/craftless-packaged-representative-older-probe");
+    expect(mise).toContain("CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT=$PWD/build/craftless-packaged-current-lane-probe");
     expect(mise).toContain("CRAFTLESS_SMOKE_MINECRAFT_VERSION=1.21.6");
     expect(mise).toContain("CRAFTLESS_PACKAGED_FABRIC_VERSION=1.21.6");
     expect(mise).toContain("CRAFTLESS_PACKAGED_FABRIC_LOADER_VERSION=0.19.3");
@@ -178,6 +181,7 @@ describe("distribution surface", () => {
     expect(workflow).toContain("mise run packaged-fabric-supported-matrix-probe");
     expect(workflow).toContain("if-no-files-found: warn");
     expect(workflow).toContain("build/craftless-packaged-current-lane-probe");
+    expect(workflow).toContain("driver-fabric/build/craftless-packaged-current-lane-probe");
   });
 
   test("final public gameplay probe uses generated public surfaces only", () => {

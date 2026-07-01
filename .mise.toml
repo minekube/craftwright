@@ -216,21 +216,21 @@ run = [
 description = "Run packaged latest-release create/attach/connect artifact probe"
 run = [
     "mise run package-cli",
-    "CRAFTLESS_LOCAL_SERVER_SMOKE=1 CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT=build/craftless-packaged-latest-current-probe CRAFTLESS_SMOKE_MINECRAFT_VERSION=latest-release CRAFTLESS_SMOKE_JAVA_EXECUTABLE=$HOME/.local/share/mise/installs/java/temurin-25.0.3+9.0.LTS/bin/java CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=900000 CRAFTLESS_PACKAGED_LATEST_TIMEOUT_MS=900000 CRAFTLESS_SMOKE_ACTION_COMMAND_JSON=\"[\\\"$PWD/scripts/packaged-latest-current-probe.sh\\\"]\" mise exec -- gradle :driver-fabric:fabricClientSmoke",
+    "CRAFTLESS_LOCAL_SERVER_SMOKE=1 CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT=$PWD/build/craftless-packaged-latest-current-probe CRAFTLESS_SMOKE_MINECRAFT_VERSION=latest-release CRAFTLESS_SMOKE_JAVA_EXECUTABLE=$HOME/.local/share/mise/installs/java/temurin-25.0.3+9.0.LTS/bin/java CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=900000 CRAFTLESS_PACKAGED_LATEST_TIMEOUT_MS=900000 CRAFTLESS_SMOKE_ACTION_COMMAND_JSON=\"[\\\"$PWD/scripts/packaged-latest-current-probe.sh\\\"]\" mise exec -- gradle :driver-fabric:fabricClientSmoke",
 ]
 
 [tasks.packaged-representative-older-probe]
 description = "Run packaged representative older create/attach/connect artifact probe"
 run = [
     "mise run package-cli",
-    "CRAFTLESS_LOCAL_SERVER_SMOKE=1 CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT=build/craftless-packaged-representative-older-probe CRAFTLESS_SMOKE_MINECRAFT_VERSION=1.20.6 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=900000 CRAFTLESS_PACKAGED_OLDER_TIMEOUT_MS=900000 CRAFTLESS_SMOKE_ACTION_COMMAND_JSON=\"[\\\"$PWD/scripts/packaged-representative-older-probe.sh\\\"]\" mise exec -- gradle :driver-fabric:fabricClientSmoke",
+    "CRAFTLESS_LOCAL_SERVER_SMOKE=1 CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT=$PWD/build/craftless-packaged-representative-older-probe CRAFTLESS_SMOKE_MINECRAFT_VERSION=1.20.6 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=900000 CRAFTLESS_PACKAGED_OLDER_TIMEOUT_MS=900000 CRAFTLESS_SMOKE_ACTION_COMMAND_JSON=\"[\\\"$PWD/scripts/packaged-representative-older-probe.sh\\\"]\" mise exec -- gradle :driver-fabric:fabricClientSmoke",
 ]
 
 [tasks.packaged-current-lane-probe]
 description = "Run packaged current 1.21.6 create/attach/connect artifact probe"
 run = [
     "mise run package-cli",
-    "CRAFTLESS_LOCAL_SERVER_SMOKE=1 CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT=build/craftless-packaged-current-lane-probe CRAFTLESS_SMOKE_MINECRAFT_VERSION=1.21.6 CRAFTLESS_PACKAGED_FABRIC_VERSION=1.21.6 CRAFTLESS_PACKAGED_FABRIC_LOADER_VERSION=0.19.3 CRAFTLESS_PACKAGED_FABRIC_LABEL=current-lane CRAFTLESS_PACKAGED_FABRIC_CLIENT_ID=current-lane CRAFTLESS_PACKAGED_FABRIC_DAEMON_PORT=18086 CRAFTLESS_PACKAGED_FABRIC_TIMEOUT_MS=900000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=900000 CRAFTLESS_SMOKE_ACTION_COMMAND_JSON=\"[\\\"$PWD/scripts/packaged-fabric-lane-probe.sh\\\"]\" mise exec -- gradle :driver-fabric:fabricClientSmoke",
+    "CRAFTLESS_LOCAL_SERVER_SMOKE=1 CRAFTLESS_LOCAL_SERVER_SMOKE_ROOT=$PWD/build/craftless-packaged-current-lane-probe CRAFTLESS_SMOKE_MINECRAFT_VERSION=1.21.6 CRAFTLESS_PACKAGED_FABRIC_VERSION=1.21.6 CRAFTLESS_PACKAGED_FABRIC_LOADER_VERSION=0.19.3 CRAFTLESS_PACKAGED_FABRIC_LABEL=current-lane CRAFTLESS_PACKAGED_FABRIC_CLIENT_ID=current-lane CRAFTLESS_PACKAGED_FABRIC_DAEMON_PORT=18086 CRAFTLESS_PACKAGED_FABRIC_TIMEOUT_MS=900000 CRAFTLESS_SMOKE_ACTION_TIMEOUT_MS=900000 CRAFTLESS_SMOKE_ACTION_COMMAND_JSON=\"[\\\"$PWD/scripts/packaged-fabric-lane-probe.sh\\\"]\" mise exec -- gradle :driver-fabric:fabricClientSmoke",
 ]
 
 [tasks.packaged-fabric-supported-matrix-probe]

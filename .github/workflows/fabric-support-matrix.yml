@@ -53,3 +53,6 @@ jobs:
             build/craftless-packaged-latest-current-probe
             build/craftless-packaged-current-lane-probe
             build/craftless-packaged-representative-older-probe
+            driver-fabric/build/craftless-packaged-latest-current-probe
+            driver-fabric/build/craftless-packaged-current-lane-probe
+            driver-fabric/build/craftless-packaged-representative-older-probe
