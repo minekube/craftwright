@@ -363,18 +363,32 @@ class LocalSessionApiServerTest {
                     assertEquals(true, supported["supported"]?.jsonPrimitive?.boolean)
                     val driverMod = supported["driverMods"]?.jsonArray?.single()?.jsonObject
                     assertEquals("0.19.3", driverMod?.get("loaderVersion")?.jsonPrimitive?.content)
-                    val runtimeTarget = supported["runtimeTargets"]?.jsonArray?.single()?.jsonObject
-                    assertEquals(true, runtimeTarget?.get("supported")?.jsonPrimitive?.boolean)
-                    assertEquals("FABRIC", runtimeTarget?.get("loader")?.jsonPrimitive?.content)
-                    assertEquals("0.19.3", runtimeTarget?.get("loaderVersion")?.jsonPrimitive?.content)
-                    assertEquals(25, runtimeTarget?.get("javaMajorVersion")?.jsonPrimitive?.int)
-                    assertEquals("craftless-fabric-official-26-2", runtimeTarget?.get("mappingsFingerprint")?.jsonPrimitive?.content)
+                    val supportedRuntimeTargets = supported["runtimeTargets"]?.jsonArray?.map { it.jsonObject }.orEmpty()
+                    assertEquals(2, supportedRuntimeTargets.size)
+                    val runtimeTarget = supportedRuntimeTargets.single { it["loaderVersion"]?.jsonPrimitive?.content == "0.19.3" }
+                    assertEquals(true, runtimeTarget["supported"]?.jsonPrimitive?.boolean)
+                    assertEquals("FABRIC", runtimeTarget["loader"]?.jsonPrimitive?.content)
+                    assertEquals("0.19.3", runtimeTarget["loaderVersion"]?.jsonPrimitive?.content)
+                    assertEquals(true, runtimeTarget["loaderStable"]?.jsonPrimitive?.boolean)
+                    assertEquals(25, runtimeTarget["javaMajorVersion"]?.jsonPrimitive?.int)
+                    assertEquals("craftless-fabric-official-26-2", runtimeTarget["mappingsFingerprint"]?.jsonPrimitive?.content)
+                    val unsupportedLoaderRuntimeTarget =
+                        supportedRuntimeTargets.single { it["loaderVersion"]?.jsonPrimitive?.content == "0.19.2" }
+                    assertEquals(false, unsupportedLoaderRuntimeTarget["supported"]?.jsonPrimitive?.boolean)
+                    assertEquals(false, unsupportedLoaderRuntimeTarget["loaderStable"]?.jsonPrimitive?.boolean)
+                    assertEquals(
+                        "NO_COMPATIBLE_DRIVER_MOD",
+                        unsupportedLoaderRuntimeTarget["reason"]?.jsonPrimitive?.content,
+                    )
                     assertEquals(false, unsupported["supported"]?.jsonPrimitive?.boolean)
                     assertEquals("NO_DRIVER_MOD", unsupported["reason"]?.jsonPrimitive?.content)
-                    val unsupportedRuntimeTarget = unsupported["runtimeTargets"]?.jsonArray?.single()?.jsonObject
-                    assertEquals(false, unsupportedRuntimeTarget?.get("supported")?.jsonPrimitive?.boolean)
-                    assertEquals("NO_DRIVER_MOD", unsupportedRuntimeTarget?.get("reason")?.jsonPrimitive?.content)
-                    assertEquals("FABRIC", unsupportedRuntimeTarget?.get("loader")?.jsonPrimitive?.content)
+                    val unsupportedRuntimeTargets = unsupported["runtimeTargets"]?.jsonArray?.map { it.jsonObject }.orEmpty()
+                    assertEquals(2, unsupportedRuntimeTargets.size)
+                    unsupportedRuntimeTargets.forEach { unsupportedRuntimeTarget ->
+                        assertEquals(false, unsupportedRuntimeTarget["supported"]?.jsonPrimitive?.boolean)
+                        assertEquals("NO_DRIVER_MOD", unsupportedRuntimeTarget["reason"]?.jsonPrimitive?.content)
+                        assertEquals("FABRIC", unsupportedRuntimeTarget["loader"]?.jsonPrimitive?.content)
+                    }
                 }
             }
         }

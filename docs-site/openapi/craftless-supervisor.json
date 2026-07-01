@@ -649,7 +649,8 @@
                           "reason": {
                             "type": "string",
                             "enum": [
-                              "NO_DRIVER_MOD"
+                              "NO_DRIVER_MOD",
+                              "NO_COMPATIBLE_DRIVER_MOD"
                             ],
                             "nullable": true
                           },
@@ -724,6 +725,10 @@
                                   "type": "string",
                                   "nullable": true
                                 },
+                                "loaderStable": {
+                                  "type": "boolean",
+                                  "nullable": true
+                                },
                                 "javaMajorVersion": {
                                   "type": "integer",
                                   "nullable": true
@@ -738,7 +743,8 @@
                                 "reason": {
                                   "type": "string",
                                   "enum": [
-                                    "NO_DRIVER_MOD"
+                                    "NO_DRIVER_MOD",
+                                    "NO_COMPATIBLE_DRIVER_MOD"
                                   ],
                                   "nullable": true
                                 },

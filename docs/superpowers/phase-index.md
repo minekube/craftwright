@@ -270,3 +270,12 @@ validates and probes supported rows from `target.runtimeTargets` instead of
 inferring them from `driverMods`.
 Evidence:
 `docs/superpowers/evidence/2026-07-01-fabric-runtime-target-support.md`.
+Phase 201 expands the support matrix from packaged driver rows to discovered
+Fabric Loader runtime rows. `GET /versions/support-targets` now emits one
+runtime row per Fabric Loader version for each Fabric game target, marks
+matching packaged driver rows as supported, and rejects unsupported loader
+identities with either `NO_DRIVER_MOD` or `NO_COMPATIBLE_DRIVER_MOD`. This
+keeps the larger all-Fabric compatibility goal honest by making unsupported
+loader/runtime combinations visible instead of implicit.
+Evidence:
+`docs/superpowers/evidence/2026-07-01-fabric-loader-runtime-matrix.md`.

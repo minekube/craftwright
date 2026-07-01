@@ -50,6 +50,7 @@ class VersionDiscoveryService(
 
     suspend fun listFabricSupportTargets(): FabricSupportTargetListResult {
         val gameVersions = listFabricGameVersions().versions
+        val loaderVersions = listFabricLoaderVersions().versions
         val driverMods = listDriverModVersions()
         val fabricDriverModsByMinecraftVersion =
             driverMods
@@ -61,39 +62,67 @@ class VersionDiscoveryService(
             targets =
                 gameVersions.map { version ->
                     val matches = fabricDriverModsByMinecraftVersion[version.version].orEmpty()
+                    val runtimeTargets = matches.runtimeTargets(loaderVersions)
                     FabricSupportTargetDescriptor(
                         minecraftVersion = version.version,
                         stable = version.stable,
-                        supported = matches.isNotEmpty(),
-                        reason = if (matches.isEmpty()) FabricSupportReason.NO_DRIVER_MOD else null,
+                        supported = runtimeTargets.any { it.supported },
+                        reason = if (runtimeTargets.none { it.supported }) matches.unsupportedReason() else null,
                         driverMods = matches,
-                        runtimeTargets = matches.runtimeTargets(),
+                        runtimeTargets = runtimeTargets,
                     )
                 },
         )
     }
 }
 
-private fun List<DriverModVersionDescriptor>.runtimeTargets(): List<FabricSupportRuntimeTargetDescriptor> {
-    if (isEmpty()) {
-        return listOf(
+private fun List<DriverModVersionDescriptor>.runtimeTargets(
+    loaderVersions: List<FabricLoaderVersionDescriptor>,
+): List<FabricSupportRuntimeTargetDescriptor> {
+    val driverModsByLoaderVersion = filter { driverMod -> driverMod.loader == Loader.FABRIC }.groupBy { it.loaderVersion }
+    val runtimeTargets =
+        loaderVersions.map { loaderVersion ->
+            val driverMod = driverModsByLoaderVersion[loaderVersion.version].orEmpty().firstOrNull()
+            if (driverMod == null) {
+                return@map FabricSupportRuntimeTargetDescriptor(
+                    loaderVersion = loaderVersion.version,
+                    loaderStable = loaderVersion.stable,
+                    supported = false,
+                    reason = unsupportedReason(),
+                )
+            }
             FabricSupportRuntimeTargetDescriptor(
-                supported = false,
-                reason = FabricSupportReason.NO_DRIVER_MOD,
-            ),
-        )
-    }
-    return map { driverMod ->
-        FabricSupportRuntimeTargetDescriptor(
-            loader = driverMod.loader,
-            loaderVersion = driverMod.loaderVersion,
-            javaMajorVersion = driverMod.javaMajorVersion,
-            mappingsFingerprint = driverMod.mappingsFingerprint,
-            supported = true,
-            driverMod = driverMod,
-        )
-    }
+                loader = driverMod.loader,
+                loaderVersion = driverMod.loaderVersion,
+                loaderStable = loaderVersion.stable,
+                javaMajorVersion = driverMod.javaMajorVersion,
+                mappingsFingerprint = driverMod.mappingsFingerprint,
+                supported = true,
+                driverMod = driverMod,
+            )
+        }
+    val loaderVersionSet = loaderVersions.map { it.version }.toSet()
+    val manifestOnlyTargets =
+        filter { driverMod -> driverMod.loaderVersion !in loaderVersionSet }
+            .map { driverMod ->
+                FabricSupportRuntimeTargetDescriptor(
+                    loader = driverMod.loader,
+                    loaderVersion = driverMod.loaderVersion,
+                    javaMajorVersion = driverMod.javaMajorVersion,
+                    mappingsFingerprint = driverMod.mappingsFingerprint,
+                    supported = true,
+                    driverMod = driverMod,
+                )
+            }
+    return runtimeTargets + manifestOnlyTargets
 }
+
+private fun List<DriverModVersionDescriptor>.unsupportedReason(): FabricSupportReason =
+    if (isEmpty()) {
+        FabricSupportReason.NO_DRIVER_MOD
+    } else {
+        FabricSupportReason.NO_COMPATIBLE_DRIVER_MOD
+    }
 
 private fun String.parseFabricGameVersions(): List<FabricGameVersionDescriptor> =
     Json

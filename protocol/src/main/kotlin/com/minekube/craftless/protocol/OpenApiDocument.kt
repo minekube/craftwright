@@ -976,6 +976,7 @@ private fun fabricSupportRuntimeTargetDescriptorSchema(): OpenApiSchema =
             mapOf(
                 "loader" to OpenApiSchema(type = "string", enumValues = Loader.entries.map { it.name }),
                 "loaderVersion" to OpenApiSchema(type = "string", nullable = true),
+                "loaderStable" to OpenApiSchema(type = "boolean", nullable = true),
                 "javaMajorVersion" to OpenApiSchema(type = "integer", nullable = true),
                 "mappingsFingerprint" to OpenApiSchema(type = "string", nullable = true),
                 "supported" to OpenApiSchema(type = "boolean"),

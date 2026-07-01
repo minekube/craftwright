@@ -366,8 +366,14 @@ class OpenApiGenerationTest {
         assertEquals("boolean", runtimeTarget.properties["supported"]?.type)
         assertEquals("string", runtimeTarget.properties["loaderVersion"]?.type)
         assertEquals(true, runtimeTarget.properties["loaderVersion"]?.nullable)
+        assertEquals("boolean", runtimeTarget.properties["loaderStable"]?.type)
+        assertEquals(true, runtimeTarget.properties["loaderStable"]?.nullable)
         assertEquals("integer", runtimeTarget.properties["javaMajorVersion"]?.type)
         assertEquals(true, runtimeTarget.properties["javaMajorVersion"]?.nullable)
+        assertTrue(
+            requireNotNull(runtimeTarget.properties["reason"]?.enumValues)
+                .contains("NO_COMPATIBLE_DRIVER_MOD"),
+        )
     }
 
     @Test

@@ -242,6 +242,7 @@ data class FabricSupportTargetDescriptor(
 data class FabricSupportRuntimeTargetDescriptor(
     val loader: Loader = Loader.FABRIC,
     val loaderVersion: String? = null,
+    val loaderStable: Boolean? = null,
     val javaMajorVersion: Int? = null,
     val mappingsFingerprint: String? = null,
     val supported: Boolean,
@@ -252,6 +253,7 @@ data class FabricSupportRuntimeTargetDescriptor(
 @Serializable
 enum class FabricSupportReason {
     NO_DRIVER_MOD,
+    NO_COMPATIBLE_DRIVER_MOD,
 }
 
 @Serializable
