@@ -262,9 +262,13 @@ describe("distribution surface", () => {
     expect(workflow).toContain("mise run package-cli");
     expect(workflow).toContain("softprops/action-gh-release");
     expect(workflow).toContain("generate_release_notes: true");
-    expect(workflow).toContain("docker/setup-qemu-action");
+    expect(workflow).toContain("ubuntu-24.04-arm");
     expect(workflow).toContain("docker/build-push-action");
-    expect(workflow).toContain("platforms: linux/amd64,linux/arm64");
+    expect(workflow).toContain("platform: linux/amd64");
+    expect(workflow).toContain("platform: linux/arm64");
+    expect(workflow).toContain("docker buildx imagetools create");
+    expect(workflow).not.toContain("docker/setup-qemu-action");
+    expect(workflow).not.toContain("platforms: linux/amd64,linux/arm64");
     expect(workflow).toContain("ghcr.io/minekube/craftless");
   });
 
