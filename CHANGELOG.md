@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/minekube/craftless/compare/v0.3.1...v0.3.2) (2026-07-02)
+
+
+### Bug Fixes
+
+* **ci:** make release version guard dynamic ([1eb7240](https://github.com/minekube/craftless/commit/1eb72402e0ac7d6650ab78732606ab2bffad5c1c))
+
 ## [0.3.1](https://github.com/minekube/craftless/compare/v0.3.0...v0.3.1) (2026-07-02)
 
 
