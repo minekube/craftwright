@@ -1,4 +1,4 @@
-# Session 019f121c CLI Help Evidence
+# Session 019f121c Craftless Usability Evidence
 
 ## Session Source
 
@@ -12,6 +12,11 @@ Relevant Craftless friction observed in the session:
 - It had to discover manually that `/clients` has both `GET` and `POST`
   operations, because `craftless api /clients --help` defaulted to the `GET`
   operation unless `--method POST` was supplied.
+- It started a daemon that answered HTTP health checks but could not launch
+  clients because no workspace was configured, then had to restart with an
+  explicit `--workspace`.
+- Active docs still showed removed cache shortcut commands even though the CLI
+  had moved to the generic `craftless api <endpoint>` invoker.
 - After a connect request, the real client could remain `RUNNING` with
   resources still unavailable as `client-not-connected`; callers had to infer
   from logs that Minecraft had attempted to connect but Craftless had not
@@ -47,6 +52,16 @@ client state, but `/clients/{id}/events` and `/clients/{id}/events:stream`
 give agents a machine-readable breadcrumb instead of making them infer the
 failed observation from external process logs.
 
+`craftless daemon start` now always starts with an effective workspace. The
+precedence is `--workspace`, then `CRAFTLESS_WORKSPACE`, then
+`~/.craftless/workspace`. Startup metadata reports that effective workspace, so
+agents no longer get a healthy daemon that fails later with `cache workspace is
+not configured` when they try to create a real client.
+
+The README and file-management docs now show cache preparation through
+`craftless api /cache:prepare` instead of the removed `craftless cache prepare`
+shortcut.
+
 ## Verification
 
 ```sh
@@ -74,3 +89,11 @@ mise exec -- gradle :daemon:test
 ```
 
 Result: passed.
+
+```sh
+mise exec -- gradle :cli:test --tests 'com.minekube.craftless.cli.CraftlessCliTest.daemon start uses environment workspace when workspace flag is omitted'
+```
+
+Result: passed. The test first failed because `daemon start --once` reported no
+workspace when the flag was omitted, then passed after adding the default
+workspace resolution.

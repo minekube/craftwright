@@ -28,6 +28,7 @@ fun main(args: Array<String>) {
 
 object CraftlessCli {
     private const val CRAFTLESS_HTTP_REQUEST_TIMEOUT_MS = "CRAFTLESS_HTTP_REQUEST_TIMEOUT_MS"
+    private const val CRAFTLESS_WORKSPACE = "CRAFTLESS_WORKSPACE"
     private const val DEFAULT_HTTP_REQUEST_TIMEOUT_MS = 900_000L
 
     private val json =
@@ -153,7 +154,7 @@ object CraftlessCli {
             stderr("error: --port must be a non-negative integer")
             return 2
         }
-        val workspaceRoot = args.optionValue("--workspace")?.let(Path::of)
+        val workspaceRoot = args.optionValue("--workspace")?.let(Path::of) ?: env.defaultWorkspaceRoot()
         val serverEnvironment = env.withPackagedDriverModConfiguration(distributionRoot)
 
         LocalSessionApiServer
@@ -172,7 +173,7 @@ object CraftlessCli {
                         url = server.url(""),
                         openapi = "/openapi.json",
                         events = "/events",
-                        workspace = workspaceRoot?.toString(),
+                        workspace = workspaceRoot.toString(),
                     )
                 stdout(json.encodeToString(metadata))
                 afterStart(metadata)
@@ -204,6 +205,12 @@ object CraftlessCli {
                 ?: return this
         return this + (fabricModKey to packagedDriverMod.toString())
     }
+
+    private fun Map<String, String>.defaultWorkspaceRoot(): Path =
+        get(CRAFTLESS_WORKSPACE)
+            ?.takeIf { it.isNotBlank() }
+            ?.let(Path::of)
+            ?: Path.of(System.getProperty("user.home") ?: ".", ".craftless", "workspace")
 
     private fun installedDistributionRoot(): Path? =
         runCatching {
@@ -244,7 +251,7 @@ data class ApiServerMetadata(
     val url: String,
     val openapi: String,
     val events: String,
-    val workspace: String? = null,
+    val workspace: String,
 )
 
 private class RootCommand :

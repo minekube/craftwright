@@ -36,9 +36,13 @@ Install the latest released CLI on Linux or macOS:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/minekube/craftless/main/install.sh | sh
-craftless daemon start --port 8080 --workspace .craftless
+craftless daemon start --port 8080
 export CRAFTLESS=http://127.0.0.1:8080
 ```
+
+When `--workspace` is omitted, the daemon uses `CRAFTLESS_WORKSPACE` or
+`~/.craftless/workspace`, so the default API can launch clients, prepare cache
+state, and expose artifacts without extra setup.
 
 Create an API-first client. By default, Craftless derives an offline profile
 from `id`, requests a windowless Minecraft client, and mutes game audio. A
@@ -212,7 +216,7 @@ scenario actions as product proof. Product proof must run without server-provisi
 For "let's play", keep lifecycle and gameplay separate:
 
 ```sh
-craftless daemon start --port 8080 --workspace .craftless
+craftless daemon start --port 8080
 export CRAFTLESS=http://127.0.0.1:8080
 
 craftless api /clients --api "$CRAFTLESS" \
@@ -241,10 +245,9 @@ bot coordinate through Minecraft chat and public Craftless events.
 Craftless can prepare repeatable launch/cache state before running clients:
 
 ```sh
-craftless cache prepare \
-  --mc latest-release \
-  --loader fabric \
-  --workspace .craftless
+craftless api /cache:prepare --api "$CRAFTLESS" \
+  -F minecraftVersion=latest-release \
+  -F loader=FABRIC
 ```
 
 When omitted, client creation and cache preparation default to

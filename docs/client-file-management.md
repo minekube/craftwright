@@ -47,18 +47,20 @@ directories under the configured workspace root during client creation. The
 operation is idempotent and does not clear existing logs, artifacts, saves, or
 cache data; cleanup and export flows should be explicit operations.
 
-The CLI wires this store through `craftless daemon start --workspace <path>`.
-Startup metadata reports the configured workspace path so scripts can record the
+The CLI wires this store through `craftless daemon start`. `--workspace <path>`
+overrides the root, `CRAFTLESS_WORKSPACE` provides an environment default, and
+the daemon falls back to `~/.craftless/workspace` when neither is set. Startup
+metadata always reports the effective workspace path so scripts can record the
 runtime file root alongside the daemon URL and OpenAPI path.
 
-`craftless cache prepare --mc <version> --loader <loader>
-[--loader-version <version>] --workspace <path>` prepares the Craftless-owned
+`craftless api /cache:prepare -F minecraftVersion=<version>
+-F loader=<loader> [-F loaderVersion=<version>]` prepares the Craftless-owned
 setup cache handles for a Minecraft version, loader, runtime cache, and
-preparation manifest. `<version>` may be a concrete Mojang version id,
+preparation manifest through the same supervisor contract as
+`POST /cache:prepare`. `<version>` may be a concrete Mojang version id,
 `latest-release`, or `latest-snapshot`; aliases resolve to concrete ids before
 Craftless writes cache handles, launch metadata, driver-mod lane requests, or
-prepared manifests. The same contract is exposed by the supervisor API as
-`POST /cache:prepare`. Current implementation uses Ktor Client to resolve and
+prepared manifests. Current implementation uses Ktor Client to resolve and
 store Mojang's version index, the selected Minecraft version manifest, Fabric's
 compatible loader-version list, the resolved Fabric loader profile JSON, the
 Minecraft client jar, Minecraft version libraries, native classifier libraries,
@@ -68,10 +70,11 @@ Craftless-owned handles. It also resolves the Minecraft asset index, downloads
 listed asset objects into opaque Craftless handles, extracts native classifier
 jars into Craftless-owned native directory handles, and writes an internal
 launch argument artifact from the resolved version/profile metadata.
-`POST /cache:export`, `POST /cache:cleanup`, `craftless cache export`, and
-`craftless cache cleanup` operate from prepared manifest handles: export writes
-a workspace-local archive handle, while cleanup removes only handles declared
-by that manifest. Integrity verification is still future provisioning work.
+`POST /cache:export` and `POST /cache:cleanup`, invoked through
+`craftless api /cache:export` and `craftless api /cache:cleanup`, operate from
+prepared manifest handles: export writes a workspace-local archive handle,
+while cleanup removes only handles declared by that manifest. Integrity
+verification is still future provisioning work.
 
 ## Prism Source Findings
 

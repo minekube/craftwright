@@ -334,3 +334,12 @@ agents no longer have to infer that state from external Minecraft or proxy
 logs.
 Evidence:
 `docs/superpowers/evidence/2026-07-02-session-019f121c-cli-help.md`.
+Phase 208 closes another usability gap from the same session. `craftless daemon
+start` now always configures a launch-capable workspace: `--workspace` wins,
+then `CRAFTLESS_WORKSPACE`, then `~/.craftless/workspace`. Startup metadata
+reports the effective workspace, so agents no longer get a healthy daemon that
+later fails client creation with `cache workspace is not configured`. Active
+README and file-management docs also use the API-only cache route form
+`craftless api /cache:prepare` instead of removed cache shortcut commands.
+Evidence:
+`docs/superpowers/evidence/2026-07-02-session-019f121c-cli-help.md`.

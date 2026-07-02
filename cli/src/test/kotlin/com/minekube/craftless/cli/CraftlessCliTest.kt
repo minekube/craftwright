@@ -437,6 +437,29 @@ class CraftlessCliTest {
     }
 
     @Test
+    fun `daemon start uses environment workspace when workspace flag is omitted`() {
+        val output = StringBuilder()
+        val workspace = Files.createTempDirectory("craftless-cli-default-workspace")
+        var reportedWorkspace: String? = null
+
+        val exit =
+            CraftlessCli.run(
+                listOf("daemon", "start", "--once"),
+                stdout = { output.appendLine(it) },
+                env = mapOf("CRAFTLESS_WORKSPACE" to workspace.toString()),
+                afterStart = { metadata ->
+                    reportedWorkspace = metadata.workspace
+                },
+            )
+
+        assertEquals(0, exit)
+        assertEquals(workspace.toString(), reportedWorkspace)
+
+        val json = Json.parseToJsonElement(output.toString().trim()).jsonObject
+        assertEquals(workspace.toString(), json["workspace"]?.jsonPrimitive?.content)
+    }
+
+    @Test
     fun `server start once reports configured workspace`() {
         val output = StringBuilder()
         val workspace = Files.createTempDirectory("craftless-cli-client-files")
