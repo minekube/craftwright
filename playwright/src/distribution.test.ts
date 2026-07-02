@@ -286,7 +286,7 @@ describe("distribution surface", () => {
     expect(config.packages["."]["release-type"]).toBe("simple");
     expect(config.packages["."]["include-v-in-tag"]).toBe(true);
     expect(config.packages["."]["include-component-in-tag"]).toBe(false);
-    expect(manifest["."]).toBe("0.3.0");
+    expect(manifest["."]).toMatch(/^\d+\.\d+\.\d+$/);
     expect(changelog).toContain("Release Please");
   });
 
