@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.3](https://github.com/minekube/craftless/compare/v0.3.2...v0.3.3) (2026-07-02)
+
+
+### Bug Fixes
+
+* retire obsolete hmc bridge path ([0f95c3e](https://github.com/minekube/craftless/commit/0f95c3e33dedead6d151400e6edc32897657f295))
+
 ## [0.3.2](https://github.com/minekube/craftless/compare/v0.3.1...v0.3.2) (2026-07-02)
 
 
