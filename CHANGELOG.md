@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.1](https://github.com/minekube/craftless/compare/v0.3.0...v0.3.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* **ci:** align api cli docs guard ([0fa6d2a](https://github.com/minekube/craftless/commit/0fa6d2ad82ebfa57328c3a3c1027eaf9b9c0ddb2))
+* **cli:** default daemon workspace ([eb2e40f](https://github.com/minekube/craftless/commit/eb2e40ff5db6a8c3f8a3cb55142e801bdf90a1a4))
+* **cli:** show all methods in ambiguous api help ([afe1c5b](https://github.com/minekube/craftless/commit/afe1c5bf70fa75fbfea0bc6ef2a49608207109ae))
+* **daemon:** surface unobserved connect attempts ([3e96d46](https://github.com/minekube/craftless/commit/3e96d46fe5be3f2ceaa21106c77abd5533d189f0))
+
 ## [0.3.0](https://github.com/minekube/craftless/compare/v0.2.0...v0.3.0) (2026-07-01)
 
 
